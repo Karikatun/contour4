@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <AssemblyName>Contour4</AssemblyName>
+    <Version>0.2.18</Version>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../procedural/NativeRaid/Build/*.cs" Exclude="../../procedural/NativeRaid/Build/NativeRaidPlugin.cs" />
+    <Compile Include="../../procedural/NativeRaid/Enemies/EnemyHooks.cs" />
+    <ProjectReference Include="../../procedural/NativeRaid/Generation/Contour4NativeRaidRuntime.csproj" />
+    <Reference Include="BepInEx" HintPath="$(BepInExCore)/BepInEx.dll" Private="false" />
+    <Reference Include="0Harmony" HintPath="$(BepInExCore)/0Harmony.dll" Private="false" />
+    <Reference Include="REPOLib" HintPath="$(RepoLibPath)" Private="false" />
+    <Reference Include="Contour4Valuables" HintPath="$(Contour4ValuablesPath)" Private="false" />
+    <Reference Include="Assembly-CSharp" HintPath="$(GameManaged)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityEngine" HintPath="$(GameManaged)/UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.AIModule" HintPath="$(GameManaged)/UnityEngine.AIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManaged)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AssetBundleModule" HintPath="$(GameManaged)/UnityEngine.AssetBundleModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GameManaged)/UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.TextRenderingModule" HintPath="$(GameManaged)/UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(GameManaged)/UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="Unity.InputSystem" HintPath="$(GameManaged)/Unity.InputSystem.dll" Private="false" />
+    <Reference Include="Unity.Postprocessing.Runtime" HintPath="$(GameManaged)/Unity.Postprocessing.Runtime.dll" Private="false" />
+    <Reference Include="PhotonUnityNetworking" HintPath="$(GameManaged)/PhotonUnityNetworking.dll" Private="false" />
+    <Reference Include="PhotonRealtime" HintPath="$(GameManaged)/PhotonRealtime.dll" Private="false" />
+    <Reference Include="Photon3Unity3D" HintPath="$(GameManaged)/Photon3Unity3D.dll" Private="false" />
+    <Reference Include="Unity.AI.Navigation" HintPath="$(GameManaged)/Unity.AI.Navigation.dll" Private="false" />
+  </ItemGroup>
+  <Target Name="RequireContour4Valuables" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(Contour4ValuablesPath)')" Text="Set Contour4ValuablesPath to the built mandatory Contour4Valuables.dll." />
+  </Target>
+</Project>

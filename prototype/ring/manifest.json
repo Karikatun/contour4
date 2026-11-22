@@ -1,0 +1,11 @@
+{
+  "name": "Contour4",
+  "version_number": "0.2.18",
+  "website_url": "",
+  "description": "A solo gravity ring and seeded procedural raid for R.E.P.O. 0.5.2.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2305",
+    "Zehs-REPOLib-4.5.1",
+    "SpaceJourney-Contour4Valuables-0.2.3"
+  ]
+}

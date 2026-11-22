@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <AssemblyName>Contour4NativeRaidRuntime</AssemblyName>
+    <Version>0.1.0</Version>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="*.cs;../Enemies/StockPortalPursuit.cs" />
+    <Compile Include="../../Catalog/*.cs;../../Source/*.cs;../../Navigation/Runtime/*.cs" />
+    <InternalsVisibleTo Include="Contour4NativeRaid" />
+    <InternalsVisibleTo Include="Contour4" />
+    <Reference Include="UnityEngine" HintPath="$(GameManaged)/UnityEngine.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManaged)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GameManaged)/UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.AIModule" HintPath="$(GameManaged)/UnityEngine.AIModule.dll" Private="false" />
+  </ItemGroup>
+</Project>

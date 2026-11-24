@@ -20,6 +20,7 @@ namespace Contour4.NativeRaid.Runtime
         internal bool Authored { get; }
         internal bool Prepared => PreparedSurfaces != null;
         internal PreparedRaidSurfaces PreparedSurfaces { get; }
+        internal RaidGravityVolume GravityVolume { get; }
         internal IReadOnlyDictionary<string, Collider> CollidersById { get; }
         internal IEnumerable<RaidFloor> Floors => PreparedSurfaces?.Floors ?? new[] { Floor };
         internal RaidFloor DockFloor(Dock dock) => PreparedSurfaces?.DockFloor(dock) ?? Floor;
@@ -43,6 +44,8 @@ namespace Contour4.NativeRaid.Runtime
             Authored = authored;
             CollidersById = collidersById;
             PreparedSurfaces = prepared;
+            if (plan.Module.Id != MobiusHall.Id && !SphericalChamber.IsVariant(plan.Module.Id))
+                GravityVolume = new RaidGravityVolume(this);
         }
     }
 
@@ -69,8 +72,27 @@ namespace Contour4.NativeRaid.Runtime
         internal RaidRoomPrefabs RoomPrefabs { get; private set; }
         internal Transform BranchRoot { get; private set; }
         internal RaidPlan.End? BranchEntrance => plan?.Branch?.Entrance;
-        internal bool ContainsRing(Vector3 point) => BranchRoot && plan.Branch is { } branch &&
-            branch.Descriptor.Reservation.Contains(BranchRoot.InverseTransformPoint(point));
+        private Bounds ringGravityBounds;
+        internal Action<Rigidbody> TrackRingActor { get; private set; }
+
+        internal void BindRingGravity(Bounds reservation, Action<Rigidbody> trackActor)
+        {
+            ringGravityBounds = reservation;
+            ringGravityBounds.Expand(new Vector3(.4f, 8f, .4f));
+            TrackRingActor = trackActor;
+        }
+
+        internal bool ContainsRing(Vector3 point)
+        {
+            if (!BranchRoot || !ringGravityBounds.Contains(BranchRoot.InverseTransformPoint(point))) return false;
+            // Plan reservation and the ring's soft margin are broader than walkable geometry.
+            // A native floor or fold owns the overlap at the physical entrance.
+            if (TryAmbientGravity(point, out _, out _) || MobiusRoomAt(point) != null ||
+                TrySphericalUp(point, Vector3.zero, out _, out _)) return false;
+            foreach (var fold in folds)
+                if (fold.TryUp(point, out _)) return false;
+            return true;
+        }
         internal BakedRoom Room(RaidPlan.Room room) => rooms[room];
 
         internal void Place(int seed, Pose entrance, int worldLayer, int obstacles, bool catalogSites = false,
@@ -124,6 +146,7 @@ namespace Contour4.NativeRaid.Runtime
             {
                 BranchRoot = Child(transform, selected.Descriptor.Module.Id);
                 BranchRoot.SetPositionAndRotation(selected.Placement.position, selected.Placement.rotation);
+
                 selected.Descriptor.Mount(BranchRoot);
                 var ringLink = plan.RingLink;
                 var collar = ringLink.Fold == null ? selected.Entrance :
@@ -645,64 +668,53 @@ namespace Contour4.NativeRaid.Runtime
 
         internal bool TryUp(Vector3 point, out Vector3 up, bool allowsHandOnly = true)
         {
-            // Navigation knots describe a traversable course, not a room-wide field.
-            // Only the ribbon skin wins within one metre; elsewhere the room is
-            // divided exactly at its middle plane, including unsupported falling bodies.
             if (MobiusRoomAt(point) is { } mobius)
             {
-                Vector3 local = mobius.Root.InverseTransformPoint(point);
-                var position = new System.Numerics.Vector3(local.x, local.y, local.z);
-                System.Numerics.Vector3 direction;
-                if (!allowsHandOnly || !MobiusHall.TryGravity(position, out direction))
-                    direction = MobiusHall.RoomUpAt(position);
-                up = mobius.Root.TransformDirection(RaidPlan.Vector(direction));
+                up = allowsHandOnly && MobiusWalk.TryFieldUp(mobius.Root, point, out var ribbonUp)
+                    ? ribbonUp
+                    : MobiusWalk.AmbientUp(mobius.Root, point);
                 return true;
             }
             foreach (var fold in folds)
                 if (fold.TryUp(point, out up)) return true;
-            float nearestSupport = float.PositiveInfinity;
-            Vector3 localUp = default;
-            foreach (var room in rooms.Values.Where(room => room.Prepared))
+
+            bool ambient = TryAmbientGravity(point, out up, out float nearestSupport);
+            bool supportedTurn = false;
+            foreach (var room in rooms.Values)
             {
-                // Spherical route knots are for navigation. The deck and shell
-                // fields alone determine the chamber's physical gravity.
-                if (SphericalChamber.IsVariant(room.Plan.Module.Id) || !room.PreparedSurfaces.Contains(point)) continue;
+                // Sphere route knots are for navigation. The deck and shell
+                // fields alone determine its physical gravity.
+                if (!room.Prepared || SphericalChamber.IsVariant(room.Plan.Module.Id) ||
+                    !room.PreparedSurfaces.Contains(point)) continue;
                 foreach (var turn in room.PreparedSurfaces.Turns)
-                    if (turn.TryUp(point, solidMask, allowsHandOnly, out var rotated, out float depth) && depth <= nearestSupport)
-                    {
-                        nearby(depth, rotated);
-                    }
-                if (room.PreparedSurfaces.TryNearFloor(point, GrayBuilder.Height, solidMask, out var floor, out float distance) &&
-                    distance + .02f < nearestSupport)
-                    nearby(distance, floor.Up);
-            }
-            if (nearestSupport < float.PositiveInfinity)
-            {
-                up = localUp;
-                return true;
-            }
-            foreach (BakedRoom room in rooms.Values)
-            {
-                Vector3 local = room.Root.InverseTransformPoint(point);
-                foreach (Bounds bounds in room.FloorBounds)
                 {
-                    if (local.x < bounds.min.x || local.x > bounds.max.x ||
-                        local.z < bounds.min.z || local.z > bounds.max.z ||
-                        local.y < bounds.min.y - .65f || local.y > bounds.max.y + 6f) continue;
-                    up = room.Root.up;
-                    return true;
+                    if (!turn.TryUp(point, solidMask, allowsHandOnly, out var rotated, out float depth) ||
+                        depth > nearestSupport + .02f) continue;
+                    nearestSupport = depth;
+                    up = rotated;
+                    supportedTurn = true;
                 }
             }
-            if (TryGetComponent(out RaidRoomInteractions mechanisms) && mechanisms.TryShaftUp(point, out up)) return true;
-            up = default;
-            return false;
-
-            void nearby(float distance, Vector3 direction)
-            {
-                nearestSupport = distance;
-                localUp = direction;
-            }
+            if (supportedTurn || ambient) return true;
+            return TryGetComponent(out RaidRoomInteractions mechanisms) && mechanisms.TryShaftUp(point, out up);
         }
+
+        private bool TryAmbientGravity(Vector3 point, out Vector3 up, out float distance)
+        {
+            distance = float.PositiveInfinity;
+            up = default;
+            int ownerIndex = int.MaxValue;
+            foreach (BakedRoom room in rooms.Values)
+            {
+                if (room.GravityVolume == null || !room.GravityVolume.TryFloor(point, out var floor, out float depth) ||
+                    depth > distance || depth == distance && room.Plan.Index >= ownerIndex) continue;
+                distance = depth;
+                ownerIndex = room.Plan.Index;
+                up = floor.Up;
+            }
+            return ownerIndex != int.MaxValue;
+        }
+
 
         private static Pose PoseOf(Transform frame) => new(frame.position, frame.rotation);
 

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Contour4.NativeRaid;
 using UnityEngine;
 
 namespace SpaceJourney;
@@ -42,14 +43,16 @@ internal sealed class PortalEnd
             marker.name.Contains("__Upper_") == upper);
     }
 
-    internal bool Crossed(Vector3 start, Vector3 finish)
+    internal CargoMouth CargoMouth => new(Center, Orientation, Width * .5f, Height * .5f);
+
+    internal bool Crossed(Vector3 start, Vector3 finish) => CargoMouth.CrossingFraction(start, finish, out _);
+
+    internal bool HasCargoSupport(Vector3 sill)
     {
-        float before = DistanceFromPlane(start);
-        float after = DistanceFromPlane(finish);
-        if (before >= 0 || after < 0)
-            return false;
-        Vector3 intersection = Vector3.LerpUnclamped(start, finish, -before / (after - before));
-        return InAperture(intersection);
+        return Physics.Raycast(sill + ScreenUp * .14f, -ScreenUp, out var hit, .30f,
+            LayerMask.GetMask("Default"), QueryTriggerInteraction.Ignore) &&
+            (hit.collider.transform.IsChildOf(Room) || hit.collider.transform.IsChildOf(Marker)) &&
+            Vector3.Dot(hit.normal, ScreenUp) >= .8f;
     }
 
     internal bool InAperture(Vector3 point)

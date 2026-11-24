@@ -32,6 +32,11 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         internal Vector3 WorldCenter => Room.Root.TransformPoint(LocalBounds.center);
+        internal Pose WorldPose => new(Room.Root.TransformPoint(Pose.position), Room.Root.rotation * Pose.rotation);
+        internal RaidLootPlacement Placement(Bounds interior) =>
+            Room.TryFloor(FloorId, out var floor) && floor != null
+                ? new RaidLootPlacement(Room.Root, interior, Support, floor.FloorId)
+                : null;
     }
 
     internal static class RaidLootSites
@@ -72,16 +77,22 @@ namespace Contour4.NativeRaid.Runtime
             var random = new System.Random(raid.Plan.Seed ^ 0x41A76E31);
             foreach (BakedRoom room in raid.Rooms)
             {
+                var interior = RaidLootPlacement.StructuralBounds(room);
+                bool Valid(RaidLootSlot slot) =>
+                    slot.Placement(interior)?.AllowsEnvelope(slot.WorldPose, Envelope(slot.Size)) == true;
+
                 if (room.Prepared)
                 {
                     // The prefab and its checked sidecar own the site, support, floor and stock size.
                     // Large goods also need the assembled cart route to the stock entrance.
-                    foreach (var slot in raid.RoomPrefabs.PreparedLoot(room))
+                    foreach (var authored in raid.RoomPrefabs.PreparedLoot(room))
                     {
+                        var slot = RepositionCeilingLoot(authored);
+                        if (slot != authored && !Valid(authored)) continue;
                         if (slot.Size > RaidLootSize.Medium && !raid.Plan.HasCartAccess(room.Plan, slot.FloorId))
                             continue;
                         if (RaidCatalogSites.OverlapsReservedLoot(slot) ||
-                            !HasClearance(room, slot.LocalBounds.center, Envelope(slot.Size), slot.Pose.rotation))
+                            !Valid(slot))
                             continue;
                         result.Add(slot);
                     }
@@ -94,7 +105,7 @@ namespace Contour4.NativeRaid.Runtime
                 if (room.Plan.Module.Id == FreightServiceRoom.SampleReceiving)
                 {
                     AddReceivingSites(room, supports, routes, roomSlots);
-                    result.AddRange(roomSlots);
+                    result.AddRange(roomSlots.Where(Valid));
                     continue;
                 }
                 foreach (var dressing in room.Plan.Module.Dressing)
@@ -106,9 +117,21 @@ namespace Contour4.NativeRaid.Runtime
                 if (room.Plan.Module.Id.StartsWith("sample-storage", StringComparison.Ordinal))
                     AddSurface(room, supports["large-containers"].Single(), LootSurfaceKind.Raised, -1, random, routes, roomSlots);
                 AddFreightBays(room, routes, roomSlots);
-                result.AddRange(roomSlots);
+                result.AddRange(roomSlots.Where(Valid));
             }
             return result;
+        }
+
+        private static RaidLootSlot RepositionCeilingLoot(RaidLootSlot slot)
+        {
+            if (slot.Room.Plan.Module.Id != MobiusHall.Id || slot.Support.name != "roof") return slot;
+
+            // Set the two old roof sites inside the inverted outlet field, beside the hand route.
+            float target = Mathf.Sign(slot.LocalBounds.center.z) * 1.60f;
+            var shift = Vector3.forward * (target - slot.LocalBounds.center.z);
+            var bounds = new Bounds(slot.LocalBounds.center + shift, slot.LocalBounds.size);
+            return new RaidLootSlot(slot.Room, slot.Support, slot.Kind, slot.Size,
+                new Pose(slot.Pose.position + shift, slot.Pose.rotation), bounds, slot.FloorId);
         }
 
         private static void AddReceivingSites(BakedRoom room, ILookup<string, BoxCollider> supports, Bounds[] routes,

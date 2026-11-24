@@ -44,7 +44,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
     private bool connected;
     private bool live;
     private bool proceduralBranch;
-    private Bounds branchBounds;
+    private RaidAssembly proceduralRaid;
     private float scanTimer;
     private Vector3 playerUpInRing = Vector3.up;
     private Vector3 playerGravityUp = Vector3.up;
@@ -96,8 +96,9 @@ internal sealed partial class RingRuntime : MonoBehaviour
         levelRoot = transform.root;
         ring = authoredRing;
         proceduralBranch = true;
-        branchBounds = reservation;
-        branchBounds.Expand(new Vector3(.4f, 8f, .4f));
+        proceduralRaid = GetComponentInParent<RaidAssembly>();
+        proceduralRaid.BindRingGravity(reservation, TrackActor);
+        gameObject.AddComponent<RingActorGravityStep>().Owner = this;
         PrepareRing();
         Debug.Log($"[Contour4Ring] Attached authored branch at {transform.position:F2}.");
     }
@@ -199,8 +200,13 @@ internal sealed partial class RingRuntime : MonoBehaviour
         Debug.Log($"[Contour4Ring] Authored procedural branch ready: {rooms.Length} rooms, {bridges.Count} bridges, {portals.Count} portal pairs.");
     }
 
-    private bool InBranch(Vector3 point) =>
-        !proceduralBranch || branchBounds.Contains(ring.InverseTransformPoint(point));
+    private bool InBranch(Vector3 point) => !proceduralBranch || proceduralRaid.ContainsRing(point);
+
+    private void TrackActor(Rigidbody body)
+    {
+        if (!furniture.OwnsFront(body) && bodies.TryAdd(body, Vector3.up))
+            NativeRaidGravity.RefreshActorFromRing(proceduralRaid, body, inRing: true);
+    }
 
     private void FixedUpdate()
     {
@@ -217,8 +223,8 @@ internal sealed partial class RingRuntime : MonoBehaviour
         {
             scanTimer = .5f;
             foreach (var prop in FindObjectsByType<PhysGrabObject>(FindObjectsSortMode.None))
-                if (prop.rb && !furniture.OwnsFront(prop.rb) && InBranch(prop.rb.worldCenterOfMass) && !bodies.ContainsKey(prop.rb))
-                    bodies.Add(prop.rb, Vector3.up);
+                if (prop.rb && !bodies.ContainsKey(prop.rb) && InBranch(prop.rb.worldCenterOfMass))
+                    TrackActor(prop.rb);
             foreach (var cart in FindObjectsByType<PhysGrabCart>(FindObjectsSortMode.None))
                 if (InBranch(cart.transform.position)) cartSeams.Register(cart);
         }
@@ -283,8 +289,15 @@ internal sealed partial class RingRuntime : MonoBehaviour
                 ReleaseJumpControl();
         }
 
-        if (live)
-            cartSeams.PhysicsStep(CrossedWhileLoose, (body, crossing) =>
+        bool localCargo = live && GameManager.instance &&
+            (proceduralBranch ? Contour4.IsProceduralRaid(LevelGenerator.Instance) : Contour4.IsSoloRing(LevelGenerator.Instance));
+        if (!localCargo)
+        {
+            cartCargoSamples.Clear();
+            cartSeams?.ClearClaims();
+        }
+        if (localCargo)
+            cartSeams.PhysicsStep(ring, CanCrossDoorCargo, CrossedWhileLoose, (body, crossing) =>
             {
                 cartCargoSamples.Remove(body);
                 lastCenters[body] = ring.InverseTransformPoint(body.worldCenterOfMass);
@@ -314,6 +327,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
             if (!InBranch(body.worldCenterOfMass))
             {
                 bodies.Remove(body);
+                NativeRaidGravity.RefreshActorFromRing(proceduralRaid, body, inRing: false);
                 lastCenters.Remove(body);
                 exitThresholds.Remove(body);
                 cartCargoSamples.Remove(body);
@@ -323,14 +337,14 @@ internal sealed partial class RingRuntime : MonoBehaviour
 
             Vector3 center = ring.InverseTransformPoint(body.worldCenterOfMass);
             PortalEnd support = null;
-            bool inCartSeam = live && cartSeams.TryGetSupport(body, out support);
+            bool inCartSeam = localCargo && cartSeams.TryGetSupport(body, out support);
             if (inCartSeam)
             {
                 if (!cartSeams.IsCart(body))
                     TrackCartCargoCrossing(body, center, support);
                 lastCenters[body] = center;
             }
-            if (live && !inCartSeam && TryCross(body, center, out var crossing))
+            if (localCargo && !inCartSeam && TryCross(body, center, out var crossing))
             {
                 if (player)
                     AdjustHeldTransfer(body, player, crossing);
@@ -340,15 +354,39 @@ internal sealed partial class RingRuntime : MonoBehaviour
                 : FindUp(body.position, body.worldCenterOfMass, bodies[body], out _);
             bodies[body] = up;
             cartSeams.SetSupportAxis(body, ring.TransformDirection(up));
-            if (!body.useGravity)
-                continue;
+            if (!proceduralBranch && body.useGravity)
+                ApplyGravityCorrection(body, ring.TransformDirection(up));
+        }
+    }
+
+    internal void ApplyBranchActorGravity()
+    {
+        if (!connected || !levelRoot) return;
+        var controller = PlayerController.instance;
+        Rigidbody player = controller ? controller.rb : null;
+        bodyBuffer.Clear();
+        bodyBuffer.AddRange(bodies.Keys);
+        foreach (var body in bodyBuffer)
+        {
+            if (!body || body == player || body.isKinematic || !body.useGravity ||
+                !InBranch(body.worldCenterOfMass)) continue;
+
+            Vector3 up = live && cartSeams.TryGetSupport(body, out var support)
+                ? ring.InverseTransformDirection(support.Room.up)
+                : FindUp(body.position, body.worldCenterOfMass, bodies[body], out _);
+            bodies[body] = up;
+            cartSeams.SetSupportAxis(body, ring.TransformDirection(up));
             ApplyGravityCorrection(body, ring.TransformDirection(up));
         }
     }
 
     private void OnDisable()
     {
-        if (furniture.ReleaseHeld()) ClearHeldTransfer(PhysGrabber.instance);
+        if (furniture.ReleaseHeld()) ClearHeldTransfer();
+        cartCargoSamples.Clear();
+        lastCenters.Clear();
+        exitThresholds.Clear();
+        cartSeams?.ClearClaims();
         ReleaseJumpControl();
     }
 
@@ -356,6 +394,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
     {
         if (active == this)
             active = null;
+        ClearHeldTransfer();
         ReleaseJumpControl();
         if (jumpContacts)
             Destroy(jumpContacts);
@@ -390,68 +429,13 @@ internal sealed partial class RingRuntime : MonoBehaviour
         return null;
     }
 
-    internal bool TraceGrab(Vector3 origin, Vector3 direction, out RaycastHit hit, float range, int mask,
-        QueryTriggerInteraction triggers, out Crossing? mapped, out Vector3 pullOrigin)
-    {
-        Camera camera = SemiFunc.MainCamera();
-        float nearCorner = NearCorner(camera);
-        Vector3 renderedEye = portalViews.UnshiftedEye(camera);
-        // The native VisionTransform can lag behind the rendered eye at a jamb.
-        var eyeDoor = CameraSide(renderedEye, nearCorner);
-        if (eyeDoor?.Entry != CameraSide(origin, nearCorner)?.Entry)
-            origin = renderedEye;
-        pullOrigin = origin;
-        if (eyeDoor is Crossing eyeCrossing)
-        {
-            origin = eyeCrossing.TransformPoint(origin);
-            direction = eyeCrossing.Rotation * direction;
-        }
-        mapped = eyeDoor;
+    internal IReadOnlyList<Crossing> GrabDoors => doors;
 
-        Crossing? traversed = null;
-        float reach = range;
-        foreach (var door in doors)
-        {
-            if (door.Entry.TryRay(origin, direction, reach, out float distance))
-            {
-                traversed = door;
-                reach = distance;
-            }
-        }
+    internal Vector3 UnshiftedGrabEye(Camera camera) => portalViews.UnshiftedEye(camera);
 
-        bool local = Physics.Raycast(origin, direction, out hit, reach, mask, triggers);
-        if (looseSeams.TryHitExposed(origin, direction, local ? hit.distance : reach, mask, triggers,
-            out var exposed, out var exposedCrossing))
-        {
-            hit = exposed;
-            mapped = ResolveGrabSide(eyeDoor, exposedCrossing);
-            return true;
-        }
-        if (traversed is not Crossing crossing)
-            return local;
-
-        if (local)
-            return true;
-
-        // Only the residual segment goes through the opening. Exposed hits are tested above.
-        Vector3 remoteOrigin = crossing.TransformPoint(origin + direction * reach);
-        Vector3 remoteDirection = crossing.Rotation * direction;
-        // A stock ray ignores a collider enclosing its origin. Test containment at the
-        // artificial segment start so an obstruction spanning the exit cannot be skipped.
-        hit = default;
-        foreach (var collider in Physics.OverlapSphere(remoteOrigin, .001f, mask, triggers))
-            if (collider is BoxCollider or SphereCollider or CapsuleCollider or MeshCollider { convex: true } &&
-                (collider.ClosestPoint(remoteOrigin) - remoteOrigin).sqrMagnitude < 1e-10f)
-                return false;
-        if (!Physics.Raycast(remoteOrigin, remoteDirection, out hit, range - reach, mask, triggers))
-            return false;
-        hit.distance += reach;
-        mapped = ResolveGrabSide(eyeDoor, crossing);
-        return true;
-    }
-
-    private static Crossing? ResolveGrabSide(Crossing? eyeDoor, Crossing hitDoor) =>
-        eyeDoor.HasValue && eyeDoor.Value.Exit == hitDoor.Entry ? null : hitDoor;
+    internal bool TryHitExposedForGrab(Vector3 origin, Vector3 direction, float reach, int mask,
+        QueryTriggerInteraction triggers, out RaycastHit hit, out Crossing crossing) =>
+        looseSeams.TryHitExposed(origin, direction, reach, mask, triggers, out hit, out crossing);
 
     private bool CheckBridgeFall(Rigidbody player)
     {
@@ -510,16 +494,13 @@ internal sealed partial class RingRuntime : MonoBehaviour
         AccessTools.Field(typeof(PhysGrabber), "grabbedPhysGrabObject");
     private static readonly System.Reflection.FieldInfo PullingCart =
         AccessTools.Field(typeof(PhysGrabCart), "cartBeingPulled");
-    private PhysGrabObject heldTransit;
-    private Crossing? heldPull;
+    private readonly PortalGrab.MappedHold mappedHold = new();
     private Vector3? mappedPullInRing;
 
     internal void BeginMappedHold(PhysGrabber grabber, PhysGrabObject held, Crossing crossing)
     {
-        heldTransit = held;
-        heldPull = crossing;
+        mappedHold.Begin(grabber, held, new PortalGrab.GrabCrossing(crossing));
         mappedPullInRing = null;
-        grabber.OverrideAlwaysGrabbable(.10f);
     }
 
     private void AdjustHeldTransfer(Rigidbody body, Rigidbody player, Crossing crossing)
@@ -531,15 +512,15 @@ internal sealed partial class RingRuntime : MonoBehaviour
         if (furniture.OwnsFront(held.rb))
         {
             grabber.ReleaseObject(-1);
-            ClearHeldTransfer(grabber);
+            ClearHeldTransfer();
             return;
         }
 
         Crossing fromPlayer = body == player ? crossing.Reverse() : crossing;
-        if (heldTransit == held && heldPull is Crossing previous &&
+        if (mappedHold.IsHeldBy(grabber) && mappedHold.Door?.Ring is Crossing previous &&
             previous.Entry == fromPlayer.Exit && previous.Exit == fromPlayer.Entry)
         {
-            ClearHeldTransfer(grabber);
+            ClearHeldTransfer();
             return;
         }
         // The player can cross during physics, before the grabber updates its native puller.
@@ -548,53 +529,26 @@ internal sealed partial class RingRuntime : MonoBehaviour
 
     internal void RemapHeldPull(PhysGrabber grabber)
     {
-        if (heldPull is not Crossing crossing)
-            return;
-        var player = PlayerController.instance;
-        if (!player || !player.rb || !grabber.physGrabPointPuller || !heldTransit || !heldTransit.rb || !grabber.grabbed ||
-            HeldObject.GetValue(grabber) as PhysGrabObject != heldTransit)
-        {
-            ClearHeldTransfer(grabber);
-            return;
-        }
-
-        Vector3 playerCenter = player.rb.worldCenterOfMass;
-        Vector3 virtualPlayer = crossing.TransformPoint(playerCenter);
-        Vector3 bodyCenter = heldTransit.rb.worldCenterOfMass;
-        if (Vector3.Distance(playerCenter, crossing.Entry.Center) > grabber.grabReleaseDistance ||
-            Vector3.Distance(bodyCenter, virtualPlayer) > grabber.grabReleaseDistance)
-        {
-            ClearHeldTransfer(grabber);
-            return;
-        }
-
-        // Keep the game's puller transform untouched so each frame starts from native coordinates.
-        Vector3 mapped = crossing.TransformPoint(grabber.physGrabPointPuller.position);
-        grabber.physGrabPointPullerPosition = mapped;
-        mappedPullInRing = ring.InverseTransformPoint(mapped);
-        // Bypass the native straight-line range check without blocking release input.
-        grabber.OverrideAlwaysGrabbable(.10f);
+        mappedPullInRing = mappedHold.Remap(grabber)
+            ? ring.InverseTransformPoint(grabber.physGrabPointPullerPosition)
+            : null;
     }
 
-    private void ClearHeldTransfer(PhysGrabber grabber)
+    private void ClearHeldTransfer()
     {
-        if (mappedPullInRing.HasValue && grabber && grabber.physGrabPointPuller)
-            grabber.physGrabPointPullerPosition = grabber.physGrabPointPuller.position;
-        heldTransit = null;
-        heldPull = null;
+        mappedHold.Clear();
         mappedPullInRing = null;
     }
 
     internal bool SteerCartAcrossDoor(PhysGrabCart cart)
     {
         var grabber = PhysGrabber.instance;
-        if (heldPull is not Crossing crossing || crossing.Exit.Upper || mappedPullInRing is not Vector3 mapped ||
-            !grabber || !grabber.grabbed || !heldTransit || HeldObject.GetValue(grabber) as PhysGrabObject != heldTransit ||
-            !heldTransit.rb || !cart.cartGrabPoint ||
-            heldTransit.GetComponentInChildren<PhysGrabCart>() != cart)
+        if (mappedHold.Door?.Ring is not Crossing crossing || crossing.Exit.Upper ||
+            mappedPullInRing is not Vector3 mapped || !mappedHold.IsHeldBy(grabber) || !cart.cartGrabPoint ||
+            mappedHold.Held.GetComponentInChildren<PhysGrabCart>() != cart)
             return false;
 
-        var body = heldTransit.rb;
+        var body = mappedHold.Held.rb;
         Vector3 up = crossing.Exit.Room.up;
         Vector3 correction = Vector3.ProjectOnPlane(ring.TransformPoint(mapped) - cart.cartGrabPoint.position, up);
         Vector3 desired = Vector3.ClampMagnitude(correction * 2.4f, 4.5f);
@@ -780,16 +734,27 @@ internal sealed partial class RingRuntime : MonoBehaviour
         cartCargoSamples[body] = (support, pending);
     }
 
+    private bool CanCrossDoorCargo(Rigidbody body)
+    {
+        if (!PortalCargoDoor.TryActor(body, out var actor) || body.gameObject.scene != gameObject.scene ||
+            furniture.OwnsFront(body)) return false;
+        if (!PortalCargoDoor.IsHeld(actor)) return true;
+        return PortalCargoDoor.IsLocalHold(actor) &&
+            ProceduralPortalPresentation.Grab?.Hold.IsHeldBy(PhysGrabber.instance) != true;
+    }
+
     private bool CrossedWhileLoose(Rigidbody body, PortalEnd support)
     {
         // Preserve a real loose crossing when an item overlaps the basket for the first time this step.
-        if ((cartCargoSamples.TryGetValue(body, out var sample) && sample.Support == support) ||
-            !lastCenters.TryGetValue(body, out Vector3 previous))
-            return false;
+        if (!lastCenters.TryGetValue(body, out Vector3 previous)) return false;
+        cartCargoSamples.TryGetValue(body, out var sample);
+        if (sample.Support == support) return false;
         Vector3 finish = body.worldCenterOfMass;
-        if ((ring.InverseTransformPoint(finish) - previous).sqrMagnitude > 25f)
+        if (sample.Support == null && sample.Pending is Crossing blocked &&
+            blocked.Entry.DistanceFromPlane(finish) >= 0 && blocked.Entry.InAperture(finish))
+            return true;
+        if (!PortalCargoDoor.Continuous(ring, previous, finish, out var start))
             return false;
-        Vector3 start = ring.TransformPoint(previous);
         return FindCrossing(body, start, finish, CrossingBlock(body, start, finish, false), false, out _);
     }
 
@@ -813,15 +778,32 @@ internal sealed partial class RingRuntime : MonoBehaviour
 
     private bool FindCrossing(Rigidbody body, Vector3 start, Vector3 finish, PortalEnd blockedEnd, bool isPlayer, out Crossing crossing)
     {
+        crossing = default;
+        float fraction = float.PositiveInfinity;
         foreach (var portal in portals)
         {
-            if (!portal.A.Upper && !isPlayer && cartSeams.IsCart(body))
+            if (isPlayer)
+            {
+                if (portal.TryCross(start, finish, blockedEnd, out crossing)) return true;
                 continue;
-            if (portal.TryCross(start, finish, blockedEnd, out crossing))
-                return true;
+            }
+
+            if (!portal.A.Upper && (cartSeams.IsCart(body) || !CanCrossDoorCargo(body))) continue;
+            if (portal.A != blockedEnd &&
+                portal.A.CargoMouth.CrossingFraction(start, finish, out float a) && a < fraction)
+            {
+                crossing = new Crossing(portal.A, portal.B);
+                fraction = a;
+            }
+            if (portal.B != blockedEnd &&
+                portal.B.CargoMouth.CrossingFraction(start, finish, out float b) && b < fraction)
+            {
+                crossing = new Crossing(portal.B, portal.A);
+                fraction = b;
+            }
         }
-        crossing = default;
-        return false;
+
+        return crossing.Entry != null;
     }
 
     private bool TryCross(Rigidbody body, Vector3 current, out Crossing crossing, bool isPlayer = false)
@@ -839,13 +821,31 @@ internal sealed partial class RingRuntime : MonoBehaviour
         if (blockedEnd == null)
             exitThresholds.Remove(body);
 
-        if (!FindCrossing(body, start, finish, blockedEnd, isPlayer, out crossing))
+        // A blocked body retries its first opening until it returns to the source side.
+        if (cargoSample.Support == null && cargoSample.Pending is Crossing blockedDoor && CanFinish(blockedDoor))
+            crossing = blockedDoor;
+        else if (!FindCrossing(body, start, finish, blockedEnd, isPlayer, out crossing))
         {
-            // A released load can complete its recorded crossing through the same opening.
-            if (cargoSample.Pending is not Crossing cargoCrossing || cargoCrossing.Entry == blockedEnd ||
-                cargoCrossing.Entry.DistanceFromPlane(finish) < 0 || !cargoCrossing.Entry.InAperture(finish))
-                return false;
+            if (cargoSample.Pending is not Crossing cargoCrossing || !CanFinish(cargoCrossing)) return false;
             crossing = cargoCrossing;
+        }
+
+        bool CanFinish(Crossing candidate) => candidate.Entry != blockedEnd &&
+            candidate.Entry.DistanceFromPlane(finish) >= 0 && candidate.Entry.InAperture(finish);
+
+        if (!isPlayer && !crossing.Entry.Upper)
+        {
+            if (!CanCrossDoorCargo(body)) return false;
+            var entry = crossing.Entry.CargoMouth;
+            Vector3 atDoor = entry.CrossingFraction(start, finish, out float t) ?
+                Vector3.LerpUnclamped(start, finish, t) : finish - entry.Forward * entry.Local(finish).z;
+            var result = PortalCargoDoor.Traverse(entry, crossing.Exit.CargoMouth, crossing.Rotation,
+                body, null, new HashSet<Rigidbody> { body }, atDoor, false);
+            lastCenters[body] = ring.InverseTransformPoint(body.worldCenterOfMass);
+            if (result == CargoTraversalResult.Blocked) cartCargoSamples[body] = (null, crossing);
+            if (result != CargoTraversalResult.Moved) return false;
+            exitThresholds[body] = crossing.Exit;
+            return true;
         }
 
         if (isPlayer && jumpTurn == JumpTurn.Turning)
@@ -1117,5 +1117,16 @@ internal sealed partial class RingRuntime : MonoBehaviour
             up = new Vector3(0, Mathf.Cos(radians), -sign * Mathf.Sin(radians));
             return true;
         }
+    }
+}
+
+[DefaultExecutionOrder(1300)]
+internal sealed class RingActorGravityStep : MonoBehaviour
+{
+    internal RingRuntime Owner { get; set; }
+
+    private void FixedUpdate()
+    {
+        if (Owner && Owner.isActiveAndEnabled) Owner.ApplyBranchActorGravity();
     }
 }

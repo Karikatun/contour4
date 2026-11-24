@@ -110,6 +110,20 @@ namespace Contour4.NativeRaid.Runtime
             .Where(room => room.Root.Find("Catalog sites"))
             .SelectMany(room => room.Root.Find("Catalog sites").Cast<Transform>());
 
+        internal static RaidLootPlacement Placement(RaidAssembly raid, Transform marker, string key)
+        {
+            var room = raid.Rooms.Single(room => marker.parent.parent == room.Root);
+            var site = Selected(room.Plan.Module.Id, raid.Plan.Seed).Single(site => site.Key == key);
+            var supports = room.Colliders.Where(collider => collider.name == site.Support);
+            var interior = RaidLootPlacement.StructuralBounds(room);
+            foreach (var collider in supports)
+            {
+                var placement = new RaidLootPlacement(room.Root, interior, collider, room.Floor.FloorId);
+                if (placement.Supports(marker.position, marker.up)) return placement;
+            }
+            throw new InvalidOperationException("Missing catalog support " + key);
+        }
+
         internal static bool OverlapsReservedLoot(RaidLootSlot slot) => slot.Room.Root.Find("Catalog sites") &&
             Definitions(slot.Room.Plan.Module.Id).Any(site =>
                 slot.LocalBounds.Intersects(new Bounds(site.Bottom + Vector3.up * (site.Size.y / 2f), site.Size)));

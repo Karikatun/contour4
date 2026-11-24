@@ -12,11 +12,13 @@ namespace Contour4.NativeRaid.Runtime
         private bool observedSupport, newJump;
         internal Collider Ribbon { get; }
         internal bool Attached => mode == Mode.Ribbon;
-        internal Vector3 RoomUp(Vector3 point)
+        internal Vector3 RoomUp(Vector3 point) => AmbientUp(room, point);
+
+        internal static Vector3 AmbientUp(Transform room, Vector3 point)
         {
             Vector3 local = room.InverseTransformPoint(point);
             var up = MobiusHall.RoomUpAt(new(local.x, local.y, local.z));
-            return room.TransformDirection(new Vector3(up.X, up.Y, up.Z));
+            return room.TransformDirection(RaidPlan.Vector(up));
         }
 
         internal MobiusWalk(Transform room, Collider ribbon)
@@ -84,7 +86,7 @@ namespace Contour4.NativeRaid.Runtime
         private bool TrySupport(Vector3 feet, out RaycastHit hit)
         {
             var ray = new Ray(feet + Vector3.up * .15f, Vector3.down);
-            // The access ramps remain ordinary physical support in their room half.
+            // The access ramps remain ordinary physical support inside their local field.
             // Only the true ribbon can attach and rotate the observer's world frame.
             return Ribbon.Raycast(ray, out hit, .34f) && hit.normal.y > .50f;
         }

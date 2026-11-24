@@ -1,3 +1,4 @@
+using Contour4.NativeRaid;
 using System;
 using System.Collections.Generic;
 using Contour4.NativeRaid.Runtime;
@@ -13,12 +14,17 @@ internal static class ProceduralCatalogLoot
     internal static void Spawn(RaidAssembly raid)
     {
         if (!SemiFunc.IsMasterClientOrSingleplayer()) return;
+        Physics.SyncTransforms();
         var staged = new List<GameObject>();
         try
         {
             foreach (var site in RaidCatalogSites.Sites(raid))
             {
-                var item = ValuableApi.Spawn(site.name.Substring("valuable__".Length), site.position, site.rotation);
+                string key = site.name.Substring("valuable__".Length);
+                var placement = RaidCatalogSites.Placement(raid, site, key);
+                if (!RaidLootPrefab.Fits(ValuableApi.GetPrefab(key), placement, new Pose(site.position, site.rotation)))
+                    throw new InvalidOperationException("Procedural catalog prefab does not fit site " + site.name);
+                var item = ValuableApi.Spawn(key, site.position, site.rotation);
                 if (!item) throw new InvalidOperationException("Procedural catalog spawn failed: " + site.name);
                 // Network-created props retain their native parent and gravity configuration.
                 staged.Add(item);

@@ -12,7 +12,6 @@ namespace SpaceJourney;
 internal sealed class CartSeams
 {
     private const float ApproachDistance = 2.6f;
-    private static readonly System.Reflection.FieldInfo Basket = AccessTools.Field(typeof(PhysGrabCart), "inCart");
     private static readonly Dictionary<Rigidbody, Vector3> supportAxes = new();
 
     private readonly List<Crossing> doors = new();
@@ -76,18 +75,40 @@ internal sealed class CartSeams
             supportAxes[body] = up;
     }
 
-    internal void PhysicsStep(Func<Rigidbody, PortalEnd, bool> crossedWhileLoose, Action<Rigidbody, Crossing> onMoved)
+    internal void PhysicsStep(Transform frame, Func<Rigidbody, bool> canCross,
+        Func<Rigidbody, PortalEnd, bool> crossedWhileLoose, Action<Rigidbody, Crossing> onMoved)
     {
         claimed.Clear();
         foreach (var cart in carts.Values)
         {
-            if (!cart.Body || cart.Body.isKinematic)
+            if (!canCross(cart.Body) || !PortalCargoDoor.IsValidCart(cart.Component, cart.Body))
             {
-                cart.Cancel();
+                cart.ClearHistory();
                 continue;
             }
 
             var body = cart.Body;
+            Vector3 finish = body.worldCenterOfMass;
+            Vector3? previous = cart.LastCenter;
+            cart.LastCenter = frame.InverseTransformPoint(finish);
+            if (previous is Vector3 sample && PortalCargoDoor.Continuous(frame, sample, finish, out var start))
+            {
+                Crossing? first = null;
+                float fraction = float.PositiveInfinity;
+                foreach (var door in doors)
+                {
+                    if (!door.Entry.CargoMouth.CrossingFraction(start, finish, out float t) || t >= fraction) continue;
+                    first = door;
+                    fraction = t;
+                }
+                if (first is Crossing crossed)
+                {
+                    cart.Crossing = crossed;
+                    cart.PassedSill = true;
+                }
+            }
+            else
+                cart.Cancel();
             if (cart.Crossing is not Crossing crossing)
             {
                 foreach (var door in doors)
@@ -113,8 +134,11 @@ internal sealed class CartSeams
                 continue;
             }
 
+            if (crossing.Entry.DistanceFromPlane(position) < 0f)
+                cart.PassedSill = false;
+
             cart.CaptureCargo();
-            cart.Cargo.RemoveWhere(item => crossedWhileLoose(item, crossing.Entry));
+            cart.Cargo.RemoveWhere(item => claimed.ContainsKey(item) || crossedWhileLoose(item, crossing.Entry));
             claimed[body] = crossing.Entry;
             foreach (var cargo in cart.Cargo)
                 claimed[cargo] = crossing.Entry;
@@ -123,10 +147,22 @@ internal sealed class CartSeams
             float rear = BackOf(hull, crossing.Entry);
             foreach (var item in cart.Cargo)
                 rear = Mathf.Min(rear, BackOf(cart.CargoBounds(item), crossing.Entry));
-            if (rear <= .035f)
+            if (!cart.PassedSill || rear <= .035f)
                 continue;
 
-            Move(cart, crossing);
+            cart.Cargo.Add(body);
+            var result = PortalCargoDoor.Traverse(crossing.Entry.CargoMouth, crossing.Exit.CargoMouth,
+                crossing.Rotation, body, cart.Component, cart.Cargo,
+                body.worldCenterOfMass - crossing.Entry.Normal * crossing.Entry.DistanceFromPlane(body.worldCenterOfMass),
+                true, crossing.Entry.HasCargoSupport, crossing.Exit.HasCargoSupport);
+            cart.Cargo.Remove(body);
+            cart.LastCenter = frame.InverseTransformPoint(body.worldCenterOfMass);
+            if (result != CargoTraversalResult.Moved)
+            {
+                if (result == CargoTraversalResult.Retreated) cart.Cancel();
+                continue;
+            }
+            Debug.Log($"[Contour4Ring] Cart and {cart.Cargo.Count} cargo bodies rolled through {crossing.Entry.Room.name} -> {crossing.Exit.Room.name}.");
             claimed[body] = crossing.Exit;
             onMoved(body, crossing);
             foreach (var cargo in cart.Cargo)
@@ -148,45 +184,10 @@ internal sealed class CartSeams
     private static float FrontOf(Bounds bounds, PortalEnd end) =>
         2f * end.DistanceFromPlane(bounds.center) - BackOf(bounds, end);
 
-    private static void Move(Cart cart, Crossing crossing)
+    internal void ClearClaims()
     {
-        // One rigid frame transform preserves contact geometry and relative velocity of the entire load.
-        var movement = new List<BodyTransfer>(cart.Cargo.Count + 1) { new(cart.Body, crossing) };
-        foreach (var cargo in cart.Cargo)
-            movement.Add(new BodyTransfer(cargo, crossing));
-        foreach (var body in movement)
-            body.Apply();
-        cart.MoveNativeHistory(crossing.TransformPoint, crossing.Rotation);
-        Physics.SyncTransforms();
-        Debug.Log($"[Contour4Ring] Cart and {cart.Cargo.Count} cargo bodies rolled through {crossing.Entry.Room.name} -> {crossing.Exit.Room.name}.");
-    }
-
-    private readonly struct BodyTransfer
-    {
-        private readonly Rigidbody body;
-        private readonly Vector3 position;
-        private readonly Quaternion rotation;
-        private readonly Vector3 velocity;
-        private readonly Vector3 spin;
-
-        internal BodyTransfer(Rigidbody body, Crossing crossing)
-        {
-            this.body = body;
-            var turn = crossing.Rotation;
-            position = crossing.TransformPoint(body.position);
-            rotation = turn * body.rotation;
-            velocity = turn * body.linearVelocity;
-            spin = turn * body.angularVelocity;
-        }
-
-        internal void Apply()
-        {
-            body.transform.SetPositionAndRotation(position, rotation);
-            body.position = position;
-            body.rotation = rotation;
-            body.linearVelocity = velocity;
-            body.angularVelocity = spin;
-        }
+        claimed.Clear();
+        foreach (Cart cart in carts.Values) cart.ClearHistory();
     }
 
     internal void ReorientNativeHistory(Vector3 pivot, Vector3 destination, Quaternion delta)
@@ -262,22 +263,21 @@ internal sealed class CartSeams
 
     private sealed class Cart
     {
-        private readonly Transform basket;
         private readonly Collider[] hull;
         private readonly Dictionary<Rigidbody, SeamImage[]> copies = new();
         private readonly Dictionary<Rigidbody, Collider[]> cargoColliders = new();
         private readonly List<Rigidbody> obsolete = new();
-        private readonly Collider[] overlaps = new Collider[96];
         internal PhysGrabCart Component { get; }
         internal Rigidbody Body { get; }
         internal Crossing? Crossing { get; set; }
+        internal Vector3? LastCenter { get; set; }
+        internal bool PassedSill { get; set; }
         internal readonly HashSet<Rigidbody> Cargo = new();
 
         internal Cart(PhysGrabCart component, Rigidbody body)
         {
             Component = component;
             Body = body;
-            basket = Basket.GetValue(component) as Transform;
             hull = body.GetComponentsInChildren<Collider>(true)
                 .Where(collider => !collider.isTrigger && collider.attachedRigidbody == body).ToArray();
         }
@@ -310,28 +310,13 @@ internal sealed class CartSeams
         internal void CaptureCargo()
         {
             Cargo.Clear();
-            if (!basket)
-                return;
-            // Match the game's physical basket query; the UI's cached items list can be stale at the threshold.
-            Vector3 half = basket.localScale * .5f;
-            int count = Physics.OverlapBoxNonAlloc(basket.position, half, overlaps, basket.rotation,
-                LayerMask.GetMask("PhysGrabObject"), QueryTriggerInteraction.Ignore);
-            Quaternion toBasket = Quaternion.Inverse(basket.rotation);
-            Vector3 down = toBasket * (Body.rotation * Vector3.down);
-            var basketVolume = new Bounds(Vector3.zero, half * 2f);
-            for (int i = 0; i < count; i++)
-            {
-                var item = overlaps[i].attachedRigidbody;
-                if (!item || item == Body || item.isKinematic || !item.TryGetComponent<PhysGrabObject>(out var prop) ||
-                    item.GetComponentInChildren<PhysGrabCart>())
-                    continue;
-                if (prop.grabbed || prop.grabbedLocal || prop.playerGrabbing.Count > 0)
-                    continue;
-                // Require the basket beneath the cargo center, including bulky loads that protrude above the rim.
-                Vector3 center = toBasket * (item.worldCenterOfMass - basket.position);
-                if (basketVolume.IntersectRay(new Ray(center, down)))
-                    Cargo.Add(item);
-            }
+            PortalCargoDoor.CaptureBasket(Component, Body, Cargo);
+        }
+
+        internal void ClearHistory()
+        {
+            LastCenter = null;
+            Cancel();
         }
 
         internal void MoveNativeHistory(Func<Vector3, Vector3> map, Quaternion turn)
@@ -382,6 +367,7 @@ internal sealed class CartSeams
         internal void Cancel()
         {
             Crossing = null;
+            PassedSill = false;
             Cargo.Clear();
             cargoColliders.Clear();
             ClearCopies();

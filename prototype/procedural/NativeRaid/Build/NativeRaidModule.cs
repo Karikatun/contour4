@@ -27,6 +27,11 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private Rigidbody trackedBody;
     private PlayerAvatar trackedAvatar;
     private readonly PortalDoorDebris portalDoorDebris = new();
+    private readonly NativeRaidCargoTraversal cargoTraversal = new();
+    private readonly HashSet<Rigidbody> transferredWithPlayer = new();
+    internal Func<PhysGrabber, NativeRaidPortal, (bool CanCross, Rigidbody Body)?> MappedHandFor { private get; set; }
+    internal Action<bool> ClearMappedHand { private get; set; }
+    internal Action UnbindMappedHand { private get; set; }
     private Transform arrivalDoor;
     private Vector3 previousFeetInRaid;
     private bool catalogSpawned;
@@ -257,12 +262,20 @@ internal sealed class NativeRaidModule : MonoBehaviour
 
     private void FixedUpdate()
     {
+        transferredWithPlayer.Clear();
         var context = raid ? raid.Context : null;
-        if (context == null || !SemiFunc.LevelGenDone()) return;
+        var generator = LevelGenerator.Instance;
+        if (context == null || !generator || !generator.Level || generator.Level.name != NativeRaidFeature.LevelName ||
+            !GameManager.instance || GameManager.Multiplayer() || !SemiFunc.LevelGenDone())
+        {
+            cargoTraversal.Clear();
+            return;
+        }
         var controller = PlayerController.instance;
         var avatar = PlayerAvatar.instance;
         if (!controller || !controller.rb || !avatar || (bool)AvatarDisabled.GetValue(avatar))
         {
+            cargoTraversal.Clear();
             ClearPlayerTracking();
             if (playerTarget) playerTarget.Unbind();
             return;
@@ -303,6 +316,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
         trackedBody = body;
         trackedAvatar = avatar;
         previousFeetInRaid = raid.transform.InverseTransformPoint(feet);
+        cargoTraversal.Step(raid, context, transferredWithPlayer);
         UpdateTarget(context, avatar, feet, destination);
     }
 
@@ -316,6 +330,17 @@ internal sealed class NativeRaidModule : MonoBehaviour
         var grabber = PhysGrabber.instance;
         bool holding = grabber && grabber.grabbed;
         bool rebase = Vector3.Dot(portal.EntryFloor.Up, portal.ExitFloor.Up) < .9999f;
+        if (holding && MappedHandFor?.Invoke(grabber, portal) is { } mappedHand)
+        {
+            // The held body already occupies the destination. Transfer only the player.
+            if (!mappedHand.CanCross || !MovePlayerAcross(controller, avatar, portal, previousFeet, rebase, mappedHand.Body))
+                return false;
+
+            // A same-up crossing keeps the last mapped world pull until stock Update runs.
+            // A stage rebase instead brings the destination into the native puller frame.
+            ClearMappedHand?.Invoke(!rebase);
+            return true;
+        }
         if (holding)
         {
             if (!NativeRaidPortalCargo.TryPrepare(raid, portal, body, previousFeet, grabber, rebase,
@@ -334,12 +359,20 @@ internal sealed class NativeRaidModule : MonoBehaviour
                 NativeRaidPlayerPose.Reframe(controller, avatar, SemiFunc.MainCamera(), cargoLanding, portal.TravelRotation);
             }
             transfer.Apply(portal);
+            transferredWithPlayer.UnionWith(transfer.Bodies);
             return true;
         }
 
+        return MovePlayerAcross(controller, avatar, portal, previousFeet, rebase);
+    }
+
+    private bool MovePlayerAcross(PlayerController controller, PlayerAvatar avatar, NativeRaidPortal portal,
+        Vector3 previousFeet, bool rebase, Rigidbody mappedHand = null)
+    {
+        var body = controller.rb;
         if (!raid.TryPassPlayer(portal, body.position, out Vector3 landing, previousFeet)) return false;
         if (rebase)
-            return NativeRaidGravity.TryRebasePlayerAcross(raid, portal, body, landing);
+            return NativeRaidGravity.TryRebasePlayerAcross(raid, portal, body, landing, mappedHand: mappedHand);
         NativeRaidGravity.ReleaseNativeJumpForPortal();
         NativeRaidPlayerPose.Reframe(controller, avatar, SemiFunc.MainCamera(), landing, portal.TravelRotation);
         return true;
@@ -433,9 +466,13 @@ internal sealed class NativeRaidModule : MonoBehaviour
 
     private void OnDisable()
     {
+        cargoTraversal.Clear();
+        ClearMappedHand?.Invoke(false);
         ClearTarget();
         ClearPlayerTracking();
     }
+
+    private void OnDestroy() => UnbindMappedHand?.Invoke();
 
     private void ClearPlayerTracking()
     {

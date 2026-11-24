@@ -38,7 +38,6 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
     private bool hasMobiusHall;
     private bool hasSphericalChamber;
     private bool actorsReady;
-    private bool HasDeferredActorGravity => hasMobiusHall || hasSphericalChamber;
 
     internal static void Attach(RaidAssembly raid)
     {
@@ -47,8 +46,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         gravity.levelRoot = raid.transform.root;
         gravity.hasMobiusHall = raid.Rooms.Any(room => room.Prepared && room.Plan.Module.Id == MobiusHall.Id);
         gravity.hasSphericalChamber = raid.Rooms.Any(room => room.Prepared && SphericalChamber.IsVariant(room.Plan.Module.Id));
-        if (gravity.HasDeferredActorGravity)
-            raid.gameObject.AddComponent<NativeRaidActorGravityStep>().Owner = gravity;
+        raid.gameObject.AddComponent<NativeRaidActorGravityStep>().Owner = gravity;
         raid.gameObject.AddComponent<NativeRaidSphericalGravityStep>().Owner = gravity;
         active = gravity;
     }
@@ -79,8 +77,14 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         if (!actorsReady) { ClearNativeJump(); return; }
         var player = controller.rb;
         jumpSampled = false;
-        if (jumpBody && (!ValidJump(controller) || raid.ContainsRing(player.position))) ClearNativeJump();
-        if (!UpdateRibbon(player) && !UpdateSphericalOrientation(player) && raid.TryUp(JumpSample(player), out Vector3 up) &&
+        bool onRing = raid.ContainsRing(player.position);
+        if (jumpBody && (!ValidJump(controller) || onRing)) ClearNativeJump();
+        if (onRing)
+        {
+            ClearRibbon();
+            ClearSphericalOrientation();
+        }
+        else if (!UpdateRibbon(player) && !UpdateSphericalOrientation(player) && raid.TryUp(JumpSample(player), out Vector3 up) &&
             !HoldNativeJump(player, up, IsJumpBridge(JumpSample(player))) && Vector3.Dot(up, Vector3.up) < .999999f)
         {
             Quaternion turn = Quaternion.FromToRotation(up, Vector3.up);
@@ -102,8 +106,6 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         foreach (Rigidbody item in newRibbonLoot)
             if (item && !actors.Contains(item)) actors.Add(item);
         newRibbonLoot.Clear();
-        foreach (Rigidbody actor in actors)
-            if (!HasDeferredActorGravity || (actor && carts.ContainsKey(actor))) ApplyActorGravity(actor);
     }
 
     internal void ApplyDeferredActorGravity()
@@ -113,8 +115,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
             foreach (Rigidbody item in newRibbonLoot) ApplyActorGravity(item, ribbonOnly: true);
             return;
         }
-        foreach (Rigidbody actor in actors)
-            if (actor && !carts.ContainsKey(actor)) ApplyActorGravity(actor);
+        foreach (Rigidbody actor in actors) ApplyActorGravity(actor);
     }
 
     private bool UpdateSphericalOrientation(Rigidbody player)
@@ -175,6 +176,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         var controller = PlayerController.instance;
         if (!controller || !controller.rb || controller.rb.isKinematic || !controller.rb.useGravity) return;
         Rigidbody player = controller.rb;
+        if (raid.ContainsRing(player.position)) return;
         Vector3 up;
         if (jumpWaiting && jumpBody == player && ValidJump(controller)) up = jumpUp;
         else if (!raid.TrySphericalUp(player.position, Vector3.up, out up, out _)) return;
@@ -198,20 +200,20 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
     private void ApplyActorGravity(Rigidbody actor, bool ribbonOnly = false)
     {
         if (!actor || actor.isKinematic || actor.IsSleeping() || !actor.useGravity) return;
-        bool cart = carts.ContainsKey(actor);
         Vector3 center = actor.worldCenterOfMass;
-        BakedRoom room = !cart && hasMobiusHall ? raid.MobiusRoomAt(center) : null;
-        Vector3 up;
-        if (room != null)
+        if (raid.ContainsRing(center))
         {
-            if (!MobiusWalk.TryFieldUp(room.Root, center, out up))
-            {
-                if (ribbonOnly) return;
-                Vector3 local = room.Root.InverseTransformPoint(center);
-                up = room.Root.TransformDirection(RaidPlan.Vector(MobiusHall.RoomUpAt(new(local.x, local.y, local.z))));
-            }
+            if (!ribbonOnly) raid.TrackRingActor?.Invoke(actor);
+            return;
         }
-        else if (ribbonOnly || !TryUp(center, out up, !cart)) return;
+
+        Vector3 up;
+        if (ribbonOnly)
+        {
+            var room = raid.MobiusRoomAt(center);
+            if (room == null || !MobiusWalk.TryFieldUp(room.Root, center, out up)) return;
+        }
+        else if (!TryActorUp(actor, center, out up, !carts.ContainsKey(actor))) return;
         Vector3 correction = MobiusWalk.TakeoffGravityCorrection(up, Physics.gravity);
         if (correction.sqrMagnitude > .00001f) actor.AddForce(correction, ForceMode.Acceleration);
     }
@@ -244,9 +246,8 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
             Vector3 velocity = player.linearVelocity;
             Vector3 spin = player.angularVelocity;
             Rebase(player, pivot, turn);
-            // A free-flight half-room flip changes the world frame as well. Keeping
-            // stock-world velocity would reverse the flight relative to the room,
-            // repeatedly crossing the middle plane instead of reaching the ceiling.
+            // A change of local gravity also changes the world frame. Transport
+            // free-flight velocity so entry into and exit from the outlet stays continuous.
             // Attached ribbon motion retains its existing stock steering semantics.
             if (change != MobiusWalk.Change.None || !ribbonContacts.Walk.Attached)
                 player.linearVelocity = turn * velocity;
@@ -278,15 +279,12 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         ribbonRoom = null;
     }
 
-    private bool TryUp(Vector3 point, out Vector3 up, bool allowsHandOnly)
+    private bool TryActorUp(Rigidbody actor, Vector3 point, out Vector3 up, bool allowsHandOnly)
     {
-        // The ring handles its own rigidbodies and fades its gravity independently.
-        up = default;
-        if (raid.ContainsRing(point)) return false;
         if (hasSphericalChamber && allowsHandOnly && raid.TrySphericalUp(point, Vector3.zero, out up, out _)) return true;
         if (raid.TryUp(point, out up, allowsHandOnly)) return true;
-        // The truck uses the original entrance floor basis. External bodies outside the
-        // generated sections use it only while they are parented to this level.
+        // The truck uses the original entrance floor basis.
+        if (!actor.transform.IsChildOf(levelRoot)) return false;
         up = raid.Room(raid.Plan.Entrance.Room).Root.up;
         return true;
     }
@@ -316,15 +314,42 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
     }
 
     internal static bool TryRebasePlayerAcross(RaidAssembly raid, NativeRaidPortal portal, Rigidbody body,
-        Vector3 destinationFeet, ISet<Rigidbody> portalLoad = null)
+        Vector3 destinationFeet, ISet<Rigidbody> portalLoad = null, Rigidbody mappedHand = null)
     {
         if (!body || !portal.Entrance || !portal.Exit ||
             !raid.TryGetComponent(out NativeRaidGravity gravity)) return false;
         gravity.ClearNativeJump();
         gravity.ClearRibbon();
         gravity.ClearSphericalOrientation();
-        gravity.Rebase(body, destinationFeet, Quaternion.Inverse(portal.TravelRotation), portalLoad);
+        gravity.Rebase(body, destinationFeet, Quaternion.Inverse(portal.TravelRotation), portalLoad, mappedHand);
         return true;
+    }
+
+    internal static void RefreshActorFromRing(RaidAssembly raid, Rigidbody body, bool inRing)
+    {
+        if (!raid || !raid.TryGetComponent(out NativeRaidGravity gravity) || !gravity.isActiveAndEnabled) return;
+        var controller = PlayerController.instance;
+        if (!gravity.EligibleActor(body, controller ? controller.rb : null, PlayerAvatar.instance)) return;
+
+        // A Ring scan can be the first to find this body. Keep it through a transfer
+        // later in the same fixed step, before either periodic scan can see it again.
+        if (inRing || gravity.InLevelGravity(body))
+        {
+            if (!gravity.actors.Contains(body)) gravity.actors.Add(body);
+        }
+        else gravity.actors.Remove(body);
+    }
+
+    private bool EligibleActor(Rigidbody body, Rigidbody player, PlayerAvatar avatar) =>
+        body && body != player && body.gameObject.scene == gameObject.scene &&
+        (!avatar || !body.transform.IsChildOf(avatar.transform)) &&
+        (!player || !body.transform.IsChildOf(player.transform));
+
+    private bool InLevelGravity(Rigidbody body)
+    {
+        Vector3 center = body.worldCenterOfMass;
+        return body.transform.IsChildOf(levelRoot) || raid.TryUp(center, out _) || raid.ContainsRing(center) ||
+            hasSphericalChamber && raid.TrySphericalUp(center, Vector3.zero, out _, out _);
     }
 
     private void RefreshActors(Rigidbody player)
@@ -335,16 +360,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         carts.Clear();
         var avatar = PlayerAvatar.instance;
         foreach (var body in FindObjectsByType<Rigidbody>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
-        {
-            if (!body || body == player || body.gameObject.scene != gameObject.scene ||
-                (avatar && body.transform.IsChildOf(avatar.transform)) ||
-                body.transform.IsChildOf(player.transform)) continue;
-            Vector3 center = body.worldCenterOfMass;
-            if (!body.transform.IsChildOf(levelRoot) && !raid.TryUp(center, out _) &&
-                !raid.ContainsRing(center) && !(hasMobiusHall && raid.MobiusRoomAt(center) != null) &&
-                !(hasSphericalChamber && raid.TrySphericalUp(center, Vector3.zero, out _, out _))) continue;
-            actors.Add(body);
-        }
+            if (EligibleActor(body, player, avatar) && InLevelGravity(body)) actors.Add(body);
         foreach (var cart in FindObjectsByType<PhysGrabCart>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
         {
             if (!cart || cart.gameObject.scene != gameObject.scene ||
@@ -353,9 +369,13 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         }
     }
 
-    private void Rebase(Rigidbody player, Vector3 pivot, Quaternion turn, ISet<Rigidbody> portalLoad = null)
+    private void Rebase(Rigidbody player, Vector3 pivot, Quaternion turn, ISet<Rigidbody> portalLoad = null,
+        Rigidbody mappedHand = null)
     {
         RefreshActors(player);
+        // A newly grabbed far-side body can be outside LevelParent and absent from this cached scan.
+        if (mappedHand && !actors.Contains(mappedHand))
+            actors.Add(mappedHand);
         Vector3 destination = player.position;
         stage.Apply(levelRoot, player, actors, pivot, turn, portalLoad);
         foreach (var body in actors)

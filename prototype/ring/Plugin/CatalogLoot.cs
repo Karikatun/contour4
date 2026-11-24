@@ -1,3 +1,4 @@
+using Contour4.NativeRaid;
 using System;
 using System.Collections.Generic;
 using Contour4Valuables;
@@ -15,6 +16,7 @@ internal static class CatalogLoot
     internal static void Spawn(RingRuntime ring)
     {
         if (!SemiFunc.IsMasterClientOrSingleplayer()) return;
+        Physics.SyncTransforms();
         var staged = new List<GameObject>();
         try
         {
@@ -29,6 +31,9 @@ internal static class CatalogLoot
                     marker = site;
                 }
                 if (!marker) throw new InvalidOperationException("Missing catalog site " + key);
+                var placement = ValuableSites.CatalogPlacement(marker, key);
+                if (!RaidLootPrefab.Fits(ValuableApi.GetPrefab(key), placement, new Pose(marker.position, marker.rotation)))
+                    throw new InvalidOperationException("Catalog prefab does not fit Ring site " + key);
                 var instance = ValuableApi.Spawn(key, marker.position, marker.rotation);
                 if (!instance) throw new InvalidOperationException("Required valuable failed to spawn: " + key);
                 staged.Add(instance);

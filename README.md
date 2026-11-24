@@ -8,10 +8,10 @@
 
 ## Установка
 
-Скачайте [карту 0.2.35](https://github.com/Karikatun/contour4/releases/tag/v0.2.35) и обязательный пак [Contour4 Valuables 0.2.4](https://github.com/Karikatun/contour4-valuables/releases/tag/v0.2.4). Установите оба ZIP в один профиль с BepInExPack 5.4.2305 и REPOLib 4.5.1. Для ручной установки скопируйте папки из каталога plugins каждого ZIP в BepInEx/plugins игры.
+Скачайте [карту 0.2.36](https://github.com/Karikatun/contour4/releases/tag/v0.2.36) и обязательный пак [Contour4 Valuables 0.2.4](https://github.com/Karikatun/contour4-valuables/releases/tag/v0.2.4). Установите оба ZIP в один профиль с BepInExPack 5.4.2305 и REPOLib 4.5.1. Для ручной установки скопируйте папки из каталога plugins каждого ZIP в BepInEx/plugins игры.
 
 Сборка предназначена для предварительного тестирования. Полный проход в игре для этой версии ещё предстоит проверить.
 
 ## Исходники
 
-Код плагина расположен в prototype/ring/Plugin, а генератор и модули процедурного рейда — в prototype/procedural. Для компиляции требуются DLL из локальной установки игры и её модов. В каталоге `release` находятся проекты Unity и бандлы, использованные в 0.2.35. Порядок компиляции, упаковки и пересборки ассетов описан в [инструкции по сборке](release/README.md).
+Код плагина расположен в prototype/ring/Plugin, а генератор и модули процедурного рейда — в prototype/procedural. Для компиляции требуются DLL из локальной установки игры и её модов. В каталоге `release` находятся проекты Unity и бандлы, использованные в 0.2.36. Порядок компиляции, упаковки и пересборки ассетов описан в [инструкции по сборке](release/README.md).

@@ -234,14 +234,6 @@ public sealed class Contour4 : BaseUnityPlugin
             if (roomName == "Quota")
                 quota = volume;
 
-            foreach (Transform marker in markers)
-            {
-                if (!marker.name.StartsWith(roomName + "__LootSpawn_", StringComparison.Ordinal))
-                    continue;
-                var spawn = marker.gameObject.AddComponent<ValuableVolume>();
-                var category = marker.name.Substring(marker.name.LastIndexOf('_') + 1);
-                spawn.VolumeType = (ValuableVolume.Type)Enum.Parse(typeof(ValuableVolume.Type), category);
-            }
         }
 
         var center = AddPathPoint(root.transform, "Quota path center", Vector3.up * .15f, quota, false);
@@ -270,7 +262,10 @@ public sealed class Contour4 : BaseUnityPlugin
             if (!IsSoloRing(LevelGenerator.Instance)) return;
             var ring = __instance.GetComponent<RingRuntime>();
             if (ring)
+            {
                 ring.Connect(__instance);
+                ValuableSites.InstallOrdinary(ring.Ring);
+            }
         }
     }
 
@@ -285,6 +280,16 @@ public sealed class Contour4 : BaseUnityPlugin
                 if (IsSoloRing(__instance)) ring.BeginRaid(__instance);
                 else ring.BeginProceduralRaid();
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(ValuableDirector), "SetupHost")]
+    private static class PrepareRingLoot
+    {
+        private static void Postfix(ValuableDirector __instance, ref IEnumerator __result)
+        {
+            if (IsSoloRing(LevelGenerator.Instance))
+                __result = NativeRaidLoot.UseStockPools(__instance, __result);
         }
     }
 
@@ -327,7 +332,7 @@ public sealed class Contour4 : BaseUnityPlugin
     {
         private static void Postfix(PhysGrabber __instance)
         {
-            if (!__instance.isLocal)
+            if (!__instance.isLocal || PortalGrab.RemapRaidPull(__instance))
                 return;
             var ring = FindCurrentRing(LevelGenerator.Instance);
             if (ring)
@@ -335,4 +340,3 @@ public sealed class Contour4 : BaseUnityPlugin
         }
     }
 }
-

@@ -85,7 +85,35 @@ namespace Contour4.Procedural.Catalog
         public static float CeilingRampCenter => (CeilingRampInnerEdge + CeilingRampOuterEdge)/2;
         public static float CeilingRampFoot => -HalfInteriorX + 1.2f;
         public static float CeilingRampStart => CeilingEntranceX - LandingHalfLength;
-        public static Vector3 RoomUpAt(Vector3 point) => point.Y >= InteriorHeight / 2 ? -Vector3.UnitY : Vector3.UnitY;
+        public static Vector3 RoomUpAt(Vector3 point)
+        {
+            // Keep the inverted outlet route from the upper ribbon landing to the
+            // opposite dock. Aloft elsewhere in the hall, bodies fall to the ground.
+            const float outletDepth = 3.10f;
+            const float edge = .12f;
+            float fromRoof = InteriorHeight - point.Y;
+            if (fromRoof >= -edge && fromRoof <= outletDepth)
+            {
+                float halfLane = Wide / 2;
+                bool alongCeilingWall = MathF.Abs(point.X - CeilingRampFoot) <= halfLane &&
+                    point.Z >= CeilingRampCenter - halfLane && point.Z <= halfLane;
+                bool acrossCeiling = point.X >= CeilingRampFoot - halfLane &&
+                    point.X <= HalfInteriorX + Skirt + edge && MathF.Abs(point.Z) <= halfLane;
+                if (alongCeilingWall || acrossCeiling) return -Vector3.UnitY;
+            }
+
+            if (point.Z < CeilingRampOuterEdge - edge || point.X < CeilingRampFoot - edge ||
+                point.X > CeilingEntranceX + LandingHalfLength + edge) return Vector3.UnitY;
+            bool onLanding = point.X >= CeilingRampStart &&
+                point.Z <= CeilingLandingInnerEdge + edge;
+            bool onRamp = point.X <= CeilingRampStart &&
+                point.Z <= CeilingRampInnerEdge + edge;
+            if (!onLanding && !onRamp) return Vector3.UnitY;
+
+            float t = Math.Clamp((point.X - CeilingRampStart) / (CeilingRampFoot - CeilingRampStart), 0, 1);
+            float fromDeck = AccessPose(true, t).Position.Y - point.Y;
+            return fromDeck >= -edge && fromDeck <= outletDepth ? -Vector3.UnitY : Vector3.UnitY;
+        }
         public static float RampOuterEdge => HalfInteriorZ - .15f;
         public static float RampCenter => (RampInnerEdge + RampOuterEdge) / 2;
 

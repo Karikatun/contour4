@@ -8,7 +8,6 @@ namespace Contour4.NativeRaid;
 internal sealed class NativeRaidPortalCargo
 {
     private const float JambClearance = .025f;
-    private const float FloorSkin = .025f;
     private const float ExitClearance = .20f;
 
     private static readonly AccessTools.FieldRef<PhysGrabber, PhysGrabObject> HeldObject =
@@ -38,7 +37,7 @@ internal sealed class NativeRaidPortalCargo
         poses = new List<BodyPose>(bodies.Count);
         foreach (Rigidbody body in bodies)
             poses.Add(new BodyPose(body, motion));
-        grab = new GrabPose(grabber, motion);
+        if (grabber) grab = new GrabPose(grabber, motion);
     }
 
     internal static bool TryPrepare(RaidAssembly raid, NativeRaidPortal portal, Rigidbody player, Vector3 previousFeet,
@@ -55,14 +54,12 @@ internal sealed class NativeRaidPortalCargo
             return false;
 
         var bodies = new HashSet<Rigidbody> { held.rb };
-        CaptureBasket(cart, held.rb, bodies);
+        PortalCargoDoor.CaptureBasket(cart, held.rb, bodies);
+        if (!PortalCargoDoor.HasClosedJoints(bodies)) return false;
         var hulls = new List<ColliderHull>();
         Bounds cartHull = default;
         foreach (Rigidbody body in bodies)
         {
-            foreach (Joint joint in body.GetComponents<Joint>())
-                if (!joint.connectedBody || !bodies.Contains(joint.connectedBody))
-                    return false;
             int first = hulls.Count;
             foreach (Collider collider in body.GetComponentsInChildren<Collider>())
             {
@@ -157,89 +154,46 @@ internal sealed class NativeRaidPortalCargo
         return true;
     }
 
-    private static void CaptureBasket(PhysGrabCart cart, Rigidbody cartBody, HashSet<Rigidbody> bodies)
-    {
-        // Physical basket membership uses the same overlap and support test as the ring.
-        // Sample current overlaps because the stock itemsInCart list updates on a timer.
-        Transform basket = Basket(cart);
-        Vector3 half = basket.localScale * .5f;
-        Quaternion inverse = Quaternion.Inverse(basket.rotation);
-        Vector3 down = inverse * (cartBody.rotation * Vector3.down);
-        var basketVolume = new Bounds(Vector3.zero, half * 2f);
-        foreach (Collider collider in Physics.OverlapBox(basket.position, half, basket.rotation,
-            LayerMask.GetMask("PhysGrabObject"), QueryTriggerInteraction.Ignore))
-        {
-            Rigidbody body = collider.attachedRigidbody;
-            if (!body || body == cartBody || body.isKinematic || !body.detectCollisions ||
-                !body.TryGetComponent(out PhysGrabObject item) || item.dead ||
-                item.GetComponentInChildren<PhysGrabCart>() || item.grabbed || item.grabbedLocal ||
-                item.playerGrabbing.Count > 0)
-                continue;
-            Vector3 center = inverse * (body.worldCenterOfMass - basket.position);
-            if (basketVolume.IntersectRay(new Ray(center, down)))
-                bodies.Add(body);
-        }
-    }
+    private static Bounds InFrame(Bounds bounds, Transform frame) =>
+        new CargoMouth(frame.position, frame.rotation, 0f, 0f).Local(bounds);
 
-    private static Bounds InFrame(Bounds bounds, Transform frame) => new(frame.InverseTransformPoint(bounds.center),
-        2f * new Vector3(ExtentAlong(bounds, frame.right), ExtentAlong(bounds, frame.up), ExtentAlong(bounds, frame.forward)));
-
-    private static float ExtentAlong(Bounds bounds, Vector3 axis) =>
-        Vector3.Dot(bounds.extents, new Vector3(Mathf.Abs(axis.x), Mathf.Abs(axis.y), Mathf.Abs(axis.z)));
+    private static float ExtentAlong(Bounds bounds, Vector3 axis) => PortalCargoDoor.Extent(bounds, axis);
 
     private static bool Fits(Bounds bounds, NativeRaidPortal portal) =>
-        Mathf.Abs(bounds.center.x) + bounds.extents.x <= portal.HalfWidth - JambClearance &&
-        bounds.min.y >= -portal.HalfHeight - .12f && bounds.max.y <= portal.HalfHeight - JambClearance;
+        PortalCargoDoor.Fits(bounds, new CargoMouth(Vector3.zero, Quaternion.identity, portal.HalfWidth, portal.HalfHeight));
 
-    private static Bounds Across(Bounds entry, float offset) =>
-        new(new Vector3(-entry.center.x, entry.center.y, -entry.center.z - offset), entry.size);
+    private static Bounds Across(Bounds entry, float offset) => PortalCargoDoor.Across(entry, offset);
 
     private static bool RunwayClear(Transform frame, float halfHeight, Bounds hull, Collider source,
-        HashSet<Rigidbody> transferring, Rigidbody player, Transform localAvatar)
-    {
-        Vector3 low = hull.min;
-        Vector3 high = hull.max;
-        // Cover the planned straight sweep to or from the threshold, including the end pose.
-        // Floor contact is tested separately against the landing room's actual support.
-        low.y = Mathf.Max(low.y, -halfHeight + FloorSkin);
-        high.y = Mathf.Max(high.y, low.y + .001f);
-        low.z = Mathf.Min(low.z, 0f);
-        high.z = Mathf.Max(high.z, 0f);
-        foreach (Collider hit in Physics.OverlapBox(frame.TransformPoint((low + high) * .5f),
-            (high - low) * .5f, frame.rotation, Physics.AllLayers, QueryTriggerInteraction.Ignore))
-        {
-            Rigidbody hitBody = hit.attachedRigidbody;
-            if (hitBody == player || transferring.Contains(hitBody) ||
-                (localAvatar && hit.transform.IsChildOf(localAvatar)) ||
-                Physics.GetIgnoreLayerCollision(source.gameObject.layer, hit.gameObject.layer) ||
-                Physics.GetIgnoreCollision(source, hit))
-                continue;
-            return false;
-        }
-        return true;
-    }
+        HashSet<Rigidbody> transferring, Rigidbody player, Transform localAvatar) =>
+        PortalCargoDoor.RunwayClear(new CargoMouth(frame.position, frame.rotation, 0f, halfHeight),
+            hull, source, transferring, player, localAvatar);
 
-    private static bool HasCartSupport(RaidAssembly raid, NativeRaidPortal portal, Bounds hull)
+    private static bool HasCartSupport(RaidAssembly raid, NativeRaidPortal portal, Bounds hull) =>
+        PortalCargoDoor.HasSupport(new CargoMouth(portal.Exit.position, portal.Exit.rotation, portal.HalfWidth, portal.HalfHeight),
+            hull, point => raid.HasPortalSupport(portal.ExitFloor, point));
+
+    internal static void ApplyIndependent(PhysGrabCart cart, HashSet<Rigidbody> bodies, Vector3 source,
+        Vector3 destination, Quaternion turn)
     {
-        var bounds = hull;
-        bounds.Expand(-.08f);
-        foreach (float x in new[] { bounds.min.x, bounds.max.x })
-        foreach (float z in new[] { bounds.min.z, bounds.max.z })
-            if (!raid.HasPortalSupport(portal.ExitFloor, portal.Exit.TransformPoint(new Vector3(x, -portal.HalfHeight, z))))
-                return false;
-        return true;
+        new NativeRaidPortalCargo(cart, null, bodies, new Motion(source, destination, turn)).Apply();
     }
 
     internal void Apply(NativeRaidPortal portal)
+    {
+        Apply();
+        if (cart)
+            Debug.Log($"[Contour4 Procedural] {portal.Id}: cart {CartBody(cart).GetInstanceID()} and " +
+                $"{Bodies.Count - 1} loose cargo bodies crossed with the native hold.");
+    }
+
+    private void Apply()
     {
         foreach (BodyPose pose in poses) pose.Apply();
         if (cart && (motion.Rotation != Quaternion.identity || motion.Source != motion.Destination))
             NativeRaidGravity.TransformCartHistory(cart, motion.Map, motion.Rotation);
         grab.Apply();
         Physics.SyncTransforms();
-        if (cart)
-            Debug.Log($"[Contour4 Procedural] {portal.Id}: cart {CartBody(cart).GetInstanceID()} and " +
-                $"{Bodies.Count - 1} loose cargo bodies crossed with the native hold.");
     }
 
     private readonly struct ColliderHull
@@ -329,6 +283,7 @@ internal sealed class NativeRaidPortalCargo
         {
             // Stock uses a spring force with a body-local grab point and camera-relative
             // orientation, so both relative bases remain valid in the common frame.
+            if (!grabber) return;
             plane.Apply();
             puller.Apply();
             point.Apply();

@@ -21,27 +21,42 @@ internal static class NativeRaidLoot
         AccessTools.FieldRefAccess<ValuableDirector, int>("valuableTargetAmount");
     private static readonly AccessTools.FieldRef<ValuableDirector, float> SpawnValue =
         AccessTools.FieldRefAccess<ValuableDirector, float>("totalCurrentValue");
-    private static readonly Dictionary<ValuableDirector, RaidLootBudget.Allocation> Populating = new();
+    private static readonly Dictionary<ValuableDirector, (RaidLootBudget.Allocation Plan, List<PrefabRef>[] Pools)>
+        Populating = new();
     private static readonly Dictionary<ValuableDirector, (ValuableVolume Volume, int[] Limits, int[] Original)> PendingFloor = new();
 
     internal static Dictionary<ValuableVolume, RaidLootSlot> Install(RaidAssembly raid)
     {
         var volumes = new Dictionary<ValuableVolume, RaidLootSlot>();
+        var bounds = raid.Rooms.ToDictionary(room => room, RaidLootPlacement.StructuralBounds);
         foreach (var slot in RaidLootSites.Find(raid))
         {
             var node = RaidAssembly.Child(slot.Room.Root, $"loot:{slot.Kind}:{slot.Size}:{volumes.Count:D3}");
             node.SetLocalPositionAndRotation(slot.Pose.position, slot.Pose.rotation);
-            var volume = node.gameObject.AddComponent<ValuableVolume>();
-            volume.VolumeType = (ValuableVolume.Type)slot.Size;
+            var volume = AddVolume(node, slot.Size, slot.Placement(bounds[slot.Room]), slot.Kind, slot.Room.Plan.Index);
             volumes.Add(volume, slot);
         }
         return volumes;
+    }
+
+    internal static ValuableVolume AddVolume(Transform node, RaidLootSize size, RaidLootPlacement placement,
+        LootSurfaceKind kind, int roomIndex, bool ringFloor = false)
+    {
+        var site = node.gameObject.AddComponent<RaidAuthoredLoot>();
+        site.Placement = placement;
+        site.Kind = kind;
+        site.RoomIndex = roomIndex;
+        site.RingFloor = ringFloor;
+        var volume = node.gameObject.AddComponent<ValuableVolume>();
+        volume.VolumeType = (ValuableVolume.Type)size;
+        return volume;
     }
 
     internal static void Patch(Harmony harmony)
     {
         harmony.CreateClassProcessor(typeof(SetupHostPatch)).Patch();
         harmony.CreateClassProcessor(typeof(SpawnValuablePatch)).Patch();
+        harmony.CreateClassProcessor(typeof(SpawnCosmeticPatch)).Patch();
     }
 
     [HarmonyPatch(typeof(ValuableDirector), "SetupHost")]
@@ -59,6 +74,9 @@ internal static class NativeRaidLoot
         }
     }
 
+    internal static IEnumerator UseStockPools(ValuableDirector director, IEnumerator routine) =>
+        Populate(director, routine, null);
+
     private static IEnumerator Populate(ValuableDirector director, IEnumerator routine, NativeRaidModule module)
     {
         try
@@ -69,16 +87,23 @@ internal static class NativeRaidLoot
                 throw new InvalidOperationException("The stock ValuableDirector skipped prefab preparation.");
             yield return routine.Current;
             Type iterator = routine.GetType();
-            int[] maximums = ReadState<int[]>(iterator, routine, "_maxAmount");
-            var volumes = ReadState<List<ValuableVolume>[]>(iterator, routine, "_volumes");
             var pools = ReadState<List<PrefabRef>[]>(iterator, routine, "_valuables");
-            PlanPopulation(director, module, maximums, volumes, pools);
+            if (module)
+            {
+                var maximums = ReadState<int[]>(iterator, routine, "_maxAmount");
+                var volumes = ReadState<List<ValuableVolume>[]>(iterator, routine, "_volumes");
+                PlanPopulation(director, module, maximums, volumes, pools);
+            }
+            else
+            {
+                Populating.Add(director, (null, pools));
+            }
 
             while (routine.MoveNext())
                 yield return routine.Current;
-            if (Populating.TryGetValue(director, out var plan))
-                Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, actual={SpawnCount(director)}/{plan.Count}, " +
-                    $"value=${SpawnValue(director) * 1000f:F0}, target=${plan.Dollars}, forecast=${plan.ExpectedDollars}.");
+            if (module && Populating.TryGetValue(director, out var population))
+                Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, actual={SpawnCount(director)}/{population.Plan.Count}, " +
+                    $"value=${SpawnValue(director) * 1000f:F0}, target=${population.Plan.Dollars}, forecast=${population.Plan.ExpectedDollars}.");
         }
         finally
         {
@@ -108,6 +133,11 @@ internal static class NativeRaidLoot
         var candidates = new List<RaidLootBudget.Candidate>();
         var all = new List<ValuableVolume>();
         var averageDollars = new int[volumes.Length];
+        var raid = module.GetComponent<RaidAssembly>();
+        int ringRoomBase = raid.Plan.Rooms.Max(room => room.Index) + 1;
+        bool ringCartAccess = raid.Plan.RingRoom is { } ringRoom &&
+            raid.Plan.HasCartAccess(ringRoom, raid.Plan.RingLink.To.Dock.FloorId);
+        Physics.SyncTransforms();
         for (int type = 0; type < volumes.Length; type++)
         {
             // Resolve only stock/REPOLib-approved refs already prepared by the native iterator.
@@ -120,18 +150,25 @@ internal static class NativeRaidLoot
                 maximums[type] = 0;
             else
                 averageDollars[type] = Mathf.RoundToInt(values.Average());
-            // Use a stable authored ordering for the procedural volumes. Keep the stock
-            // starter and optional ring volumes in the native lists for their ordinary loot and rare cosmetics.
+            // Keep unused authored slots available to the native cosmetic pass.
             foreach (var volume in volumes[type].OrderBy(volume => volume.name, StringComparer.Ordinal)
                 .ThenBy(volume => volume.transform.position.x).ThenBy(volume => volume.transform.position.y)
                 .ThenBy(volume => volume.transform.position.z))
             {
+                var authoredSite = volume.GetComponent<RaidAuthoredLoot>();
+                if (authoredSite &&
+                    (authoredSite.RingFloor && type > (int)RaidLootSize.Medium && !ringCartAccess ||
+                        !pools[type].Any(prefab => Fits(volume, prefab))))
+                    continue;
                 all.Add(volume);
                 bool authored = module.Loot.TryGetValue(volume, out var slot);
                 bool sphereShell = authored && SphericalChamber.IsVariant(slot.Room.Plan.Module.Id) &&
                     slot.Support.name == SphericalChamber.Shell;
-                candidates.Add(new RaidLootBudget.Candidate(type, authored ? slot.Room.Plan.Index : -1,
-                    authored ? slot.Kind : LootSurfaceKind.Floor, sphereShell));
+                int roomIndex = authoredSite
+                    ? authoredSite.RoomIndex + (authoredSite.RingFloor ? ringRoomBase : 0)
+                    : -1;
+                candidates.Add(new RaidLootBudget.Candidate(type, roomIndex,
+                    authoredSite ? authoredSite.Kind : LootSurfaceKind.Floor, sphereShell));
             }
         }
         bool preparedCatalog = module.Loot.Values.Any(slot => slot.FloorId != null);
@@ -150,9 +187,9 @@ internal static class NativeRaidLoot
         }
         MaximumCount(director) = plan.Count;
         MaximumValue(director) = plan.Dollars / 1000.0f;
-        Populating.Add(director, plan);
+        Populating.Add(director, (plan, pools));
         var firstFloor = plan.Picks.Select(index => all[index])
-            .FirstOrDefault(volume => module.Loot.TryGetValue(volume, out var slot) && slot.Kind == LootSurfaceKind.Floor);
+            .FirstOrDefault(volume => volume.TryGetComponent<RaidAuthoredLoot>(out var site) && site.Kind == LootSurfaceKind.Floor);
         if (firstFloor)
         {
             var originalLimits = (int[])maximums.Clone();
@@ -165,19 +202,70 @@ internal static class NativeRaidLoot
             $"capacity by size={string.Join("/", maximums)}, target=${plan.Dollars}.");
     }
 
+    private static bool Fits(ValuableVolume volume, PrefabRef prefab)
+    {
+        if (!volume.TryGetComponent<RaidAuthoredLoot>(out var site)) return true;
+        return prefab != null && RaidLootPrefab.Fits(prefab.Prefab, site.Placement,
+            new Pose(volume.transform.position, volume.transform.rotation));
+    }
+
+    [HarmonyPatch(typeof(ValuableDirector), "SpawnCosmeticWorldObject")]
+    private static class SpawnCosmeticPatch
+    {
+        private static bool Prefix(ValuableDirector __instance, SemiFunc.Rarity __0, int[] __1,
+            List<ValuableVolume>[] __2)
+        {
+            var setup = __instance.cosmeticWorldObjectSetups[(int)__0];
+            int type = (int)setup.volume;
+            var volumes = __2[type];
+            int index = __1[type];
+            if (index >= volumes.Count || !volumes[index].GetComponent<RaidAuthoredLoot>()) return true;
+
+            Physics.SyncTransforms();
+            int chosen = volumes.FindIndex(index, volume => Fits(volume, setup.prefab));
+            if (chosen < 0) return false;
+            if (chosen != index)
+            {
+                var volume = volumes[chosen];
+                volumes.RemoveAt(chosen);
+                volumes.Insert(index, volume);
+            }
+            return true;
+        }
+    }
+
     [HarmonyPatch(typeof(ValuableDirector), "SpawnValuable")]
     private static class SpawnValuablePatch
     {
+        private static bool Prefix(ValuableDirector __instance, ref PrefabRef __0, ValuableVolume __1)
+        {
+            if (!__1.GetComponent<RaidAuthoredLoot>()) return true;
+
+            Physics.SyncTransforms();
+            if (Fits(__1, __0)) return true;
+            if (Populating.TryGetValue(__instance, out var population))
+            {
+                var replacement = population.Pools[(int)__1.VolumeType].Find(prefab => Fits(__1, prefab));
+                if (replacement != null)
+                {
+                    __0 = replacement;
+                    return true;
+                }
+            }
+            if (PendingFloor.TryGetValue(__instance, out var floor) && floor.Volume == __1)
+                RestoreFloorLimits(__instance);
+            return false;
+        }
         private static void Postfix(ValuableDirector __instance, ValuableVolume __1, ValuableObject __result)
         {
             // Stock advances the volume index even when the spawn returns null.
             if (PendingFloor.TryGetValue(__instance, out var floor) && floor.Volume == __1)
                 RestoreFloorLimits(__instance);
-            if (!__result || !Populating.TryGetValue(__instance, out var plan))
+            if (!__result || !Populating.TryGetValue(__instance, out var population) || population.Plan == null)
                 return;
             NativeRaidGravity.TrackRibbonSpawn(__1, __result);
             ref int maximum = ref MaximumCount(__instance);
-            maximum = plan.ContinueUntil(SpawnCount(__instance), maximum);
+            maximum = population.Plan.ContinueUntil(SpawnCount(__instance), maximum);
         }
     }
 }

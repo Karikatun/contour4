@@ -70,14 +70,8 @@ internal static class ProceduralRingBranch
             trigger.size = new Vector3(12f, 3.7f, 12f);
             trigger.isTrigger = true;
             roomVolume.gameObject.AddComponent<RoomVolume>();
-            foreach (Transform marker in markers)
-            {
-                if (!marker.name.StartsWith(name + "__LootSpawn_", StringComparison.Ordinal)) continue;
-                var spawn = marker.gameObject.AddComponent<ValuableVolume>();
-                spawn.VolumeType = (ValuableVolume.Type)Enum.Parse(typeof(ValuableVolume.Type),
-                    marker.name.Substring(marker.name.LastIndexOf('_') + 1));
-            }
         }
+        ValuableSites.InstallOrdinary(ring.transform);
         host.gameObject.AddComponent<RingRuntime>().ConnectProcedural(ring.transform, reservation);
     }
 }

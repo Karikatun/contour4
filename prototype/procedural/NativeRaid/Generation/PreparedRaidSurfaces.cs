@@ -18,6 +18,7 @@ namespace Contour4.NativeRaid.Runtime
         private readonly Transform root;
         private readonly Bounds occupied;
         internal IEnumerable<RaidFloor> Floors => surfaces.Select(item => item.Floor);
+        internal IReadOnlyList<(RaidFloor Floor, Vector2[] Outline)> GravityFloors => surfaces;
         internal IReadOnlyList<PreparedRaidTurn> Turns => turns;
 
         internal PreparedRaidSurfaces(RaidPlan.Room room, Transform root, Dictionary<string, Collider> parts,
@@ -208,7 +209,7 @@ namespace Contour4.NativeRaid.Runtime
             return true;
         }
 
-        private static bool InOutline(Vector2[] outline, Vector2 point)
+        internal static bool InOutline(Vector2[] outline, Vector2 point)
         {
             bool inside = false;
             for (int i = 0, j = outline.Length - 1; i < outline.Length; j = i++)

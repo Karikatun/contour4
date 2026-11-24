@@ -12,14 +12,15 @@ namespace Contour4.NativeRaid.Runtime
     internal sealed class RaidLootSlot
     {
         internal readonly BakedRoom Room;
-        internal readonly BoxCollider Support;
+        internal readonly Collider Support;
         internal readonly LootSurfaceKind Kind;
         internal readonly RaidLootSize Size;
         internal readonly Pose Pose;
         internal readonly Bounds LocalBounds;
+        internal readonly string FloorId;
 
-        internal RaidLootSlot(BakedRoom room, BoxCollider support, LootSurfaceKind kind, RaidLootSize size,
-            Pose pose, Bounds localBounds)
+        internal RaidLootSlot(BakedRoom room, Collider support, LootSurfaceKind kind, RaidLootSize size,
+            Pose pose, Bounds localBounds, string floorId = null)
         {
             Room = room;
             Support = support;
@@ -27,6 +28,7 @@ namespace Contour4.NativeRaid.Runtime
             Size = size;
             Pose = pose;
             LocalBounds = localBounds;
+            FloorId = floorId;
         }
 
         internal Vector3 WorldCenter => Room.Root.TransformPoint(LocalBounds.center);
@@ -70,10 +72,31 @@ namespace Contour4.NativeRaid.Runtime
             var random = new System.Random(raid.Plan.Seed ^ 0x41A76E31);
             foreach (BakedRoom room in raid.Rooms)
             {
-                if (room.Plan == raid.Plan.ShaftTransit) continue; // New connector carries no additional random loot budget.
+                if (room.Prepared)
+                {
+                    // The prefab and its checked sidecar own the site, support, floor and stock size.
+                    // Large goods also need the assembled cart route to the stock entrance.
+                    foreach (var slot in raid.RoomPrefabs.PreparedLoot(room))
+                    {
+                        if (slot.Size > RaidLootSize.Medium && !raid.Plan.HasCartAccess(room.Plan, slot.FloorId))
+                            continue;
+                        if (RaidCatalogSites.OverlapsReservedLoot(slot) ||
+                            !HasClearance(room, slot.LocalBounds.center, Envelope(slot.Size), slot.Pose.rotation))
+                            continue;
+                        result.Add(slot);
+                    }
+                    continue;
+                }
+                if (room.Plan == raid.Plan.ShaftTransit) continue;
                 var roomSlots = new List<RaidLootSlot>();
                 var routes = room.Plan.Module.Dressing.Count == 0 ? Array.Empty<Bounds>() : RouteSweeps(room).ToArray();
                 var supports = room.Colliders.OfType<BoxCollider>().ToLookup(box => box.name);
+                if (room.Plan.Module.Id == FreightServiceRoom.SampleReceiving)
+                {
+                    AddReceivingSites(room, supports, routes, roomSlots);
+                    result.AddRange(roomSlots);
+                    continue;
+                }
                 foreach (var dressing in room.Plan.Module.Dressing)
                 foreach (var surface in dressing.LootSurfaces)
                 {
@@ -86,6 +109,39 @@ namespace Contour4.NativeRaid.Runtime
                 result.AddRange(roomSlots);
             }
             return result;
+        }
+
+        private static void AddReceivingSites(BakedRoom room, ILookup<string, BoxCollider> supports, Bounds[] routes,
+            List<RaidLootSlot> result)
+        {
+            foreach (var site in SampleReceivingLoot.Sites)
+            {
+                var support = supports[site.Support].Single();
+                Vector3 platform = support.transform.localPosition;
+                Vector3 platformSize = support.transform.localScale;
+                Vector3 size = Envelope(site.Size);
+                Vector3 bottom = new(site.X, platform.y + platformSize.y / 2 + .008f, site.Z);
+                Vector3 center = bottom + Vector3.up * (size.y / 2);
+                Vector3 forward = Vector3.forward * site.Side;
+                Quaternion orientation = Quaternion.LookRotation(forward, Vector3.up);
+                var bounds = new Bounds(center, size);
+                if (Mathf.Abs(bottom.x - platform.x) + size.x / 2 > platformSize.x / 2 ||
+                    Mathf.Abs(bottom.z - platform.z) + size.z / 2 > platformSize.z / 2 ||
+                    routes.Any(bounds.Intersects) || result.Any(slot => slot.LocalBounds.Intersects(bounds)) ||
+                    !HasClearance(room, center, size, orientation))
+                    continue;
+
+                if (site.Kind == LootSurfaceKind.Cabinet)
+                {
+                    if (!BehindCabinetDoor(room, support, center, forward)) continue;
+                }
+                else if (Physics.Raycast(room.Root.TransformPoint(center - forward * .90f),
+                    room.Root.TransformDirection(forward), .90f, ~0, QueryTriggerInteraction.Ignore))
+                    continue;
+
+                var pose = new Pose(bottom - forward * (size.z / 2), orientation);
+                result.Add(new RaidLootSlot(room, support, site.Kind, site.Size, pose, bounds));
+            }
         }
 
         private static void AddFreightBays(BakedRoom room, Bounds[] routes, List<RaidLootSlot> result)

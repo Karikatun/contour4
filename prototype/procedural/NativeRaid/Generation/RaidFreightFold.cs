@@ -28,6 +28,27 @@ namespace Contour4.NativeRaid.Runtime
             }
         }
 
+        internal static IEnumerable<Block> SafetyBarriers(GrayModule module)
+        {
+            if (module.Id != ShortRise && module.Id != ShortDrop) yield break;
+            var frames = module.Routes[0].Knots;
+            const float half = Wide / 2;
+            const float thickness = .08f;
+            const float barrierTop = 4f;
+            for (int i = 1; i < frames.Length; i++)
+            {
+                var a = frames[i - 1];
+                var b = frames[i];
+                string name = $"invisible-bridge-{i:D2}";
+                yield return Block.Span(name + "-left", BlockRole.Shell, a, b,
+                    ShortRailHeight, barrierTop, -half - thickness, -half);
+                yield return Block.Span(name + "-right", BlockRole.Shell, a, b,
+                    ShortRailHeight, barrierTop, half, half + thickness);
+                yield return Block.Span(name + "-ceiling", BlockRole.Shell, a, b,
+                    barrierTop, barrierTop + thickness, -half - thickness, half + thickness);
+            }
+        }
+
         // The two exterior upper edges meet if the rise is the departure roof height and
         // the forward offset is the arrival roof height. Any straight part exists only to
         // make up the difference in the rooms' heights, while preserving the cart's turn radius.

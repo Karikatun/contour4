@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Contour4.NativeRaid.Runtime;
 using Contour4.Procedural;
+using Contour4.Procedural.Catalog;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -9,11 +10,12 @@ namespace Contour4.NativeRaid.Editor
 {
     public static class RaidLootChecks
     {
+        private const int OwnerFixtureSeed = 1499861616;
         private static readonly int[] Price = { 850, 1600, 3200, 7750, 21500, 21500, 21500 };
 
         public static void Run()
         {
-            foreach (int seed in new[] { 1499861616, 2133, -17 })
+            foreach (int seed in new[] { OwnerFixtureSeed, 2133, -17 })
             {
                 var first = Check(seed, 0, 30000, new[] { 15, 10, 2, 1, 0, 0, 0 });
                 var seventh = Check(seed, 6, 130000, new[] { 8, 10, 7, 10, 2, 2, 2 });
@@ -24,7 +26,67 @@ namespace Contour4.NativeRaid.Editor
             var empty = RaidLootBudget.Select(Array.Empty<RaidLootBudget.Candidate>(), new[] { 1 }, 50, 30000,
                 new[] { 850 }, 0);
             Require(empty.Count == 0 && empty.Picks.Count == 0, "zero actual capacity");
+            CheckStartingFreight();
+            CheckLateFreight();
             Debug.Log("CONTOUR4 LOOT PASSED");
+        }
+
+        private static void CheckStartingFreight()
+        {
+            var candidates = Enumerable.Range(0, 7).SelectMany(room => new[]
+            {
+                new RaidLootBudget.Candidate((int)RaidLootSize.Tiny, room, LootSurfaceKind.Floor),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Tiny, room, LootSurfaceKind.Table),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Tiny, room, LootSurfaceKind.Raised),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Small, room, LootSurfaceKind.Cabinet),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Small, room, LootSurfaceKind.Raised),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Medium, room, LootSurfaceKind.Table),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Big, room, LootSurfaceKind.Floor),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Wide, room, LootSurfaceKind.Floor),
+            }).ToArray();
+            int[] stock = { 15, 10, 2, 1, 0, 0, 0 };
+            var plan = RaidLootBudget.Select(candidates, stock, 50, 30000, Price, 5, preparedCatalog: true);
+            var picks = plan.Picks.Select(i => candidates[i]).ToArray();
+            int big = (int)RaidLootSize.Big;
+            Require(plan.Count == 25 && picks.Length == plan.Count && plan.Dollars == 30000,
+                "starting freight changes stock count or cash limits");
+            Require(picks[0].Kind == LootSurfaceKind.Floor && picks[0].Category == (int)RaidLootSize.Tiny &&
+                picks.Count(pick => pick.Category == big) == 1 && picks.All(pick => pick.Category <= big),
+                "stock-permitted Big floor slot was dropped or a locked category allocated");
+        }
+
+        private static void CheckLateFreight()
+        {
+            var candidates = Enumerable.Range(0, 20).SelectMany(room => new[]
+            {
+                new RaidLootBudget.Candidate((int)RaidLootSize.Tiny, room, LootSurfaceKind.Floor),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Small, room, LootSurfaceKind.Cabinet),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Medium, room, LootSurfaceKind.Table),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Big, room, LootSurfaceKind.Floor),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Wide, room, LootSurfaceKind.Floor),
+                new RaidLootBudget.Candidate((int)RaidLootSize.Tall, room, LootSurfaceKind.Floor),
+                new RaidLootBudget.Candidate((int)RaidLootSize.VeryTall, room, LootSurfaceKind.Floor),
+            }).ToArray();
+            int[] caps = { 5, 10, 10, 15, 6, 6, 6 };
+            int[] prices = (int[])Price.Clone();
+            prices[(int)RaidLootSize.Wide] = 40000;
+            var plan = RaidLootBudget.Select(candidates, caps, 50, 215000, prices, 5, preparedCatalog: true);
+            var picks = plan.Picks.Select(index => candidates[index]).ToArray();
+            Require(plan.Count == 50 && picks.Length == plan.Count && plan.Dollars == 215000 &&
+                picks.GroupBy(pick => pick.Category).All(group => group.Count() <= caps[group.Key]),
+                "late freight changes stock count, cash, or category limits");
+            Require(picks[0].Kind == LootSurfaceKind.Floor && picks[0].Category == (int)RaidLootSize.Tiny &&
+                Enumerable.Range((int)RaidLootSize.Big, 4).All(category =>
+                    picks.Any(pick => pick.Kind == LootSurfaceKind.Floor && pick.Category == category)),
+                "late freight drops a compatible stock size or changes the first floor pick");
+        }
+
+        private static bool HasGrayDockFrames(int seed, Pose entrance, int level)
+        {
+            // The loot-only gray fixture has one frame per room. The prepared package suite covers rotated sills.
+            var plan = RaidPlan.Generate(seed, entrance, level, maintenance: MaintenanceTrench.Create);
+            return plan.Passages.All(passage => Vector3.Dot(passage.From.Room.Up, passage.From.Up) > .999f &&
+                Vector3.Dot(passage.To.Room.Up, passage.To.Up) > .999f);
         }
 
         private static RaidLootBudget.Allocation Check(int seed, int level, int cash, int[] caps)
@@ -33,12 +95,20 @@ namespace Contour4.NativeRaid.Editor
             try
             {
                 var raid = root.AddComponent<RaidAssembly>();
-                raid.Place(seed, new Pose(Vector3.zero, Quaternion.identity), 0, 1 << 30, true, level);
+                var entrance = new Pose(Vector3.zero, Quaternion.identity);
+                int layoutSeed = Enumerable.Range(0, 16).Select(offset => unchecked(seed + offset))
+                    .Concat(Enumerable.Range(OwnerFixtureSeed, 16)).Distinct()
+                    .First(candidate => HasGrayDockFrames(candidate, entrance, level));
+                if (layoutSeed != seed)
+                    Debug.Log($"CONTOUR4 LOOT: seed {seed} needs prepared dock frames at level {level + 1}; gray fixture uses {layoutSeed}.");
+                raid.Place(layoutSeed, entrance, 0, 1 << 30, true, level);
                 var interactions = RaidRoomInteractions.Attach(raid);
                 var slots = RaidLootSites.Find(raid).ToArray();
                 var second = RaidLootSites.Find(raid).ToArray();
                 Require(slots.Length == second.Length, "slot determinism [count]");
-                Require(RaidCatalogSites.Sites(raid).Select(site => site.name).Distinct().Count() == 4, "themed catalog once");
+                var catalog = RaidCatalogSites.Sites(raid).Select(site => site.name).ToArray();
+                Require(catalog.Length >= 7 && catalog.Distinct().Count() == catalog.Length && catalog.Contains("valuable__field-core"),
+                    "distinct thematic sites including the lower shaft field core");
                 for (int i = 0; i < slots.Length; i++)
                 {
                     var slot = slots[i];
@@ -98,10 +168,14 @@ namespace Contour4.NativeRaid.Editor
                         front.Body.transform.rotation = pose;
                         Physics.SyncTransforms();
                         foreach (var part in front.Parts)
-                            Require(!Physics.CheckBox(part.transform.TransformPoint(part.center),
-                                Vector3.Scale(part.size, part.transform.lossyScale) * .5f, part.transform.rotation,
+                        {
+                            Bounds shape = part is BoxCollider box ? new Bounds(box.center, box.size) :
+                                ((MeshCollider)part).sharedMesh.bounds;
+                            Require(!Physics.CheckBox(part.transform.TransformPoint(shape.center),
+                                Vector3.Scale(shape.size, part.transform.lossyScale) * .5f, part.transform.rotation,
                                 1 << 30, QueryTriggerInteraction.Ignore),
                                 $"hinge swept through a shelf item at {part.name}");
+                        }
                     }
                 }
                 foreach (var slot in slots.Where(slot => slot.Kind == LootSurfaceKind.Cabinet))

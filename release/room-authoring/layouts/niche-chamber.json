@@ -1,0 +1,160 @@
+{
+  "id": "niche-chamber",
+  "title": "Камера в нише зала",
+  "purpose": "В большом зале оформляют ведомости, в повёрнутой нише сверяют и хранят эталонные записи. Грузовой поток проходит мимо ниши по исходной полосе.",
+  "items": [
+    {
+      "id": "Freight documentation and receipt table",
+      "kind": "bench",
+      "position": {
+        "x": 7.7,
+        "y": 0.483,
+        "z": -6.9
+      },
+      "size": {
+        "x": 2.45,
+        "y": 0.95,
+        "z": 0.68
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Freight record queue display",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.68,
+        "y": 1.63,
+        "z": -7.17
+      },
+      "size": {
+        "x": 2.25,
+        "y": 0.45,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "Document station cable trough",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.63,
+        "y": 2.82,
+        "z": -7.17
+      },
+      "size": {
+        "x": 4.05,
+        "y": 0.24,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "Document desk power feed",
+      "kind": "pipe",
+      "position": {
+        "x": 7.68,
+        "y": 2.17,
+        "z": -7.16
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.82,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "East wing delivery reorder shelving",
+      "kind": "rack",
+      "position": {
+        "x": 16.15,
+        "y": 0.758,
+        "z": 6.9
+      },
+      "size": {
+        "x": 1.7,
+        "y": 1.5,
+        "z": 0.68
+      },
+      "material": "enamel",
+      "solid": true,
+      "shelves": 3
+    },
+    {
+      "id": "East wing transaction panel",
+      "kind": "wall-panel",
+      "position": {
+        "x": 16.2,
+        "y": 2.07,
+        "z": 7.17
+      },
+      "size": {
+        "x": 1.65,
+        "y": 0.45,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Rotated cell reference record rack",
+      "kind": "rack",
+      "position": {
+        "x": 8.05,
+        "y": 5.1,
+        "z": 3.258
+      },
+      "size": {
+        "x": 1.25,
+        "y": 1.5,
+        "z": 0.58
+      },
+      "material": "enamel",
+      "solid": true,
+      "yaw": 90,
+      "roll": 90,
+      "shelves": 4
+    },
+    {
+      "id": "Rotated cell reference readers",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.82,
+        "y": 5.1,
+        "z": 4.38
+      },
+      "size": {
+        "x": 1.16,
+        "y": 0.42,
+        "z": 0.12
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 90,
+      "roll": 90
+    }
+  ],
+  "eye": {
+    "position": {
+      "x": 4,
+      "y": 1.6,
+      "z": -4.5
+    },
+    "look": {
+      "x": 14,
+      "y": 1.7,
+      "z": -3
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  }
+}

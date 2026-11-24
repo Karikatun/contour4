@@ -6,7 +6,7 @@ namespace Contour4.NativeRaid.Runtime
     internal sealed class CabinetFront
     {
         internal Rigidbody Body { get; }
-        internal IReadOnlyList<BoxCollider> Parts { get; }
+        internal IReadOnlyList<Collider> Parts { get; }
 
         internal static Rigidbody MountAnchor(Transform room)
         {
@@ -16,7 +16,7 @@ namespace Contour4.NativeRaid.Runtime
             return anchor;
         }
 
-        internal CabinetFront(Transform pivot, BoxCollider[] parts, Rigidbody mount, float angle, float travel)
+        internal CabinetFront(Transform pivot, Collider[] parts, Rigidbody mount, float angle, float travel)
         {
             Parts = parts;
             Body = pivot.gameObject.AddComponent<Rigidbody>();

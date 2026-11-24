@@ -28,20 +28,60 @@ namespace Contour4.NativeRaid.Runtime
         private static readonly Site[] Shaft = {
             new("field-core", "ground", new Vector3(14,.012f,1.35f), new Vector3(2.35f,1.35f,1.55f), new Vector3(11.5f,0,1.35f)),
         };
-        private static IEnumerable<Site> Definitions(string id) => id == "calibration-sector" ? Calibration :
+        // New pools are physically distinct from the five established sites. Sizes are Unity XYZ.
+        private static readonly Site[] SmallLab = {
+            new("corner-cube", "Catalog optical spares table", new Vector3(18,.912f,-5.9f), new Vector3(.08f,.04365f,.07968f), new Vector3(18,0,-3.9f)),
+            new("free-fall-photogate", "Catalog optical spares table", new Vector3(18,.912f,-5.9f), new Vector3(.13227f,.07448f,.14f), new Vector3(18,0,-3.9f)),
+            new("pirani-gauge-head", "Catalog optical spares table", new Vector3(18,.912f,-5.9f), new Vector3(.12001f,.05557f,.05490f), new Vector3(18,0,-3.9f)),
+            new("bullseye-level", "Catalog optical spares table", new Vector3(18,.912f,-5.9f), new Vector3(.09f,.01772f,.08991f), new Vector3(18,0,-3.9f)),
+        };
+        private static readonly Site[] MediumLab = {
+            new("atwood-machine", "Catalog low lab table", new Vector3(5.8f,.512f,-5.5f), new Vector3(.52118f,.80001f,.46213f), new Vector3(5.8f,0,-3.8f)),
+            new("kater-pendulum", "Catalog low lab table", new Vector3(5.8f,.512f,-5.5f), new Vector3(.53758f,.95f,.53904f), new Vector3(5.8f,0,-3.8f)),
+            new("vertical-seismometer", "Catalog low lab table", new Vector3(5.8f,.512f,-5.5f), new Vector3(.5f,.27881f,.37610f), new Vector3(5.8f,0,-3.8f)),
+            new("hydrostatic-balance", "Catalog low lab table", new Vector3(5.8f,.512f,-5.5f), new Vector3(.55001f,.48840f,.28275f), new Vector3(5.8f,0,-3.8f)),
+        };
+        private static readonly Site[] LargeLab = {
+            new("vacuum-drop-column", "ground", new Vector3(19,.012f,-2.5f), new Vector3(1.25976f,1.75f,1.13585f), new Vector3(20.7f,0,-2.5f)),
+            new("cavendish-balance", "ground", new Vector3(19,.012f,-2.5f), new Vector3(1.80001f,1.08443f,.82291f), new Vector3(20.7f,0,-2.5f)),
+        };
+        private static readonly Site Cryostat = new("anomaly-cryostat", "Catalog cryostat cradle",
+            new Vector3(3,.092f,-2.2f), new Vector3(1.25f,2.55f,1.10f), new Vector3(3,0,-.6f));
+        internal static readonly string[] LaboratoryKeys = SmallLab.Concat(MediumLab).Concat(LargeLab)
+            .Select(site => site.Key).Append(Cryostat.Key).ToArray();
+        private static int Choice(int seed, uint salt, int count) {
+            uint x = unchecked((uint)seed) ^ salt;
+            x ^= x >> 16; x *= 0x7FEB352Du; x ^= x >> 15; x *= 0x846CA68Bu; x ^= x >> 16;
+            return (int)(x % (uint)count);
+        }
+        private static IEnumerable<Site> Selected(string id, int seed) {
+            foreach (var site in Established(id)) yield return site;
+            if (id == "calibration-sector") {
+                yield return SmallLab[Choice(seed,0x2C41u,SmallLab.Length)];
+                yield return MediumLab[Choice(seed,0x27A9u,MediumLab.Length)];
+                int pick = Choice(seed,0x30C4u,16);
+                if (pick < LargeLab.Length) yield return LargeLab[pick]; // one large lab item in 2/16 seeds.
+            }
+            if (id.StartsWith("sample-storage", StringComparison.Ordinal) && Choice(seed,0x10C4u,16)==0)
+                yield return Cryostat; // rare separate cradle; original storage display is retained.
+        }
+        private static IEnumerable<Site> Definitions(string id) => Established(id).Concat(
+            id == "calibration-sector" ? SmallLab.Concat(MediumLab).Concat(LargeLab) :
+            id.StartsWith("sample-storage", StringComparison.Ordinal) ? new[] { Cryostat } : Array.Empty<Site>());
+        private static IEnumerable<Site> Established(string id) => id == "calibration-sector" ? Calibration :
             id.StartsWith("sample-storage", StringComparison.Ordinal) ? Storage :
             id == "shaft-plant" ? Shaft : Array.Empty<Site>();
 
         internal static void Dress(GrayModule module)
         {
-            foreach (var site in Definitions(module.Id))
+            foreach (var site in Definitions(module.Id).GroupBy(site => site.Support).Select(group => group.First()))
             {
-                if (site.Key == "field-core") continue; // Native ground support; never a table or pedestal.
-                Vector3 size = site.Key == "gravity-lens" ? new Vector3(1.65f,.24f,.85f) :
+                if (site.Support == "ground") continue; // Native ground support; never a table or pedestal.
+                Vector3 size = site.Key == "anomaly-cryostat" ? new Vector3(1.5f,.08f,1.35f) : site.Support == "Catalog low lab table" ? new Vector3(1.1f,.08f,.8f) : site.Key == "gravity-lens" ? new Vector3(1.65f,.24f,.85f) :
                     site.Key == "gimbal-gyroscope" ? new Vector3(1.65f,.08f,.9f) : new Vector3(1.1f,.08f,.7f);
                 Vector3 center = site.Bottom - Vector3.up * (.012f + size.y / 2);
                 Add(module, site.Support, center, size);
-                if (site.Key == "gravity-lens") continue;
+                if (site.Key is "gravity-lens" or "anomaly-cryostat") continue;
                 float height = center.y - size.y / 2;
                 foreach (float x in new[] { -.5f, .5f })
                 foreach (float z in new[] { -.5f, .5f })
@@ -60,7 +100,7 @@ namespace Contour4.NativeRaid.Runtime
         {
             foreach (var room in raid.Rooms)
             {
-                var sites = Definitions(room.Plan.Module.Id).ToArray();
+                var sites = Selected(room.Plan.Module.Id,raid.Plan.Seed).ToArray();
                 if (sites.Length == 0) continue;
                 var root = RaidAssembly.Child(room.Root, "Catalog sites");
                 foreach (var site in sites) RaidAssembly.Child(root, "valuable__" + site.Key).localPosition = site.Bottom;
@@ -70,16 +110,22 @@ namespace Contour4.NativeRaid.Runtime
             .Where(room => room.Root.Find("Catalog sites"))
             .SelectMany(room => room.Root.Find("Catalog sites").Cast<Transform>());
 
+        internal static bool OverlapsReservedLoot(RaidLootSlot slot) => slot.Room.Root.Find("Catalog sites") &&
+            Definitions(slot.Room.Plan.Module.Id).Any(site =>
+                slot.LocalBounds.Intersects(new Bounds(site.Bottom + Vector3.up * (site.Size.y / 2f), site.Size)));
+
         internal static void Validate(RaidAssembly raid)
         {
             Physics.SyncTransforms();
-            if (Sites(raid).Count() != 5) throw new InvalidOperationException("Procedural catalog must contain five distinct sites including the lower-shaft field core.");
+            var expected = raid.Rooms.SelectMany(room => Selected(room.Plan.Module.Id,raid.Plan.Seed)).Select(site => "valuable__"+site.Key).OrderBy(key=>key).ToArray();
+            if (!Sites(raid).Select(site=>site.name).OrderBy(key=>key).SequenceEqual(expected) || expected.Distinct().Count()!=expected.Length)
+                throw new InvalidOperationException("Procedural catalog selected sites differ from deterministic unique definitions.");
             foreach (var room in raid.Rooms)
             foreach (var site in Definitions(room.Plan.Module.Id))
             {
                 Clear(room.Root, site.Key, site.Bottom + Vector3.up * site.Size.y / 2, site.Size);
-                var marker = room.Root.Find("Catalog sites/valuable__" + site.Key);
-                if (!Physics.Raycast(marker.position + marker.up * .025f, -marker.up, out var hit, .1f, ~0, QueryTriggerInteraction.Ignore) ||
+                var point = room.Root.TransformPoint(site.Bottom);
+                if (!Physics.Raycast(point + room.Root.up * .025f, -room.Root.up, out var hit, .1f, ~0, QueryTriggerInteraction.Ignore) ||
                     hit.collider.name != site.Support) throw new InvalidOperationException("Missing catalog support " + site.Key);
                 Clear(room.Root, site.Key + " approach", site.Approach + Vector3.up * .97f, new Vector3(1.7f,1.85f,1.7f));
                 foreach (var landmark in room.Plan.Module.Landmarks.Where(entry => entry.Key is "equipment" or "containers" or "hand-samples"))
@@ -94,6 +140,57 @@ namespace Contour4.NativeRaid.Runtime
             // Lens eligibility is deliberate: only the audited physical cart spine, never the door portal shortcut.
             ValidateLensRoute(raid);
             ValidateFieldCoreRoute(raid);
+            ValidateLaboratoryRoutes(raid);
+        }
+        internal static List<(Vector3 Point, Quaternion Rotation)> LaboratoryRoute(RaidAssembly raid, string key) {
+            bool cryo = key == Cryostat.Key;
+            var room = raid.Rooms.Single(r=>cryo ? r.Plan.Module.Id.StartsWith("sample-storage",StringComparison.Ordinal) : r.Plan.Module.Id=="calibration-sector");
+            var result = new List<(Vector3,Quaternion)>();
+            void Point(Vector3 p, Vector3 f) => result.Add((room.Root.TransformPoint(p),room.Root.rotation*Quaternion.LookRotation(f,Vector3.up)));
+            if (cryo) {
+                Point(new Vector3(3,0,-2.2f),Vector3.left);
+                Point(new Vector3(3,0,0),Vector3.left);
+                Point(new Vector3(1.8f,0,0),Vector3.left);
+            } else if (LargeLab.Any(site=>site.Key==key)) {
+                Point(new Vector3(19,0,-2.5f),Vector3.back);
+                Point(new Vector3(19,0,-4.5f),Vector3.left);
+                Point(new Vector3(7.25f,0,-4.5f),Vector3.left);
+                Point(new Vector3(3,0,0),Vector3.left);
+                Point(new Vector3(1.8f,0,0),Vector3.left);
+            } else if (SmallLab.Any(site=>site.Key==key)) {
+                Point(new Vector3(18,0,-3.9f),Vector3.left);
+                Point(new Vector3(7.25f,0,-4.5f),Vector3.left);
+                Point(new Vector3(3,0,0),Vector3.left);
+                Point(new Vector3(1.8f,0,0),Vector3.left);
+            } else {
+                Point(new Vector3(5.8f,0,-3.8f),Vector3.left);
+                Point(new Vector3(3,0,0),Vector3.left);
+                Point(new Vector3(1.8f,0,0),Vector3.left);
+            }
+            AppendFreightToEntrance(raid,room.Plan,result);
+            return result;
+        }
+        internal static void ValidateLaboratoryRoutes(RaidAssembly raid, bool allEligible = false) {
+            var sites = allEligible ? SmallLab.Concat(MediumLab).Concat(LargeLab).Append(Cryostat) :
+                raid.Rooms.SelectMany(room=>Selected(room.Plan.Module.Id,raid.Plan.Seed)).Where(site=>LaboratoryKeys.Contains(site.Key));
+            foreach (var site in sites) {
+                var route=LaboratoryRoute(raid,site.Key); int samples=0;
+                for(int i=1;i<route.Count;i++) {
+                    var a=route[i-1];var b=route[i];
+                    int count=Mathf.Max(1,Mathf.CeilToInt(Vector3.Distance(a.Point,b.Point)/.15f),Mathf.CeilToInt(Quaternion.Angle(a.Rotation,b.Rotation)/5f));
+                    for(int n=0;n<=count;n++) {
+                        float t=n/(float)count;var feet=Vector3.Lerp(a.Point,b.Point,t);var rotation=Quaternion.Slerp(a.Rotation,b.Rotation,t);var up=rotation*Vector3.up;
+                        var hits=Physics.OverlapBox(feet+up*(.25f+site.Size.y/2),site.Size/2,rotation,~0,QueryTriggerInteraction.Ignore)
+                            .Where(c=>c.transform.IsChildOf(raid.transform)).ToArray();
+                        if(hits.Length>0)throw new InvalidOperationException($"Lab route {site.Key} seed={raid.Plan.Seed} sample={samples} feet={feet}: "+string.Join(",",hits.Select(c=>c.name)));
+                        if(Vector3.Dot(feet-raid.Plan.Entrance.Sill,raid.Plan.Entrance.Outward)<-.01f &&
+                            !Physics.RaycastAll(feet+up*.55f,-up,1.1f,~0,QueryTriggerInteraction.Ignore).Any(hit=>hit.collider.transform.IsChildOf(raid.transform)&&Vector3.Dot(hit.normal,up)>=.6f))
+                            throw new InvalidOperationException("Lab route lacks support "+site.Key+" "+feet);
+                        samples++;
+                    }
+                }
+                Debug.Log($"[Contour4 Catalog] seed={raid.Plan.Seed}: {site.Key} upright XYZ={site.Size} carry route to stock entrance PASS, {samples} samples; native grip/sale pending.");
+            }
         }
         private static void Clear(Transform frame, string label, Vector3 center, Vector3 size)
         {

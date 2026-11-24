@@ -14,6 +14,7 @@
     <InternalsVisibleTo Include="Contour4" />
     <Reference Include="UnityEngine" HintPath="$(GameManaged)/UnityEngine.dll" Private="false" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(GameManaged)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="Newtonsoft.Json" HintPath="$(GameManaged)/Newtonsoft.Json.dll" Private="false" />
     <Reference Include="UnityEngine.PhysicsModule" HintPath="$(GameManaged)/UnityEngine.PhysicsModule.dll" Private="false" />
     <Reference Include="UnityEngine.AIModule" HintPath="$(GameManaged)/UnityEngine.AIModule.dll" Private="false" />
   </ItemGroup>

@@ -1,0 +1,78 @@
+{
+    "moduleId": "elbow-corridor",
+    "transit": "",
+    "sites": [
+        {
+            "id": "outside-elbow-spares",
+            "marker": "loot__outside-elbow-spares",
+            "floor": "ground",
+            "support": "west-arm-floor",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 7.550000190734863,
+                "y": 0.00800000037997961,
+                "z": -2.1700000762939455
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 7.550000190734863,
+                "y": 0.0,
+                "z": -1.78000009059906
+            }
+        },
+        {
+            "id": "inside-elbow-spares",
+            "marker": "loot__inside-elbow-spares",
+            "floor": "ground",
+            "support": "north-arm-floor",
+            "surface": "Floor",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 3.549999952316284,
+                "y": 0.00800000037997961,
+                "z": 5.835000038146973
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 3.549999952316284,
+                "y": 0.0,
+                "z": 5.445000171661377
+            }
+        }
+    ]
+}

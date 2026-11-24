@@ -62,12 +62,14 @@ namespace Contour4.NativeRaid.Enemies
             harmony.Patch(head, transpiler: Patch(nameof(HeadCode)));
             harmony.Patch(AccessTools.DeclaredMethod(typeof(EnemyVision), "OnDisable"),
                 postfix: Patch(nameof(AfterVisionDisable)));
+            NativeMobiusPursuit.Install(harmony);
         }
 
         private static HarmonyMethod Patch(string method) => new HarmonyMethod(typeof(EnemyHooks), method);
 
         internal static void Clear()
         {
+            NativeMobiusPursuit.Clear();
             foreach (var approach in Approaches.Values)
                 approach.Release();
             Approaches.Clear();
@@ -117,7 +119,7 @@ namespace Contour4.NativeRaid.Enemies
             NativeRaidPortal match = null;
             foreach (NativeRaidPortal door in raid.Portals)
             {
-                if (door.EntryFloor != from || door.ExitFloor != to || !door.Entrance || !door.Exit)
+                if (!door.Door || door.EntryFloor != from || door.ExitFloor != to || !door.Entrance || !door.Exit)
                     continue;
                 if (match != null)
                     return null;
@@ -167,6 +169,7 @@ namespace Contour4.NativeRaid.Enemies
             Enemy enemy = ChaseEnemy(state);
             if (!enemy)
                 return false;
+            if (NativeMobiusPursuit.Drive(enemy, state)) return true;
             PlayerAvatar player = Target(enemy);
             if (!TryScope(enemy, player, out var raid, out var from, out var target) ||
                 !player.photonView || player.photonView.ViewID != TargetView(enemy) ||

@@ -79,9 +79,22 @@ try {
     $installer = $candidate.MainModule.GetType('Contour4.NativeRaid.NativeRaidCabinetGrab')
     Require ($null -ne $installer) 'The candidate has no stock PhysGrabObject cabinet installer (the E-toggle baseline fails here).'
     $bind = Find-Method $binding 'Attach'
-    $install = Find-Method $installer 'Install'
+    $installers = @($installer.Methods | Where-Object Name -CEQ 'Install')
+    $cabinetEntry = @($installers | Where-Object { $_.Parameters.Count -eq 1 })
+    $bodyEntry = @($installers | Where-Object { $_.Parameters.Count -eq 2 })
+    Require ($cabinetEntry.Count -eq 1 -and $cabinetEntry[0].HasBody -and
+        $installers.Count -eq 1 + $bodyEntry.Count -and $bodyEntry.Count -le 1) `
+        'Expected the cabinet entry and at most one shared body installer.'
+    $install = $cabinetEntry[0]
+    if ($bodyEntry.Count -eq 1) {
+        $sharedCall = Find-Call $install $installer.FullName 'Install'
+        Require ($bodyEntry[0].HasBody -and $sharedCall.Operand.FullName -ceq $bodyEntry[0].FullName) `
+            'The procedural cabinet path must delegate to the same stock body installer as the ring.'
+        $install = $bodyEntry[0]
+    }
+    $cabinetCall = Find-Call $bind $installer.FullName 'Install'
     Require ((Find-Call $attach 'GameManager' 'Multiplayer') -and (Find-Call $attach $binding.FullName 'Attach') -and
-        (Find-Call $bind $installer.FullName 'Install') -and
+        $cabinetCall.Operand.FullName -ceq $cabinetEntry[0].FullName -and
         ($binding.Methods.Name -cnotcontains 'Update') -and
         (Find-Call (Find-Method $binding 'OnDisable') 'PhysGrabber' 'ReleaseObject')) `
         'Cabinets must enter the stock path from solo generation and release on teardown.'

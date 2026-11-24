@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Contour4.NativeRaid.Runtime;
+using Contour4.Procedural.Catalog;
 using HarmonyLib;
 using UnityEngine;
 
@@ -10,7 +12,7 @@ namespace Contour4.NativeRaid;
 // The controller and camera keep the stock world-up frame. The freight deck rolls around
 // the player, preserving positions and velocities relative to the rest of the scene.
 [DefaultExecutionOrder(-150)]
-internal sealed class NativeRaidGravity : MonoBehaviour
+internal sealed partial class NativeRaidGravity : MonoBehaviour
 {
     private static readonly FieldInfo CartBody = AccessTools.Field(typeof(PhysGrabCart), "rb");
     private static readonly FieldInfo ActualLast = AccessTools.Field(typeof(PhysGrabCart), "actualVelocityLastPosition");
@@ -21,15 +23,33 @@ internal sealed class NativeRaidGravity : MonoBehaviour
     private RaidAssembly raid;
     private Transform levelRoot;
     private readonly List<Rigidbody> actors = new();
+    private readonly HashSet<Rigidbody> newRibbonLoot = new();
     private readonly Dictionary<Rigidbody, PhysGrabCart> carts = new();
     private readonly RaidWorldRebase stage = new();
+    private readonly SphereGravityReorientation sphereOrientation = new();
+    private BakedRoom ribbonRoom;
+    private MobiusContactRelay ribbonContacts;
+    private Rigidbody ribbonObserver;
+    private BakedRoom sphericalRoom;
+    private Rigidbody sphericalObserver;
+    private float sphericalFallImpulse;
+    private double sphericalFallStep = double.NegativeInfinity;
     private float nextActorScan;
+    private bool hasMobiusHall;
+    private bool hasSphericalChamber;
+    private bool actorsReady;
+    private bool HasDeferredActorGravity => hasMobiusHall || hasSphericalChamber;
 
     internal static void Attach(RaidAssembly raid)
     {
         var gravity = raid.gameObject.AddComponent<NativeRaidGravity>();
         gravity.raid = raid;
         gravity.levelRoot = raid.transform.root;
+        gravity.hasMobiusHall = raid.Rooms.Any(room => room.Prepared && room.Plan.Module.Id == MobiusHall.Id);
+        gravity.hasSphericalChamber = raid.Rooms.Any(room => room.Prepared && SphericalChamber.IsVariant(room.Plan.Module.Id));
+        if (gravity.HasDeferredActorGravity)
+            raid.gameObject.AddComponent<NativeRaidActorGravityStep>().Owner = gravity;
+        raid.gameObject.AddComponent<NativeRaidSphericalGravityStep>().Owner = gravity;
         active = gravity;
     }
 
@@ -41,34 +61,230 @@ internal sealed class NativeRaidGravity : MonoBehaviour
     private void OnDisable()
     {
         if (active == this) active = null;
+        ClearNativeJump();
+        ClearRibbon();
+        ClearSphericalOrientation();
+        sphericalFallStep = double.NegativeInfinity;
         carts.Clear();
         actors.Clear();
+        newRibbonLoot.Clear();
         nextActorScan = 0f;
+        actorsReady = false;
     }
 
     private void FixedUpdate()
     {
         var controller = PlayerController.instance;
-        if (raid.Context == null || !controller || !controller.rb || !SemiFunc.LevelGenDone()) return;
+        actorsReady = raid.Context != null && controller && controller.rb && SemiFunc.LevelGenDone();
+        if (!actorsReady) { ClearNativeJump(); return; }
         var player = controller.rb;
-        if (raid.TryUp(player.position, out Vector3 up) && Vector3.Dot(up, Vector3.up) < .999999f)
-            Rebase(player, player.position, Quaternion.FromToRotation(up, Vector3.up));
-        RefreshActors(player);
-        foreach (Rigidbody actor in actors)
+        jumpSampled = false;
+        if (jumpBody && (!ValidJump(controller) || raid.ContainsRing(player.position))) ClearNativeJump();
+        if (!UpdateRibbon(player) && !UpdateSphericalOrientation(player) && raid.TryUp(JumpSample(player), out Vector3 up) &&
+            !HoldNativeJump(player, up, IsJumpBridge(JumpSample(player))) && Vector3.Dot(up, Vector3.up) < .999999f)
         {
-            if (!actor || actor.isKinematic || actor.IsSleeping() || !actor.useGravity ||
-                !TryUp(actor.worldCenterOfMass, out Vector3 gravityUp)) continue;
-            Vector3 correction = -gravityUp * Physics.gravity.magnitude - Physics.gravity;
-            if (correction.sqrMagnitude > .00001f) actor.AddForce(correction, ForceMode.Acceleration);
+            Quaternion turn = Quaternion.FromToRotation(up, Vector3.up);
+            Vector3 velocity = player.linearVelocity;
+            Vector3 spin = player.angularVelocity;
+            Rebase(player, player.position, turn);
+            // The stock controller keeps its upright pose while the deck changes frame.
+            // Transport free motion with that frame, as the ring, sphere and ribbon do.
+            if (!player.isKinematic)
+            {
+                player.linearVelocity = turn * velocity;
+                player.angularVelocity = turn * spin;
+            }
+        }
+        if (jumpBody && !jumpSampled) ClearNativeJump();
+        RefreshActors(player);
+        // Stock releases its kinematic spawn bodies during generation. Keep newly spawned
+        // ribbon items in the fixed step even before the periodic scene scan finds them.
+        foreach (Rigidbody item in newRibbonLoot)
+            if (item && !actors.Contains(item)) actors.Add(item);
+        newRibbonLoot.Clear();
+        foreach (Rigidbody actor in actors)
+            if (!HasDeferredActorGravity || (actor && carts.ContainsKey(actor))) ApplyActorGravity(actor);
+    }
+
+    internal void ApplyDeferredActorGravity()
+    {
+        if (!actorsReady)
+        {
+            foreach (Rigidbody item in newRibbonLoot) ApplyActorGravity(item, ribbonOnly: true);
+            return;
+        }
+        foreach (Rigidbody actor in actors)
+            if (actor && !carts.ContainsKey(actor)) ApplyActorGravity(actor);
+    }
+
+    private bool UpdateSphericalOrientation(Rigidbody player)
+    {
+        if (!hasSphericalChamber || !raid.TrySphericalUp(JumpSample(player), Vector3.up, out var up, out var room))
+        {
+            ClearSphericalOrientation();
+            return false;
+        }
+        if (sphericalRoom != room || sphericalObserver != player)
+        {
+            sphereOrientation.Reset();
+            sphericalRoom = room;
+            sphericalObserver = player;
+        }
+        if (HoldNativeJump(player, up, IsJumpBridge(JumpSample(player)))) return true;
+        if (Vector3.Dot(up, Vector3.up) < .9999999f)
+        {
+            Quaternion turn = sphereOrientation.Step(up, room.Root.forward, Time.fixedDeltaTime);
+            Vector3 velocity = player.linearVelocity;
+            Vector3 spin = player.angularVelocity;
+            Rebase(player, player.position, turn);
+            if (!player.isKinematic)
+            {
+                player.linearVelocity = turn * velocity;
+                player.angularVelocity = turn * spin;
+            }
+        }
+        return true;
+    }
+
+    private void ClearSphericalOrientation()
+    {
+        sphereOrientation.Reset();
+        sphericalRoom = null;
+        sphericalObserver = null;
+    }
+
+    internal static Vector3 CaptureFallImpulse(Vector3 force, PlayerController controller)
+    {
+        var gravity = active;
+        if (!gravity || (!gravity.hasSphericalChamber && !gravity.jumpWaiting) || !gravity.actorsReady || controller != PlayerController.instance)
+            return force;
+
+        double step = Time.fixedTimeAsDouble;
+        if (gravity.sphericalFallStep != step)
+        {
+            gravity.sphericalFallStep = step;
+            gravity.sphericalFallImpulse = 0;
+        }
+        gravity.sphericalFallImpulse += force.y;
+        return force;
+    }
+
+    internal void ApplySphericalPlayerGravity()
+    {
+        if (!actorsReady) return;
+        var controller = PlayerController.instance;
+        if (!controller || !controller.rb || controller.rb.isKinematic || !controller.rb.useGravity) return;
+        Rigidbody player = controller.rb;
+        Vector3 up;
+        if (jumpWaiting && jumpBody == player && ValidJump(controller)) up = jumpUp;
+        else if (!raid.TrySphericalUp(player.position, Vector3.up, out up, out _)) return;
+
+        Vector3 correction = SphereGravityReorientation.ForceCorrection(up, Physics.gravity);
+        if (correction.sqrMagnitude > .00001f) player.AddForce(correction, ForceMode.Acceleration);
+        if (sphericalFallStep == Time.fixedTimeAsDouble)
+        {
+            Vector3 impulse = SphereGravityReorientation.FallImpulseCorrection(up, sphericalFallImpulse);
+            if (impulse.sqrMagnitude > .00000001f) player.AddForce(impulse, ForceMode.Impulse);
         }
     }
 
-    private bool TryUp(Vector3 point, out Vector3 up)
+    internal static void TrackRibbonSpawn(ValuableVolume volume, ValuableObject item)
+    {
+        if (!active || !active.hasMobiusHall || !volume || !item || !item.TryGetComponent(out Rigidbody body)) return;
+        var room = active.raid.MobiusRoomAt(volume.transform.position);
+        if (room != null) active.newRibbonLoot.Add(body);
+    }
+
+    private void ApplyActorGravity(Rigidbody actor, bool ribbonOnly = false)
+    {
+        if (!actor || actor.isKinematic || actor.IsSleeping() || !actor.useGravity) return;
+        bool cart = carts.ContainsKey(actor);
+        Vector3 center = actor.worldCenterOfMass;
+        BakedRoom room = !cart && hasMobiusHall ? raid.MobiusRoomAt(center) : null;
+        Vector3 up;
+        if (room != null)
+        {
+            if (!MobiusWalk.TryFieldUp(room.Root, center, out up))
+            {
+                if (ribbonOnly) return;
+                Vector3 local = room.Root.InverseTransformPoint(center);
+                up = room.Root.TransformDirection(RaidPlan.Vector(MobiusHall.RoomUpAt(new(local.x, local.y, local.z))));
+            }
+        }
+        else if (ribbonOnly || !TryUp(center, out up, !cart)) return;
+        Vector3 correction = MobiusWalk.TakeoffGravityCorrection(up, Physics.gravity);
+        if (correction.sqrMagnitude > .00001f) actor.AddForce(correction, ForceMode.Acceleration);
+    }
+
+    private bool UpdateRibbon(Rigidbody player)
+    {
+        BakedRoom room = raid.MobiusRoomAt(player.position);
+        if (room != ribbonRoom || player != ribbonObserver)
+        {
+            ClearRibbon();
+            if (room != null)
+            {
+                ribbonRoom = room;
+                ribbonObserver = player;
+                if (!player.TryGetComponent(out ribbonContacts))
+                    ribbonContacts = player.gameObject.AddComponent<MobiusContactRelay>();
+                ribbonContacts.Bind(player, new MobiusWalk(room.Root, room.CollidersById[MobiusHall.Ribbon]));
+            }
+        }
+        if (!ribbonContacts || ribbonObserver.isKinematic || !ribbonObserver.useGravity) return false;
+
+        Vector3 up = ribbonContacts.Step(out var change);
+        if (HoldNativeJump(player, up, false)) return true;
+        if (Vector3.Dot(up, Vector3.up) < .999999f)
+        {
+            Quaternion turn = Quaternion.FromToRotation(up, Vector3.up);
+            Vector3 feet = player.position;
+            Vector3 pivot = change == MobiusWalk.Change.Release
+                ? MobiusWalk.ReleasePivot(feet, player.worldCenterOfMass, turn) : feet;
+            Vector3 velocity = player.linearVelocity;
+            Vector3 spin = player.angularVelocity;
+            Rebase(player, pivot, turn);
+            // A free-flight half-room flip changes the world frame as well. Keeping
+            // stock-world velocity would reverse the flight relative to the room,
+            // repeatedly crossing the middle plane instead of reaching the ceiling.
+            // Attached ribbon motion retains its existing stock steering semantics.
+            if (change != MobiusWalk.Change.None || !ribbonContacts.Walk.Attached)
+                player.linearVelocity = turn * velocity;
+            if (!ribbonContacts.Walk.Attached)
+                player.angularVelocity = turn * spin;
+        }
+        if (ribbonContacts.Walk.TryPassiveGravity(player.position, out Vector3 localFieldUp))
+            player.AddForce(MobiusWalk.TakeoffGravityCorrection(localFieldUp, Physics.gravity), ForceMode.Acceleration);
+        return true;
+    }
+
+    internal static void NotifyRibbonJump(Rigidbody body)
+    {
+        if (!active || !body || body != active.ribbonObserver || !active.ribbonContacts ||
+            !body.useGravity || body.isKinematic || !active.ribbonContacts.Walk.Jump()) return;
+
+        // The native takeoff and movement are already queued in the current ribbon frame.
+        // Use the room's acceleration in that frame for the first simulation step. The next
+        // fixed update changes the frame and transports the resulting velocity with the room.
+        Vector3 correction = MobiusWalk.TakeoffGravityCorrection(active.ribbonContacts.Walk.RoomUp(body.position), Physics.gravity);
+        body.AddForce(correction, ForceMode.Acceleration);
+    }
+
+    private void ClearRibbon()
+    {
+        if (ribbonContacts) ribbonContacts.Bind(null, null);
+        ribbonContacts = null;
+        ribbonObserver = null;
+        ribbonRoom = null;
+    }
+
+    private bool TryUp(Vector3 point, out Vector3 up, bool allowsHandOnly)
     {
         // The ring handles its own rigidbodies and fades its gravity independently.
         up = default;
         if (raid.ContainsRing(point)) return false;
-        if (raid.TryUp(point, out up)) return true;
+        if (hasSphericalChamber && allowsHandOnly && raid.TrySphericalUp(point, Vector3.zero, out up, out _)) return true;
+        if (raid.TryUp(point, out up, allowsHandOnly)) return true;
         // The truck uses the original entrance floor basis. External bodies outside the
         // generated sections use it only while they are parented to this level.
         up = raid.Room(raid.Plan.Entrance.Room).Root.up;
@@ -84,7 +300,7 @@ internal sealed class NativeRaidGravity : MonoBehaviour
 
         Vector3 center = body.worldCenterOfMass;
         if (gravity.raid.ContainsRing(center)) return false;
-        if (gravity.raid.TryUp(center, out up)) return true;
+        if (gravity.raid.TryUp(center, out up, allowsHandOnly: false)) return true;
         if (!body.transform.IsChildOf(gravity.levelRoot)) return false;
         up = gravity.raid.Room(gravity.raid.Plan.Entrance.Room).Root.up;
         return true;
@@ -104,7 +320,10 @@ internal sealed class NativeRaidGravity : MonoBehaviour
     {
         if (!body || !portal.Entrance || !portal.Exit ||
             !raid.TryGetComponent(out NativeRaidGravity gravity)) return false;
-        gravity.Rebase(body, destinationFeet, Quaternion.Inverse(portal.Rotation), portalLoad);
+        gravity.ClearNativeJump();
+        gravity.ClearRibbon();
+        gravity.ClearSphericalOrientation();
+        gravity.Rebase(body, destinationFeet, Quaternion.Inverse(portal.TravelRotation), portalLoad);
         return true;
     }
 
@@ -120,8 +339,10 @@ internal sealed class NativeRaidGravity : MonoBehaviour
             if (!body || body == player || body.gameObject.scene != gameObject.scene ||
                 (avatar && body.transform.IsChildOf(avatar.transform)) ||
                 body.transform.IsChildOf(player.transform)) continue;
-            if (!body.transform.IsChildOf(levelRoot) && !raid.TryUp(body.worldCenterOfMass, out _) &&
-                !raid.ContainsRing(body.worldCenterOfMass)) continue;
+            Vector3 center = body.worldCenterOfMass;
+            if (!body.transform.IsChildOf(levelRoot) && !raid.TryUp(center, out _) &&
+                !raid.ContainsRing(center) && !(hasMobiusHall && raid.MobiusRoomAt(center) != null) &&
+                !(hasSphericalChamber && raid.TrySphericalUp(center, Vector3.zero, out _, out _))) continue;
             actors.Add(body);
         }
         foreach (var cart in FindObjectsByType<PhysGrabCart>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
@@ -142,6 +363,68 @@ internal sealed class NativeRaidGravity : MonoBehaviour
             if (body && (portalLoad == null || !portalLoad.Contains(body)) &&
                 carts.TryGetValue(body, out var cart) && cart && (Rigidbody)CartBody.GetValue(cart) == body)
                 TransformCartHistory(cart, point => destination + turn * (point - pivot), turn);
+        }
+    }
+}
+
+// The portal controller can rotate the raid at order 1000. Resolve free and held
+// items in the destination frame, after native grab forces and all portal transforms.
+[DefaultExecutionOrder(1200)]
+internal sealed class NativeRaidActorGravityStep : MonoBehaviour
+{
+    internal NativeRaidGravity Owner { get; set; }
+
+    private void FixedUpdate()
+    {
+        if (Owner && Owner.isActiveAndEnabled) Owner.ApplyDeferredActorGravity();
+    }
+}
+
+// Sample the destination position after native player movement and portal transfer.
+[DefaultExecutionOrder(1200)]
+internal sealed class NativeRaidSphericalGravityStep : MonoBehaviour
+{
+    internal NativeRaidGravity Owner { get; set; }
+
+    private void FixedUpdate()
+    {
+        if (Owner && Owner.isActiveAndEnabled) Owner.ApplySphericalPlayerGravity();
+    }
+}
+
+internal sealed class MobiusContactRelay : MonoBehaviour
+{
+    private Rigidbody observer;
+    private Collider ground;
+    internal MobiusWalk Walk { get; private set; }
+
+    internal void Bind(Rigidbody body, MobiusWalk walk)
+    {
+        observer = body;
+        Walk = walk;
+        ground = null;
+    }
+
+    internal Vector3 Step(out MobiusWalk.Change change)
+    {
+        Vector3 up = Walk.Step(observer.position, observer.linearVelocity, ground, out change);
+        ground = null;
+        return up;
+    }
+
+    private void OnCollisionEnter(Collision collision) => OnCollisionStay(collision);
+
+    private void OnCollisionStay(Collision collision)
+    {
+        if (Walk == null || !observer) return;
+        Collider surface = collision.collider;
+        Vector3 feet = observer.position;
+        for (int i = 0; i < collision.contactCount; i++)
+        {
+            ContactPoint contact = collision.GetContact(i);
+            if (Walk.IsWalkSurface(surface)) Walk.Observe(feet, contact.point, contact.normal);
+            else if (contact.normal.y > .50f && Mathf.Abs(contact.point.y - feet.y) <= .39f)
+                ground = surface;
         }
     }
 }

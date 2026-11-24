@@ -19,7 +19,7 @@ namespace Contour4.Procedural.Catalog
                 Pose(-1.8f, 0, 0), Pose(5.2f, 0, 0));
             var fitout = new RoomDressing("service", Level);
             fitout.Bench("maintenance-table", 3.9f, 0, -3.5f, -1, 2.1f, FixedSeat.Chair);
-            fitout.Cabinet("tool-locker", 3.65f, 0, 3.5f, 1, 1.25f, 1.32f);
+            fitout.HidingCabinet("tool-locker", 3.65f, 0, 3.5f, 1, 1.25f, 1.32f);
             fitout.LowCabinet("stacked-spares", 1.34f, 0, -3.06f, -1, 1.22f, stacked: true);
             fitout.WallLamp("battery-service-light", 3.6f, 2.95f, -3.5f, -1, LampDuty.Standby);
             fitout.TaskPendant("spare-drawers-battery-light", 1.62f, Height, -1.42f, .53f, LampDuty.Standby, -.53f);

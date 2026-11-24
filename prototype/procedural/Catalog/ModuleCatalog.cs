@@ -27,6 +27,9 @@ namespace Contour4.Procedural.Catalog
             yield return GalleryChamber.Create();
             yield return NicheChamber.Create();
             yield return MaintenanceTrench.Create();
+            foreach (int mask in SphericalChamber.VariantMasks)
+                yield return SphericalChamber.Create(mask);
+            yield return MobiusHall.Create();
         }
     }
 }

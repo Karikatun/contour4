@@ -1,0 +1,177 @@
+{
+  "id": "spiral-corridor",
+  "title": "Спиральный коридор",
+  "purpose": "Метки относятся к узлам питания поля и поворачиваются с локальными стенками. Осевой перенос ручного груза по спирали сохранён.",
+  "items": [
+    {
+      "id": "Local field feed 1.8",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1.8,
+        "y": 2.35,
+        "z": 2.205
+      },
+      "size": {
+        "x": 0.94,
+        "y": 0.35,
+        "z": 0.065
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 0
+    },
+    {
+      "id": "Local field face 1.8",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1.8,
+        "y": 2.35,
+        "z": 2.158
+      },
+      "size": {
+        "x": 0.53,
+        "y": 0.13,
+        "z": 0.028
+      },
+      "material": "bakelite",
+      "solid": false,
+      "pitch": 0
+    },
+    {
+      "id": "Local field feed 7.5",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.5,
+        "y": 1.5676972097981725,
+        "z": 1.9644021862494256
+      },
+      "size": {
+        "x": 0.94,
+        "y": 0.35,
+        "z": 0.065
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 21.2536443148688
+    },
+    {
+      "id": "Local field face 7.5",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.5,
+        "y": 1.5847345837528457,
+        "z": 1.920598899971697
+      },
+      "size": {
+        "x": 0.53,
+        "y": 0.13,
+        "z": 0.028
+      },
+      "material": "bakelite",
+      "solid": false,
+      "pitch": 21.2536443148688
+    },
+    {
+      "id": "Local field feed 13.5",
+      "kind": "wall-panel",
+      "position": {
+        "x": 13.5,
+        "y": 0.395,
+        "z": -0.24999999999999986
+      },
+      "size": {
+        "x": 0.94,
+        "y": 0.35,
+        "z": 0.065
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 90
+    },
+    {
+      "id": "Local field face 13.5",
+      "kind": "wall-panel",
+      "position": {
+        "x": 13.5,
+        "y": 0.44200000000000017,
+        "z": -0.24999999999999986
+      },
+      "size": {
+        "x": 0.53,
+        "y": 0.13,
+        "z": 0.028
+      },
+      "material": "bakelite",
+      "solid": false,
+      "pitch": 90
+    },
+    {
+      "id": "Local field feed 19.5",
+      "kind": "wall-panel",
+      "position": {
+        "x": 19.5,
+        "y": 2.033689617008049,
+        "z": -2.1456508453416903
+      },
+      "size": {
+        "x": 0.94,
+        "y": 0.35,
+        "z": 0.065
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 158.7463556851312
+    },
+    {
+      "id": "Local field face 19.5",
+      "kind": "wall-panel",
+      "position": {
+        "x": 19.5,
+        "y": 2.050726990962722,
+        "z": -2.1018475590639616
+      },
+      "size": {
+        "x": 0.53,
+        "y": 0.13,
+        "z": 0.028
+      },
+      "material": "bakelite",
+      "solid": false,
+      "pitch": 158.7463556851312
+    },
+    {
+      "id": "Local field feed 25.2",
+      "kind": "wall-panel",
+      "position": {
+        "x": 25.2,
+        "y": 2.8499999999999996,
+        "z": -2.205
+      },
+      "size": {
+        "x": 0.94,
+        "y": 0.35,
+        "z": 0.065
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 180
+    },
+    {
+      "id": "Local field face 25.2",
+      "kind": "wall-panel",
+      "position": {
+        "x": 25.2,
+        "y": 2.8499999999999996,
+        "z": -2.158
+      },
+      "size": {
+        "x": 0.53,
+        "y": 0.13,
+        "z": 0.028
+      },
+      "material": "bakelite",
+      "solid": false,
+      "pitch": 180
+    }
+  ]
+}

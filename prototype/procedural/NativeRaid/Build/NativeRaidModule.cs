@@ -26,6 +26,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private Transform eye;
     private Rigidbody trackedBody;
     private PlayerAvatar trackedAvatar;
+    private readonly PortalDoorDebris portalDoorDebris = new();
     private Transform arrivalDoor;
     private Vector3 previousFeetInRaid;
     private bool catalogSpawned;
@@ -33,7 +34,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
     internal int LootSeed => raid.Plan.Seed;
 
     internal void Place(StockModule module, Func<int> seed, Level stockManor, Action<RaidAssembly> prepareCatalog = null,
-        RaidPrefabBranch branch = null)
+        RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null)
     {
         if (raid) return;
         if (GameManager.Multiplayer())
@@ -54,7 +55,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
         raid = gameObject.AddComponent<RaidAssembly>();
         // Cabinet fronts are moved to the stock hinge layer before the raid bakes its room colliders.
         raid.Place(seed(), entrance, LayerMask.NameToLayer("Default"), LayerMask.GetMask("PhysGrabObject", "PhysGrabObjectCart", "PhysGrabObjectHinge"),
-            catalogSites: prepareCatalog != null, completedLevels: RunManager.instance.levelsCompleted, branch: branch);
+            catalogSites: prepareCatalog != null, completedLevels: RunManager.instance.levelsCompleted, branch: branch, roomPrefabs: roomPrefabs);
         NativeRaidInteractions.Attach(raid);
         InstallNativeRoomComponents();
         NativeRaidGravity.Attach(raid);
@@ -79,6 +80,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
             surface.useGeometry != NavMeshCollectGeometry.PhysicsColliders || (surface.layerMask.value & 1) == 0)
             throw new InvalidOperationException("The native enemy NavMeshSurface cannot bake the catalog colliders.");
         if (raid.Context != null) return;
+        NativeRaidStartBay.Install(generator, raid.Plan.Entrance, raid.Plan.Seed);
         raid.InstallNavigation(EnemyHooks.Clear);
         present?.Invoke(raid);
         Debug.Log($"[Contour4 Procedural] seed={raid.Context.Seed}, level={raid.Plan.CompletedLevels + 1}, " +
@@ -90,24 +92,39 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private void InstallNativeRoomComponents()
     {
         var volumes = new Dictionary<RaidPlan.Room, RoomVolume>();
+        var preparedVolumes = new Dictionary<RaidFloor, RoomVolume>();
         foreach (var room in raid.Rooms)
         {
             var volumeNode = RaidAssembly.Child(room.Root, "Room volume");
-            foreach (Bounds floor in room.FloorBounds)
+            if (!room.Prepared)
             {
-                var bounds = volumeNode.gameObject.AddComponent<BoxCollider>();
-                bounds.center = new Vector3(floor.center.x, 1.9f, floor.center.z);
-                bounds.size = new Vector3(floor.size.x, 3.85f, floor.size.z);
-                bounds.isTrigger = true;
+                foreach (Bounds floor in room.FloorBounds)
+                {
+                    var bounds = volumeNode.gameObject.AddComponent<BoxCollider>();
+                    bounds.center = new Vector3(floor.center.x, 1.9f, floor.center.z);
+                    bounds.size = new Vector3(floor.size.x, 3.85f, floor.size.z);
+                    bounds.isTrigger = true;
+                }
+                volumes.Add(room.Plan, volumeNode.gameObject.AddComponent<RoomVolume>());
             }
-            var volume = volumeNode.gameObject.AddComponent<RoomVolume>();
-            volumes.Add(room.Plan, volume);
+
+            foreach (var floor in room.Floors.Where(floor => floor.Prepared))
+            {
+                var node = RaidAssembly.Child(volumeNode, floor.FloorId + " " + floor.IslandId);
+                node.SetPositionAndRotation(floor.Frame.position, floor.Frame.rotation);
+                var bounds = node.gameObject.AddComponent<BoxCollider>();
+                bounds.center = floor.LocalBakeBounds.center;
+                bounds.size = floor.LocalBakeBounds.size;
+                bounds.isTrigger = true;
+                preparedVolumes.Add(floor, node.gameObject.AddComponent<RoomVolume>());
+            }
 
             foreach (Collider collider in room.Colliders)
             {
                 var modifier = collider.gameObject.AddComponent<NavMeshModifier>();
                 modifier.overrideArea = true;
-                modifier.area = room.Floor.Support.Contains(collider) ? 0 : 1;
+                modifier.area = room.Floors.Any(floor => Vector3.Dot(floor.Up, Vector3.up) > .999f &&
+                    floor.Support.Contains(collider)) ? 0 : 1;
             }
         }
 
@@ -117,8 +134,14 @@ internal sealed class NativeRaidModule : MonoBehaviour
             var key = (end.Room, end.Dock.Id);
             if (!points.TryGetValue(key, out var point))
             {
-                point = Point(raid.Room(end.Room).Root, end.Dock.Id, end.Pad(setback), end.Outward,
-                    volumes[end.Room], stockConnection);
+                var room = raid.Room(end.Room);
+                var floor = room.DockFloor(end.Dock);
+                if (room.Prepared && (Vector3.Dot(floor.Up, Vector3.up) < .999f ||
+                    !PreparedRaidSurfaces.StockLink(floor, end.Pad(setback), end.Pad(setback),
+                        LayerMask.GetMask("Default", "PhysGrabObjectHinge")))) return null;
+                var volume = preparedVolumes.TryGetValue(floor, out var localVolume) ? localVolume : volumes[end.Room];
+                point = Point(room.Root, end.Dock.Id, end.Pad(setback), end.Outward,
+                    volume, stockConnection, floor.Up);
                 points.Add(key, point);
             }
             return point;
@@ -137,6 +160,59 @@ internal sealed class NativeRaidModule : MonoBehaviour
 
         foreach (var room in raid.Rooms)
         {
+            if (room.Prepared)
+            {
+                var paths = room.Root.Find("Monster paths/Headman body geometry (r0.86 h2.86)");
+                var endpoints = new Dictionary<RaidFloor, List<LevelPoint>>();
+                int solids = LayerMask.GetMask("Default", "PhysGrabObjectHinge");
+                const string approachPrefix = "Path approach ";
+                foreach (var path in paths.GetComponentsInChildren<Transform>().Where(marker =>
+                    marker.name.StartsWith("Path ", StringComparison.Ordinal)))
+                {
+                    LevelPoint previous = null;
+                    RaidFloor previousFloor = null;
+                    foreach (Transform knot in path)
+                    {
+                        if (Vector3.Dot(knot.up, Vector3.up) < .999f ||
+                            !room.PreparedSurfaces.TryNearFloor(knot.position, .26f, solids,
+                                out var floor, out _))
+                        {
+                            previous = null;
+                            previousFloor = null;
+                            continue;
+                        }
+                        var point = Point(room.Root, $"{path.name} {knot.name}", knot.position, knot.forward,
+                            preparedVolumes[floor], up: floor.Up);
+                        if (previous && previousFloor == floor) ConnectIfClear(floor, previous, point, float.PositiveInfinity);
+                        if (!previous || knot == path.GetChild(path.childCount - 1))
+                        {
+                            if (!endpoints.TryGetValue(floor, out var terminals))
+                                endpoints.Add(floor, terminals = new List<LevelPoint>());
+                            foreach (LevelPoint terminal in terminals)
+                                ConnectIfClear(floor, point, terminal);
+                            terminals.Add(point);
+                        }
+                        previous = point;
+                        previousFloor = floor;
+                    }
+                    if (previous && path.name.StartsWith(approachPrefix, StringComparison.Ordinal))
+                    {
+                        string dockId = path.name.Substring(approachPrefix.Length);
+                        if (points.TryGetValue((room.Plan, dockId), out var dockPoint) &&
+                            previousFloor == room.DockFloor(room.Plan.Module.Docks.Single(dock => dock.Id == dockId)))
+                            ConnectIfClear(previousFloor, previous, dockPoint);
+                    }
+                }
+
+                void ConnectIfClear(RaidFloor floor, LevelPoint from, LevelPoint to, float maximumLength = 2.65f)
+                {
+                    Vector3 lift = floor.Up * .15f;
+                    if (PreparedRaidSurfaces.StockLink(floor, from.transform.position - lift, to.transform.position - lift,
+                        solids, maximumLength))
+                        Connect(from, to);
+                }
+                continue;
+            }
             // Use the catalog's cart routes to seed useful points around fixed obstacles.
             var used = new HashSet<(string From, string To)>();
             foreach (HaulRoute route in room.Plan.Module.Routes.Where(route => route.Cargo == Cargo.Cart))
@@ -159,10 +235,12 @@ internal sealed class NativeRaidModule : MonoBehaviour
         }
     }
 
-    private static LevelPoint Point(Transform parent, string name, Vector3 feet, Vector3 forward, RoomVolume volume, bool connect = false)
+    private static LevelPoint Point(Transform parent, string name, Vector3 feet, Vector3 forward, RoomVolume volume,
+        bool connect = false, Vector3? up = null)
     {
         var marker = RaidAssembly.Child(parent, name);
-        marker.SetPositionAndRotation(feet + parent.up * .15f, Quaternion.LookRotation(forward, parent.up));
+        Vector3 localUp = up ?? parent.up;
+        marker.SetPositionAndRotation(feet + localUp * .15f, Quaternion.LookRotation(forward, localUp));
         var point = marker.gameObject.AddComponent<LevelPoint>();
         point.ConnectedPoints = new List<LevelPoint>();
         point.Room = volume;
@@ -172,6 +250,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
 
     private static void Connect(LevelPoint a, LevelPoint b)
     {
+        if (!a || !b) return;
         if (!a.ConnectedPoints.Contains(b)) a.ConnectedPoints.Add(b);
         if (!b.ConnectedPoints.Contains(a)) b.ConnectedPoints.Add(a);
     }
@@ -192,6 +271,10 @@ internal sealed class NativeRaidModule : MonoBehaviour
         var body = controller.rb;
         Vector3 feet = body.position;
         Vector3 previousFeet = raid.transform.TransformPoint(previousFeetInRaid);
+        if (CanMovePlayer(body, avatar) && portalDoorDebris.NeedsCheck())
+            foreach (var portal in context.Portals)
+                portalDoorDebris.ClearNear(body.worldCenterOfMass, portal.Entrance.position, portal.Entrance.rotation,
+                    portal.HalfWidth, portal.HalfHeight, portal.Exit.position, portal.Exit.rotation);
         RaidFloor destination = null;
         if (trackedBody == body && trackedAvatar == avatar && (feet - previousFeet).sqrMagnitude <= 25f)
         {
@@ -232,11 +315,13 @@ internal sealed class NativeRaidModule : MonoBehaviour
         var body = controller.rb;
         var grabber = PhysGrabber.instance;
         bool holding = grabber && grabber.grabbed;
-        bool rebase = Vector3.Dot(portal.Entrance.up, portal.Exit.up) < .9999f;
+        bool rebase = Vector3.Dot(portal.EntryFloor.Up, portal.ExitFloor.Up) < .9999f;
         if (holding)
         {
             if (!NativeRaidPortalCargo.TryPrepare(raid, portal, body, previousFeet, grabber, rebase,
-                out var transfer, out Vector3 cargoLanding))
+                out var transfer, out Vector3 cargoLanding) &&
+                !NativeRaidPortalCargo.TryPrepareHand(raid, portal, body, previousFeet, grabber, rebase,
+                    out transfer, out cargoLanding))
                 return false;
             if (rebase)
             {
@@ -244,7 +329,10 @@ internal sealed class NativeRaidModule : MonoBehaviour
                     return false;
             }
             else
-                NativeRaidPlayerPose.Reframe(controller, avatar, SemiFunc.MainCamera(), cargoLanding, portal.Rotation);
+            {
+                NativeRaidGravity.ReleaseNativeJumpForPortal();
+                NativeRaidPlayerPose.Reframe(controller, avatar, SemiFunc.MainCamera(), cargoLanding, portal.TravelRotation);
+            }
             transfer.Apply(portal);
             return true;
         }
@@ -252,7 +340,8 @@ internal sealed class NativeRaidModule : MonoBehaviour
         if (!raid.TryPassPlayer(portal, body.position, out Vector3 landing, previousFeet)) return false;
         if (rebase)
             return NativeRaidGravity.TryRebasePlayerAcross(raid, portal, body, landing);
-        NativeRaidPlayerPose.Reframe(controller, avatar, SemiFunc.MainCamera(), landing, portal.Rotation);
+        NativeRaidGravity.ReleaseNativeJumpForPortal();
+        NativeRaidPlayerPose.Reframe(controller, avatar, SemiFunc.MainCamera(), landing, portal.TravelRotation);
         return true;
     }
 
@@ -265,6 +354,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
 
         foreach (var portal in raid.Context.Portals)
         {
+            if (!portal.Door) continue;
             var entrance = portal.Entrance;
             Vector3 localEye = entrance.InverseTransformPoint(eyePosition);
             if (localEye.z <= 0 || localEye.z > nearCorner + .12f ||

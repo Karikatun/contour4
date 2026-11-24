@@ -14,9 +14,11 @@ internal static class NativeRaidCabinetGrab
 {
     private const float StockFallHeight = -50f;
 
-    internal static void Install(CabinetFront front)
+    internal static void Install(CabinetFront front) => Install(front.Body, front.Parts);
+
+    internal static void Install(Rigidbody body, IReadOnlyList<Collider> parts)
     {
-        var actor = front.Body.gameObject;
+        var actor = body.gameObject;
         if (actor.TryGetComponent<NativeRaidCabinetMount>(out _)) return;
         var joint = actor.GetComponent<Joint>();
         var mount = joint ? joint.connectedBody : null;
@@ -29,7 +31,7 @@ internal static class NativeRaidCabinetGrab
         actor.layer = hingeLayer;
         actor.tag = "Phys Grab Object";
         int obstructionLayers = LayerMask.GetMask("PhysGrabObjectCart", "Enemy");
-        foreach (BoxCollider part in front.Parts)
+        foreach (Collider part in parts)
         {
             part.gameObject.layer = hingeLayer;
             part.gameObject.tag = "Phys Grab Object";

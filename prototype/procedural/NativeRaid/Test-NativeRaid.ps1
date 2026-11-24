@@ -30,6 +30,7 @@ Copy-Item -Path "$PSScriptRoot/Editor/*.cs" -Destination "$assets/Editor"
 @{
     dependencies = @{
         'com.unity.modules.ai' = '1.0.0'
+        'com.unity.nuget.newtonsoft-json' = '3.2.1'
         'com.unity.modules.physics' = '1.0.0'
     }
 } | ConvertTo-Json | Set-Content -LiteralPath "$project/Packages/manifest.json" -Encoding utf8

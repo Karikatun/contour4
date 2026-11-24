@@ -23,7 +23,7 @@ internal static class NativeRaidPlayerPose
         AccessTools.FieldRefAccess<SpringQuaternion, Vector3>("springVelocity");
 
     internal static void Reframe(PlayerController controller, PlayerAvatar avatar, Camera mainCamera,
-        Vector3 landing, Quaternion turn)
+        Vector3 landing, Quaternion turn, bool keepStockView = false)
     {
         var body = controller.rb;
         Vector3 source = body.position;
@@ -68,15 +68,18 @@ internal static class NativeRaidPlayerPose
             }
         }
 
-        if (positionRig) positionRig.position = position;
-        if (aim)
+        if (positionRig && !keepStockView) positionRig.position = position;
+        if (aim && !keepStockView)
         {
             aim.SetPlayerAim(Quaternion.Inverse(ParentRotation(aim.transform)) * targetAim, false);
             aimPose.Apply();
         }
-        noisePose.Apply();
-        mainPose.Apply();
-        localPose.Apply();
+        if (!keepStockView)
+        {
+            noisePose.Apply();
+            mainPose.Apply();
+            localPose.Apply();
+        }
         if (avatar.localCamera)
             PreviousEye(avatar.localCamera) = Map(PreviousEye(avatar.localCamera));
         visionPose.Apply();
@@ -85,6 +88,74 @@ internal static class NativeRaidPlayerPose
 
     private static Quaternion ParentRotation(Transform transform) =>
         transform.parent ? transform.parent.rotation : Quaternion.identity;
+
+    // Keep the native controller, remote body and the existing spring in one pose.
+    // Captured recipients prevent an interrupted turn from tilting a replacement rig.
+    internal sealed class JumpPose
+    {
+        private readonly Rigidbody controllerBody, avatarBody;
+        private readonly PlayerAvatarVisuals visuals;
+        private readonly SpringQuaternion spring;
+        internal JumpPose(PlayerController controller, PlayerAvatar avatar)
+        {
+            controllerBody = controller.rb;
+            avatarBody = AvatarBody(avatar);
+            visuals = avatar.playerAvatarVisuals;
+            spring = visuals ? visuals.bodySpring : null;
+        }
+        internal bool Matches(PlayerController controller, PlayerAvatar avatar) =>
+            controller.rb == controllerBody && AvatarBody(avatar) == avatarBody && avatar.playerAvatarVisuals == visuals &&
+            (!visuals || ReferenceEquals(visuals.bodySpring, spring));
+        internal void Rotate(Quaternion turn)
+        {
+            void Body(Rigidbody body)
+            {
+                if (!body) return;
+                body.rotation = turn * body.rotation;
+                body.transform.rotation = body.rotation;
+            }
+            Body(controllerBody);
+            if (avatarBody != controllerBody) Body(avatarBody);
+            if (visuals)
+            {
+                visuals.transform.rotation = turn * visuals.transform.rotation;
+                visuals.bodySpringTarget = turn * visuals.bodySpringTarget;
+            }
+            if (spring != null)
+            {
+                SpringRotation(spring) = turn * SpringRotation(spring);
+                SpringVelocity(spring) = turn * SpringVelocity(spring);
+            }
+        }
+    }
+
+    internal static void FinishJump(PlayerController controller, PlayerAvatar avatar, Quaternion turn)
+    {
+        Vector3 pivot = controller.rb.position;
+        Vector3 Map(Vector3 p) => pivot + turn * (p-pivot);
+        var grabber = PhysGrabber.instance;
+        bool grabbing = grabber && grabber.grabbed;
+        Vector3 grip = grabbing ? Map(grabber.physGrabPointPosition) : default;
+        Vector3 pull = grabbing ? Map(grabber.physGrabPointPullerPosition) : default;
+        var gripPose = new RenderPose(grabbing ? grabber.physGrabPoint : null, pivot, pivot, turn);
+        var pullPose = new RenderPose(grabbing ? grabber.physGrabPointPuller : null, pivot, pivot, turn);
+        // The portal adapter already moves all native body/render interpolation caches atomically.
+        // The jump camera parent is restored separately; mapping its children here would apply
+        // the inverse a second time when that parent returns to the stock camera basis.
+        Reframe(controller, avatar, null, pivot, turn, keepStockView: true);
+        if (!grabbing) return;
+        grabber.physGrabPointPosition = grip;
+        grabber.physGrabPointPullerPosition = pull;
+        gripPose.Apply();
+        pullPose.Apply();
+    }
+    internal static void SyncJumpEye(PlayerAvatar avatar)
+    {
+        if (!avatar || !avatar.localCamera || !CameraNoise.Instance) return;
+        Transform eye = CameraNoise.Instance.transform;
+        avatar.localCamera.transform.SetPositionAndRotation(eye.position, eye.rotation);
+        PreviousEye(avatar.localCamera) = eye.position;
+    }
 
     private static void MoveBody(Rigidbody body, Vector3 position, Quaternion rotation, Quaternion turn)
     {

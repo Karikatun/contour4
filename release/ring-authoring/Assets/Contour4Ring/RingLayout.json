@@ -1,0 +1,2421 @@
+{
+  "assets": [
+    {
+      "authoringOnly": [
+        "Quota__Extraction_Marking",
+        "Quota__Cart_Clearance_Preview"
+      ],
+      "name": "Quota",
+      "anchors": [
+        {
+          "name": "Quota__South_Truck",
+          "group": "Quota__Connections",
+          "position": [
+            0.0,
+            -6.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "truck",
+          "target": "Truck",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Quota__East_Loot1",
+          "group": "Quota__Connections",
+          "position": [
+            6.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "bridge",
+          "target": "Loot1",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Quota__Upper_Loot3",
+          "group": "Quota__Connections",
+          "position": [
+            -3.4,
+            4.13,
+            3.73
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "upper",
+          "target": "Loot3",
+          "width": 3.5,
+          "length": 2.75,
+          "radar": false
+        },
+        {
+          "name": "Quota__RoomVolume",
+          "group": "Quota__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            1.85
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "boxSize": [
+            12.0,
+            12.0,
+            3.7
+          ]
+        },
+        {
+          "name": "Quota__RoomGravity",
+          "group": "Quota__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "Quota__MapFloor",
+          "group": "Quota__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "floorSize": [
+            12.0,
+            12.0
+          ]
+        },
+        {
+          "name": "Quota__FirstExtraction",
+          "group": "Quota__Gameplay",
+          "position": [
+            2.4,
+            3.8,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "boxSize": [
+            3.2,
+            3.0,
+            2.6
+          ]
+        },
+        {
+          "name": "Quota__CartSpawn",
+          "group": "Quota__Gameplay",
+          "position": [
+            2.9,
+            -3.9,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "boxSize": [
+            1.3,
+            2.05,
+            1.2
+          ]
+        }
+      ],
+      "euler": [
+        0,
+        0,
+        0
+      ],
+      "position": [
+        0,
+        0,
+        -9.83
+      ],
+      "colliders": [
+        {
+          "object": "Quota__Floor",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__south_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__south_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__south_Wall_End",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__east_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__east_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__east_Wall_End",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__north_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__west_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__Upper_Ramp",
+          "shape": "mesh"
+        },
+        {
+          "object": "Quota__Ramp_Rail_L_01",
+          "shape": "box"
+        },
+        {
+          "object": "Quota__Ramp_Rail_R_01",
+          "shape": "box"
+        }
+      ],
+      "room": true
+    },
+    {
+      "authoringOnly": [
+        "Loot1__Pad_LootSpawn_01_Small",
+        "Loot1__Pad_LootSpawn_02_Medium",
+        "Loot1__Pad_LootSpawn_03_Big",
+        "Loot1__Pad_LootSpawn_04_Tall"
+      ],
+      "name": "Loot1",
+      "anchors": [
+        {
+          "name": "Loot1__West_Quota",
+          "group": "Loot1__Connections",
+          "position": [
+            -6.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            -1.0,
+            0.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "bridge",
+          "target": "Quota",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot1__East_Loot2",
+          "group": "Loot1__Connections",
+          "position": [
+            6.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "bridge",
+          "target": "Loot2",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot1__South_Loot3",
+          "group": "Loot1__Connections",
+          "position": [
+            4.0,
+            -6.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "door",
+          "target": "Loot3",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot1__LootSpawn_01_Small",
+          "group": "Loot1__LootSpawns",
+          "position": [
+            -4.45,
+            -3.9,
+            0.325
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Small",
+          "boxSize": [
+            0.7,
+            0.65,
+            0.65
+          ]
+        },
+        {
+          "name": "Loot1__LootSpawn_02_Medium",
+          "group": "Loot1__LootSpawns",
+          "position": [
+            -1.95,
+            -4.6,
+            0.425
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Medium",
+          "boxSize": [
+            1.0,
+            0.8,
+            0.85
+          ]
+        },
+        {
+          "name": "Loot1__LootSpawn_03_Big",
+          "group": "Loot1__LootSpawns",
+          "position": [
+            1.4,
+            -4.55,
+            0.625
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Big",
+          "boxSize": [
+            1.25,
+            1.0,
+            1.25
+          ]
+        },
+        {
+          "name": "Loot1__LootSpawn_04_Tall",
+          "group": "Loot1__LootSpawns",
+          "position": [
+            4.5,
+            2.75,
+            0.8
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Tall",
+          "boxSize": [
+            0.75,
+            0.8,
+            1.6
+          ]
+        },
+        {
+          "name": "Loot1__RoomVolume",
+          "group": "Loot1__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            1.85
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "boxSize": [
+            12.0,
+            12.0,
+            3.7
+          ]
+        },
+        {
+          "name": "Loot1__RoomGravity",
+          "group": "Loot1__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "Loot1__MapFloor",
+          "group": "Loot1__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "floorSize": [
+            12.0,
+            12.0
+          ]
+        }
+      ],
+      "euler": [
+        0,
+        -90,
+        0
+      ],
+      "position": [
+        9.83,
+        0,
+        0
+      ],
+      "colliders": [
+        {
+          "object": "Loot1__Floor",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__south_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__south_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__south_Wall_End",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__east_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__east_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__east_Wall_End",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__north_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__west_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__west_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot1__west_Wall_End",
+          "shape": "box"
+        }
+      ],
+      "room": true
+    },
+    {
+      "authoringOnly": [
+        "Loot2__Pad_LootSpawn_01_Medium",
+        "Loot2__Pad_LootSpawn_02_Big",
+        "Loot2__Pad_LootSpawn_03_Small",
+        "Loot2__Pad_LootSpawn_04_Wide"
+      ],
+      "name": "Loot2",
+      "anchors": [
+        {
+          "name": "Loot2__West_Loot1",
+          "group": "Loot2__Connections",
+          "position": [
+            -6.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            -1.0,
+            0.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "bridge",
+          "target": "Loot1",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot2__South_Loot3",
+          "group": "Loot2__Connections",
+          "position": [
+            -4.0,
+            -6.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "door",
+          "target": "Loot3",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot2__LootSpawn_01_Medium",
+          "group": "Loot2__LootSpawns",
+          "position": [
+            2.3,
+            -4.3,
+            0.425
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Medium",
+          "boxSize": [
+            1.0,
+            0.8,
+            0.85
+          ]
+        },
+        {
+          "name": "Loot2__LootSpawn_02_Big",
+          "group": "Loot2__LootSpawns",
+          "position": [
+            -4.4,
+            -2.65,
+            0.625
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Big",
+          "boxSize": [
+            1.25,
+            1.0,
+            1.25
+          ]
+        },
+        {
+          "name": "Loot2__LootSpawn_03_Small",
+          "group": "Loot2__LootSpawns",
+          "position": [
+            -4.4,
+            2.65,
+            0.325
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Small",
+          "boxSize": [
+            0.7,
+            0.65,
+            0.65
+          ]
+        },
+        {
+          "name": "Loot2__LootSpawn_04_Wide",
+          "group": "Loot2__LootSpawns",
+          "position": [
+            2.18,
+            4.48,
+            0.45
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Wide",
+          "boxSize": [
+            1.6,
+            0.65,
+            0.9
+          ]
+        },
+        {
+          "name": "Loot2__RoomVolume",
+          "group": "Loot2__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            1.85
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "boxSize": [
+            12.0,
+            12.0,
+            3.7
+          ]
+        },
+        {
+          "name": "Loot2__RoomGravity",
+          "group": "Loot2__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "Loot2__MapFloor",
+          "group": "Loot2__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "floorSize": [
+            12.0,
+            12.0
+          ]
+        }
+      ],
+      "euler": [
+        0,
+        180,
+        0
+      ],
+      "position": [
+        0,
+        0,
+        9.83
+      ],
+      "colliders": [
+        {
+          "object": "Loot2__Floor",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__south_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__south_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__south_Wall_End",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__east_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__north_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__west_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__west_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot2__west_Wall_End",
+          "shape": "box"
+        }
+      ],
+      "room": true
+    },
+    {
+      "authoringOnly": [
+        "Loot3__Pad_LootSpawn_01_Small",
+        "Loot3__Pad_LootSpawn_02_Medium",
+        "Loot3__Pad_LootSpawn_03_Big",
+        "Loot3__Pad_LootSpawn_04_Wide"
+      ],
+      "name": "Loot3",
+      "anchors": [
+        {
+          "name": "Loot3__South_Loot1",
+          "group": "Loot3__Connections",
+          "position": [
+            4.0,
+            -6.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "door",
+          "target": "Loot1",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot3__South_Loot2",
+          "group": "Loot3__Connections",
+          "position": [
+            -4.0,
+            -6.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "door",
+          "target": "Loot2",
+          "width": 3.6,
+          "height": 3.2,
+          "radar": true
+        },
+        {
+          "name": "Loot3__Upper_Quota",
+          "group": "Loot3__Connections",
+          "position": [
+            3.4,
+            4.13,
+            3.73
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "upper",
+          "target": "Quota",
+          "width": 3.5,
+          "length": 2.75,
+          "radar": false
+        },
+        {
+          "name": "Loot3__LootSpawn_01_Small",
+          "group": "Loot3__LootSpawns",
+          "position": [
+            -4.25,
+            -0.4,
+            0.325
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Small",
+          "boxSize": [
+            0.7,
+            0.65,
+            0.65
+          ]
+        },
+        {
+          "name": "Loot3__LootSpawn_02_Medium",
+          "group": "Loot3__LootSpawns",
+          "position": [
+            -4.2,
+            2.55,
+            0.425
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Medium",
+          "boxSize": [
+            1.0,
+            0.8,
+            0.85
+          ]
+        },
+        {
+          "name": "Loot3__LootSpawn_03_Big",
+          "group": "Loot3__LootSpawns",
+          "position": [
+            -1.45,
+            4.4,
+            0.625
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Big",
+          "boxSize": [
+            1.25,
+            1.0,
+            1.25
+          ]
+        },
+        {
+          "name": "Loot3__LootSpawn_04_Wide",
+          "group": "Loot3__LootSpawns",
+          "position": [
+            -3.95,
+            4.7,
+            0.45
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "sizeCategory": "Wide",
+          "boxSize": [
+            1.6,
+            0.65,
+            0.9
+          ]
+        },
+        {
+          "name": "Loot3__RoomVolume",
+          "group": "Loot3__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            1.85
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "boxSize": [
+            12.0,
+            12.0,
+            3.7
+          ]
+        },
+        {
+          "name": "Loot3__RoomGravity",
+          "group": "Loot3__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "Loot3__MapFloor",
+          "group": "Loot3__Gameplay",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "floorSize": [
+            12.0,
+            12.0
+          ]
+        }
+      ],
+      "euler": [
+        0,
+        90,
+        0
+      ],
+      "position": [
+        -9.83,
+        0,
+        0
+      ],
+      "colliders": [
+        {
+          "object": "Loot3__Floor",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__south_Wall_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__south_Lintel_1",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__south_Wall_2",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__south_Lintel_2",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__south_Wall_End",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__east_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__north_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__west_Wall",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__Upper_Ramp",
+          "shape": "mesh"
+        },
+        {
+          "object": "Loot3__Ramp_Rail_L_01",
+          "shape": "box"
+        },
+        {
+          "object": "Loot3__Ramp_Rail_R_01",
+          "shape": "box"
+        }
+      ],
+      "room": true
+    },
+    {
+      "authoringOnly": [],
+      "name": "BridgeQuotaLoot1",
+      "anchors": [
+        {
+          "name": "BridgeQuotaLoot1__Start",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_01",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            0.375406,
+            0.018442
+          ],
+          "forward": [
+            0.0,
+            0.995185,
+            0.098017
+          ],
+          "up": [
+            0.0,
+            -0.098017,
+            0.995185
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_02",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            0.747196,
+            0.073592
+          ],
+          "forward": [
+            0.0,
+            0.980785,
+            0.19509
+          ],
+          "up": [
+            0.0,
+            -0.19509,
+            0.980785
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_03",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            1.11179,
+            0.164919
+          ],
+          "forward": [
+            0.0,
+            0.95694,
+            0.290285
+          ],
+          "up": [
+            0.0,
+            -0.290285,
+            0.95694
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_04",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            1.465677,
+            0.291541
+          ],
+          "forward": [
+            0.0,
+            0.92388,
+            0.382683
+          ],
+          "up": [
+            0.0,
+            -0.382683,
+            0.92388
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_05",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            1.805449,
+            0.452242
+          ],
+          "forward": [
+            0.0,
+            0.881921,
+            0.471397
+          ],
+          "up": [
+            0.0,
+            -0.471397,
+            0.881921
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_06",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.127834,
+            0.645471
+          ],
+          "forward": [
+            0.0,
+            0.831469,
+            0.55557
+          ],
+          "up": [
+            0.0,
+            -0.55557,
+            0.831469
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_07",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.429726,
+            0.86937
+          ],
+          "forward": [
+            0.0,
+            0.77301,
+            0.634393
+          ],
+          "up": [
+            0.0,
+            -0.634393,
+            0.77301
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_08",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.708219,
+            1.121781
+          ],
+          "forward": [
+            0.0,
+            0.707107,
+            0.707107
+          ],
+          "up": [
+            0.0,
+            -0.707107,
+            0.707107
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_09",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.96063,
+            1.400274
+          ],
+          "forward": [
+            0.0,
+            0.634393,
+            0.77301
+          ],
+          "up": [
+            0.0,
+            -0.77301,
+            0.634393
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_10",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.184529,
+            1.702166
+          ],
+          "forward": [
+            0.0,
+            0.55557,
+            0.83147
+          ],
+          "up": [
+            0.0,
+            -0.83147,
+            0.55557
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_11",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.377759,
+            2.02455
+          ],
+          "forward": [
+            0.0,
+            0.471397,
+            0.881921
+          ],
+          "up": [
+            0.0,
+            -0.881921,
+            0.471397
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_12",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.538459,
+            2.364322
+          ],
+          "forward": [
+            0.0,
+            0.382683,
+            0.92388
+          ],
+          "up": [
+            0.0,
+            -0.92388,
+            0.382683
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_13",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.665082,
+            2.71821
+          ],
+          "forward": [
+            0.0,
+            0.290285,
+            0.95694
+          ],
+          "up": [
+            0.0,
+            -0.95694,
+            0.290285
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_14",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.756408,
+            3.082804
+          ],
+          "forward": [
+            0.0,
+            0.19509,
+            0.980785
+          ],
+          "up": [
+            0.0,
+            -0.980785,
+            0.19509
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__Sample_15",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.811558,
+            3.454594
+          ],
+          "forward": [
+            0.0,
+            0.098017,
+            0.995185
+          ],
+          "up": [
+            0.0,
+            -0.995185,
+            0.098017
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeQuotaLoot1__End",
+          "group": "BridgeQuotaLoot1__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.83,
+            3.83
+          ],
+          "forward": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "up": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        }
+      ],
+      "euler": [
+        0,
+        0,
+        -90
+      ],
+      "position": [
+        6.0,
+        0,
+        -9.83
+      ],
+      "colliders": [
+        {
+          "object": "BridgeQuotaLoot1__Walkable_Deck",
+          "shape": "mesh"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_01",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_01",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_02",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_02",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_03",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_03",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_04",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_04",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_05",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_05",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_06",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_06",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_07",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_07",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_08",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_08",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_09",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_09",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_10",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_10",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_11",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_11",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_12",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_12",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_13",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_13",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_14",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_14",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_15",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_15",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_L_16",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeQuotaLoot1__Bridge_Rail_R_16",
+          "shape": "box"
+        }
+      ],
+      "room": false
+    },
+    {
+      "authoringOnly": [],
+      "name": "BridgeLoot1Loot2",
+      "anchors": [
+        {
+          "name": "BridgeLoot1Loot2__Start",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_01",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            0.375406,
+            0.018442
+          ],
+          "forward": [
+            0.0,
+            0.995185,
+            0.098017
+          ],
+          "up": [
+            0.0,
+            -0.098017,
+            0.995185
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_02",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            0.747196,
+            0.073592
+          ],
+          "forward": [
+            0.0,
+            0.980785,
+            0.19509
+          ],
+          "up": [
+            0.0,
+            -0.19509,
+            0.980785
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_03",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            1.11179,
+            0.164919
+          ],
+          "forward": [
+            0.0,
+            0.95694,
+            0.290285
+          ],
+          "up": [
+            0.0,
+            -0.290285,
+            0.95694
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_04",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            1.465677,
+            0.291541
+          ],
+          "forward": [
+            0.0,
+            0.92388,
+            0.382683
+          ],
+          "up": [
+            0.0,
+            -0.382683,
+            0.92388
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_05",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            1.805449,
+            0.452242
+          ],
+          "forward": [
+            0.0,
+            0.881921,
+            0.471397
+          ],
+          "up": [
+            0.0,
+            -0.471397,
+            0.881921
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_06",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.127834,
+            0.645471
+          ],
+          "forward": [
+            0.0,
+            0.831469,
+            0.55557
+          ],
+          "up": [
+            0.0,
+            -0.55557,
+            0.831469
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_07",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.429726,
+            0.86937
+          ],
+          "forward": [
+            0.0,
+            0.77301,
+            0.634393
+          ],
+          "up": [
+            0.0,
+            -0.634393,
+            0.77301
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_08",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.708219,
+            1.121781
+          ],
+          "forward": [
+            0.0,
+            0.707107,
+            0.707107
+          ],
+          "up": [
+            0.0,
+            -0.707107,
+            0.707107
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_09",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            2.96063,
+            1.400274
+          ],
+          "forward": [
+            0.0,
+            0.634393,
+            0.77301
+          ],
+          "up": [
+            0.0,
+            -0.77301,
+            0.634393
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_10",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.184529,
+            1.702166
+          ],
+          "forward": [
+            0.0,
+            0.55557,
+            0.83147
+          ],
+          "up": [
+            0.0,
+            -0.83147,
+            0.55557
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_11",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.377759,
+            2.02455
+          ],
+          "forward": [
+            0.0,
+            0.471397,
+            0.881921
+          ],
+          "up": [
+            0.0,
+            -0.881921,
+            0.471397
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_12",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.538459,
+            2.364322
+          ],
+          "forward": [
+            0.0,
+            0.382683,
+            0.92388
+          ],
+          "up": [
+            0.0,
+            -0.92388,
+            0.382683
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_13",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.665082,
+            2.71821
+          ],
+          "forward": [
+            0.0,
+            0.290285,
+            0.95694
+          ],
+          "up": [
+            0.0,
+            -0.95694,
+            0.290285
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_14",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.756408,
+            3.082804
+          ],
+          "forward": [
+            0.0,
+            0.19509,
+            0.980785
+          ],
+          "up": [
+            0.0,
+            -0.980785,
+            0.19509
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__Sample_15",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.811558,
+            3.454594
+          ],
+          "forward": [
+            0.0,
+            0.098017,
+            0.995185
+          ],
+          "up": [
+            0.0,
+            -0.995185,
+            0.098017
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        },
+        {
+          "name": "BridgeLoot1Loot2__End",
+          "group": "BridgeLoot1Loot2__GravityAlongDeck",
+          "position": [
+            0.0,
+            3.83,
+            3.83
+          ],
+          "forward": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "up": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "localDown": [
+            0.0,
+            0.0,
+            -1.0
+          ]
+        }
+      ],
+      "euler": [
+        90,
+        0,
+        -90
+      ],
+      "position": [
+        9.83,
+        0,
+        6.0
+      ],
+      "colliders": [
+        {
+          "object": "BridgeLoot1Loot2__Walkable_Deck",
+          "shape": "mesh"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_01",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_01",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_02",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_02",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_03",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_03",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_04",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_04",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_05",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_05",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_06",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_06",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_07",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_07",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_08",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_08",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_09",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_09",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_10",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_10",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_11",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_11",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_12",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_12",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_13",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_13",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_14",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_14",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_15",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_15",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_L_16",
+          "shape": "box"
+        },
+        {
+          "object": "BridgeLoot1Loot2__Bridge_Rail_R_16",
+          "shape": "box"
+        }
+      ],
+      "room": false
+    },
+    {
+      "authoringOnly": [
+        "TruckSocket__Truck_Clearance_Preview"
+      ],
+      "name": "TruckSocket",
+      "anchors": [
+        {
+          "name": "TruckSocket__TruckAnchor",
+          "group": "TruckSocket",
+          "position": [
+            0.0,
+            -2.5,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "kind": "replace-with-game-truck"
+        },
+        {
+          "name": "TruckSocket__ExitToQuota",
+          "group": "TruckSocket",
+          "position": [
+            0.0,
+            2.5,
+            0.0
+          ],
+          "forward": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "up": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "width": 3.6,
+          "height": 3.2
+        }
+      ],
+      "euler": [
+        0,
+        0,
+        0
+      ],
+      "position": [
+        0,
+        -8.5,
+        -9.83
+      ],
+      "colliders": [],
+      "room": false
+    }
+  ],
+  "links": [
+    {
+      "a": "Truck",
+      "b": "Quota",
+      "kind": "truck",
+      "mapVisible": true
+    },
+    {
+      "a": "Quota",
+      "b": "Loot1",
+      "kind": "bridge",
+      "mapVisible": true
+    },
+    {
+      "a": "Loot1",
+      "b": "Loot2",
+      "kind": "bridge",
+      "mapVisible": true
+    },
+    {
+      "a": "Loot1",
+      "b": "Loot3",
+      "kind": "door",
+      "mapVisible": true
+    },
+    {
+      "a": "Loot2",
+      "b": "Loot3",
+      "kind": "door",
+      "mapVisible": true
+    },
+    {
+      "a": "Quota",
+      "b": "Loot3",
+      "kind": "upper",
+      "mapVisible": false
+    }
+  ],
+  "map": [
+    {
+      "name": "Quota",
+      "position": [
+        -20,
+        -1.5
+      ],
+      "yaw": 0
+    },
+    {
+      "name": "Loot1",
+      "position": [
+        0,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "name": "Loot2",
+      "position": [
+        16,
+        0
+      ],
+      "yaw": 0
+    },
+    {
+      "name": "Loot3",
+      "position": [
+        8,
+        -12
+      ],
+      "yaw": 180
+    }
+  ]
+}

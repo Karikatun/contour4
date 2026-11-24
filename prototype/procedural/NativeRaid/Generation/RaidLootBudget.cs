@@ -12,11 +12,13 @@ namespace Contour4.NativeRaid.Runtime
         {
             internal readonly int Category, Room;
             internal readonly LootSurfaceKind Kind;
-            internal Candidate(int category, int room, LootSurfaceKind kind)
+            internal readonly bool IsSphereShell;
+            internal Candidate(int category, int room, LootSurfaceKind kind, bool isSphereShell = false)
             {
                 Category = category;
                 Room = room;
                 Kind = kind;
+                IsSphereShell = isSphereShell;
             }
         }
 
@@ -24,19 +26,21 @@ namespace Contour4.NativeRaid.Runtime
         {
             internal readonly List<int> Picks = new();
             internal readonly int Count, Dollars;
+            private readonly bool keepStockCashLimit;
             internal int ExpectedDollars { get; set; }
-            internal Allocation(int count, int dollars)
+            internal Allocation(int count, int dollars, bool keepStockCashLimit)
             {
                 Count = count;
                 Dollars = dollars;
+                this.keepStockCashLimit = keepStockCashLimit;
             }
 
             internal int ContinueUntil(int actualCount, int currentLimit) =>
-                actualCount < Count ? Count : currentLimit;
+                !keepStockCashLimit && actualCount < Count ? Count : currentLimit;
         }
 
         internal static Allocation Select(IReadOnlyList<Candidate> candidates, int[] stockLimits, int ceiling,
-            int stockDollars, int[] averageDollars, int seed)
+            int stockDollars, int[] averageDollars, int seed, bool preparedCatalog = false)
         {
             int usableRooms = candidates.Where(candidate => candidate.Room >= 0 && stockLimits[candidate.Category] > 0)
                 .Select(candidate => candidate.Room).Distinct().Count();
@@ -49,10 +53,11 @@ namespace Contour4.NativeRaid.Runtime
             int target = Mathf.Min(ceiling, Mathf.RoundToInt(stockLimits.Sum() * density));
             var limits = new int[stockLimits.Length];
             for (int i = 0; i < limits.Length; i++)
-                limits[i] = Mathf.Min(CategoryLimit(i, stockLimits[i], target), typeCount[i]);
+                limits[i] = Mathf.Min(preparedCatalog ? stockLimits[i] : CategoryLimit(i, stockLimits[i], target), typeCount[i]);
             int count = Mathf.Min(limits.Sum(), target);
             float cashScale = Mathf.Clamp(.90f + .025f * usableRooms, .90f, 1.15f);
-            var result = new Allocation(count, Mathf.RoundToInt(stockDollars * cashScale / 100f) * 100);
+            int dollars = Mathf.RoundToInt(stockDollars * cashScale / 100f) * 100;
+            var result = new Allocation(count, preparedCatalog ? Mathf.Min(dollars, stockDollars) : dollars, preparedCatalog);
             var random = new System.Random(seed ^ 0x682C4471);
             int[] order = Enumerable.Range(0, candidates.Count).OrderBy(_ => random.Next()).ToArray();
             var selected = new bool[candidates.Count];
@@ -60,7 +65,7 @@ namespace Contour4.NativeRaid.Runtime
             foreach (int room in candidates.Select(candidate => candidate.Room).Distinct())
                 byRoom.Add(room, 0);
 
-            bool Pick(LootSurfaceKind? role)
+            bool Pick(LootSurfaceKind? role, int? category = null)
             {
                 if (result.Picks.Count >= count) return false;
                 float pace = (result.Dollars - result.ExpectedDollars) / (float)(count - result.Picks.Count);
@@ -69,10 +74,11 @@ namespace Contour4.NativeRaid.Runtime
                 foreach (int i in order)
                 {
                     var item = candidates[i];
-                    if (selected[i] || limits[item.Category] == 0 ||
+                    if (selected[i] || limits[item.Category] == 0 || (category.HasValue && item.Category != category.Value) ||
                         (role.HasValue && (item.Room < 0 || role.Value != item.Kind)))
                         continue;
                     float fit = Mathf.Abs(averageDollars[item.Category] - pace) + byRoom[item.Room] * 260;
+                    if (role == LootSurfaceKind.Floor) fit += item.Category * 100000f;
                     if (fit >= score) continue;
                     best = i;
                     score = fit;
@@ -87,11 +93,44 @@ namespace Contour4.NativeRaid.Runtime
                 return true;
             }
 
+            Pick(LootSurfaceKind.Floor);
+            // Keep a reachable floor site for each unlocked freight size before filling
+            // the remaining budget by price. The stock limits still govern each pick.
+            if (preparedCatalog)
+                for (int category = (int)RaidLootSize.Big; category < limits.Length; category++)
+                    if (limits[category] > 0 && !result.Picks.Any(index => candidates[index].Category == category))
+                        Pick(LootSurfaceKind.Floor, category);
             Pick(LootSurfaceKind.Cabinet);
             Pick(LootSurfaceKind.Table);
             Pick(LootSurfaceKind.Raised);
             while (Pick(null)) { }
+            if (preparedCatalog) PreferSphereShell(candidates, order, result.Picks);
             return result;
+        }
+
+        private static void PreferSphereShell(IReadOnlyList<Candidate> candidates, int[] order, List<int> picks)
+        {
+            const int small = (int)RaidLootSize.Small;
+            int firstSmall = picks.FindIndex(index => candidates[index].Category == small);
+            if (firstSmall < 0 || IsShell(picks[firstSmall])) return;
+
+            // The stock director consumes each size in volume order and can stop on cash.
+            // Give the shell the first already-budgeted Small spawn without changing size rolls.
+            int pickedShell = picks.FindIndex(IsShell);
+            if (pickedShell < 0)
+            {
+                int shellOrder = Array.FindIndex(order, IsShell);
+                if (shellOrder < 0) return;
+
+                // Prefer replacing an ordinary floor slot so dedicated shelf and cabinet picks remain.
+                int floor = picks.FindLastIndex(index => candidates[index].Category == small &&
+                    candidates[index].Kind == LootSurfaceKind.Floor);
+                pickedShell = floor >= 0 ? floor : firstSmall;
+                picks[pickedShell] = order[shellOrder];
+            }
+            (picks[firstSmall], picks[pickedShell]) = (picks[pickedShell], picks[firstSmall]);
+
+            bool IsShell(int index) => candidates[index].Category == small && candidates[index].IsSphereShell;
         }
 
         internal static int CategoryLimit(int category, int vanilla, int target)

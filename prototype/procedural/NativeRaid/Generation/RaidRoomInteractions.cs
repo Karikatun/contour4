@@ -41,15 +41,28 @@ namespace Contour4.NativeRaid.Runtime
                 {
                     var panel = Find(room.Root, dressing.Name(front.Panel));
                     var pull = Find(room.Root, dressing.Name(front.Handle));
-                    var pivot = RaidAssembly.Child(room.Root, dressing.Name(front.Panel) + " pivot");
-                    pivot.localPosition = RaidPlan.Vector(dressing.Point(front.Pivot));
-                    pivot.localRotation = Quaternion.LookRotation(RaidPlan.Vector(dressing.Direction(System.Numerics.Vector3.UnitZ)),
-                        RaidPlan.Vector(dressing.Frame.Up));
-                    var parts = new List<BoxCollider> { panel.GetComponent<BoxCollider>(), pull.GetComponent<BoxCollider>() };
-                    if (front.Tray != null) parts.Add(Find(room.Root, dressing.Name(front.Tray)).GetComponent<BoxCollider>());
-                    panel.GetComponent<Renderer>().sharedMaterial = leaf;
-                    pull.GetComponent<Renderer>().sharedMaterial = handle;
-                    foreach (var part in parts) part.transform.SetParent(pivot, true);
+                    var pivot = room.Prepared ? room.Root.Find("Mechanisms/" + dressing.Name(front.Panel) + " pivot") :
+                        RaidAssembly.Child(room.Root, dressing.Name(front.Panel) + " pivot");
+                    if (!pivot) throw new InvalidOperationException($"{room.Plan.Module.Id}: missing prepared cabinet pivot.");
+                    if (!room.Prepared)
+                    {
+                        pivot.localPosition = RaidPlan.Vector(dressing.Point(front.Pivot));
+                        pivot.localRotation = Quaternion.LookRotation(RaidPlan.Vector(dressing.Direction(System.Numerics.Vector3.UnitZ)),
+                            RaidPlan.Vector(dressing.Frame.Up));
+                    }
+                    var parts = new List<Collider> { panel.GetComponent<Collider>(), pull.GetComponent<Collider>() };
+                    if (front.Tray != null) parts.Add(Find(room.Root, dressing.Name(front.Tray)).GetComponent<Collider>());
+                    if (!room.Authored)
+                    {
+                        panel.GetComponent<Renderer>().sharedMaterial = leaf;
+                        pull.GetComponent<Renderer>().sharedMaterial = handle;
+                    }
+                    foreach (var part in parts)
+                    {
+                        if (room.Prepared && (part.transform.parent != pivot || part is not MeshCollider { convex: true }))
+                            throw new InvalidOperationException($"{room.Plan.Module.Id}/{part.name}: invalid prepared moving collider.");
+                        if (!room.Prepared) part.transform.SetParent(pivot, true);
+                    }
                     cabinetAnchor ??= CabinetFront.MountAnchor(room.Root);
                     panels.Add(new CabinetFront(pivot, parts.ToArray(), cabinetAnchor, front.Angle, front.Travel));
                 }
@@ -83,6 +96,9 @@ namespace Contour4.NativeRaid.Runtime
         private static Transform Find(Transform root, string id)
         {
             var transform = root.Find(id);
+            if (!transform)
+                foreach (var part in root.GetComponentsInChildren<Collider>(true))
+                    if (part.name == id) { transform = part.transform; break; }
             return transform ? transform : throw new InvalidOperationException($"Missing raid fixture {root.name}/{id}.");
         }
 
@@ -175,8 +191,7 @@ namespace Contour4.NativeRaid.Runtime
         internal enum Stage { Armed, Warning, Closing, Closed, Opening, Rearming }
 
         private readonly Transform room, gate;
-        private readonly Vector3 raised;
-        private readonly BoxCollider blade;
+        private readonly Vector3 raised, bladeCenter, bladeSize;
         private readonly Material signal;
         private float timer, depth;
         internal Stage State { get; private set; }
@@ -184,10 +199,18 @@ namespace Contour4.NativeRaid.Runtime
         internal InspectionShutter(Transform room, Transform gate, Material signal)
         {
             this.room = room;
-            this.gate = gate;
+            this.gate = gate.parent == room ? gate : gate.parent;
             this.signal = signal;
-            raised = gate.localPosition;
-            blade = gate.GetComponent<BoxCollider>();
+            raised = this.gate.localPosition;
+            var collider = gate.GetComponent<Collider>();
+            Bounds shape = collider switch
+            {
+                BoxCollider box => new Bounds(box.center, box.size),
+                MeshCollider mesh => mesh.sharedMesh.bounds,
+                _ => throw new InvalidOperationException("The inspection shutter requires a solid blade."),
+            };
+            bladeCenter = room.InverseTransformPoint(gate.TransformPoint(shape.center));
+            bladeSize = Vector3.Scale(shape.size, gate.localScale);
         }
 
         internal bool Move(Vector3 feet, float height, float elapsed, int occupiedLayers)
@@ -206,11 +229,10 @@ namespace Contour4.NativeRaid.Runtime
                     break;
                 case Stage.Closing:
                     float next = Mathf.MoveTowards(depth, MaintenanceTrench.GateTravel, elapsed * 2.25f);
-                    float edge = raised.y - next - gate.localScale.y / 2;
-                    bool hit = local.y + height >= edge && local.y < edge + gate.localScale.y &&
-                        x < gate.localScale.x / 2 + .32f && z < MaintenanceTrench.Opening / 2 + .24f;
-                    Vector3 half = Vector3.Scale(blade.size, gate.localScale) / 2;
-                    if (hit || Physics.CheckBox(room.TransformPoint(raised - Vector3.up * next), half,
+                    float edge = bladeCenter.y - next - bladeSize.y / 2;
+                    bool hit = local.y + height >= edge && local.y < edge + bladeSize.y &&
+                        x < bladeSize.x / 2 + .32f && z < MaintenanceTrench.Opening / 2 + .24f;
+                    if (hit || Physics.CheckBox(room.TransformPoint(bladeCenter - Vector3.up * next), bladeSize / 2,
                         room.rotation, occupiedLayers, QueryTriggerInteraction.Ignore))
                     {
                         Set(Stage.Opening, ClosedColor);

@@ -1,0 +1,415 @@
+{
+    "schemaVersion": 1,
+    "id": "service-cupboard",
+    "units": "meters in module space",
+    "transformConvention": "Unity forward/up match catalog forward/up. Unity local +X is negative catalog lateral.",
+    "dockDefault": "Plugs are closed. Disable the named plug when creating an appropriate connection.",
+    "difficulty": 0,
+    "planWidth": 7.5,
+    "planLength": 7.5,
+    "boundsMin": {
+        "x": 0.0,
+        "y": -0.25,
+        "z": -3.75
+    },
+    "boundsMax": {
+        "x": 7.5,
+        "y": 4.25,
+        "z": 3.75
+    },
+    "floors": [
+        {
+            "id": "ground",
+            "frame": {
+                "position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "mapContour": [
+                {
+                    "x": 0.0,
+                    "y": -3.75
+                },
+                {
+                    "x": 7.5,
+                    "y": -3.75
+                },
+                {
+                    "x": 7.5,
+                    "y": 3.75
+                },
+                {
+                    "x": 0.0,
+                    "y": 3.75
+                }
+            ]
+        }
+    ],
+    "docks": [
+        {
+            "id": "service-entry",
+            "floor": "ground",
+            "use": "Physical",
+            "cargo": "Hand",
+            "plug": "service-entry-plug",
+            "external": true,
+            "width": 1.5,
+            "height": 2.5,
+            "frame": {
+                "position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": -1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "contactStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.75
+            },
+            "contactEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.75
+            },
+            "mapPoint": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        }
+    ],
+    "internalPortals": [],
+    "haulRoutes": [
+        {
+            "id": "retrieve-hand-loot",
+            "from": "service-entry",
+            "to": "hand-loot",
+            "cargo": "Hand",
+            "condition": "",
+            "envelope": {
+                "x": 0.800000011920929,
+                "y": 1.8799999952316285,
+                "z": 0.8999999761581421
+            },
+            "stepClearance": 0.029999999329447748,
+            "hasFlight": false,
+            "flightStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "flightEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "knots": [
+                {
+                    "position": {
+                        "x": -1.7999999523162842,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 5.199999809265137,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                }
+            ]
+        }
+    ],
+    "reserveVolumes": [
+        {
+            "id": "service-entry-approach",
+            "vertices": [
+                {
+                    "x": 2.799999952316284,
+                    "y": 0.0,
+                    "z": 0.75
+                },
+                {
+                    "x": 2.799999952316284,
+                    "y": 2.5,
+                    "z": 0.75
+                },
+                {
+                    "x": 2.799999952316284,
+                    "y": 2.5,
+                    "z": -0.75
+                },
+                {
+                    "x": 2.799999952316284,
+                    "y": 0.0,
+                    "z": -0.75
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.75
+                },
+                {
+                    "x": 0.0,
+                    "y": 2.5,
+                    "z": 0.75
+                },
+                {
+                    "x": 0.0,
+                    "y": 2.5,
+                    "z": -0.75
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -0.75
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        }
+    ],
+    "fallVolumes": [],
+    "mechanisms": [
+        {
+            "id": "service-tool-locker-door",
+            "kind": "cabinet hinge",
+            "pivot": "service-tool-locker-door pivot",
+            "panel": "service-tool-locker-door",
+            "handle": "service-tool-locker-handle",
+            "tray": "",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 101.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "service-stacked-spares-drawer-0",
+            "kind": "drawer slide",
+            "pivot": "service-stacked-spares-drawer-0 pivot",
+            "panel": "service-stacked-spares-drawer-0",
+            "handle": "service-stacked-spares-pull-0",
+            "tray": "service-stacked-spares-tray-0",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "service-stacked-spares-drawer-1",
+            "kind": "drawer slide",
+            "pivot": "service-stacked-spares-drawer-1 pivot",
+            "panel": "service-stacked-spares-drawer-1",
+            "handle": "service-stacked-spares-pull-1",
+            "tray": "service-stacked-spares-tray-1",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "service-stacked-spares-drawer-2",
+            "kind": "drawer slide",
+            "pivot": "service-stacked-spares-drawer-2 pivot",
+            "panel": "service-stacked-spares-drawer-2",
+            "handle": "service-stacked-spares-pull-2",
+            "tray": "service-stacked-spares-tray-2",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "service-stacked-spares-upper-drawer-0",
+            "kind": "drawer slide",
+            "pivot": "service-stacked-spares-upper-drawer-0 pivot",
+            "panel": "service-stacked-spares-upper-drawer-0",
+            "handle": "service-stacked-spares-upper-pull-0",
+            "tray": "service-stacked-spares-upper-tray-0",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "service-stacked-spares-upper-drawer-1",
+            "kind": "drawer slide",
+            "pivot": "service-stacked-spares-upper-drawer-1 pivot",
+            "panel": "service-stacked-spares-upper-drawer-1",
+            "handle": "service-stacked-spares-upper-pull-1",
+            "tray": "service-stacked-spares-upper-tray-1",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "service-stacked-spares-upper-drawer-2",
+            "kind": "drawer slide",
+            "pivot": "service-stacked-spares-upper-drawer-2 pivot",
+            "panel": "service-stacked-spares-upper-drawer-2",
+            "handle": "service-stacked-spares-upper-pull-2",
+            "tray": "service-stacked-spares-upper-tray-2",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        }
+    ]
+}

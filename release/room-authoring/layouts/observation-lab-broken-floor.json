@@ -1,0 +1,188 @@
+{
+  "id": "observation-lab-broken-floor",
+  "title": "Лаборатория с провалом пола",
+  "purpose": "Провал оставлен частью маршрута. Уцелевшие приборы и журнал осмотра находятся на стороне сплошного пола.",
+  "items": [
+    {
+      "id": "Optical frame foundation",
+      "kind": "housing",
+      "position": {
+        "x": 7.5,
+        "y": 0.19,
+        "z": 0
+      },
+      "size": {
+        "x": 2.38,
+        "y": 0.38,
+        "z": 3.08
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Secured optical recording cabinet",
+      "kind": "machine",
+      "position": {
+        "x": 7.5,
+        "y": 0.86,
+        "z": 0.17
+      },
+      "size": {
+        "x": 2.3,
+        "y": 1,
+        "z": 2.66
+      },
+      "material": "enamel",
+      "solid": true,
+      "face": "west"
+    },
+    {
+      "id": "Sensor mounting foot",
+      "kind": "housing",
+      "position": {
+        "x": 6.8,
+        "y": 1.34,
+        "z": 1.06
+      },
+      "size": {
+        "x": 0.74,
+        "y": 0.13,
+        "z": 0.58
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Inspection and incident log bench",
+      "kind": "bench",
+      "position": {
+        "x": 8.89,
+        "y": 0.49,
+        "z": 6.65
+      },
+      "size": {
+        "x": 2.5,
+        "y": 0.98,
+        "z": 0.93
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Optics worktop rail",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.88,
+        "y": 1.59,
+        "z": 7.16
+      },
+      "size": {
+        "x": 2.52,
+        "y": 0.35,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Upper recording junction box",
+      "kind": "wall-panel",
+      "position": {
+        "x": 9.2,
+        "y": 3.06,
+        "z": 7.17
+      },
+      "size": {
+        "x": 0.72,
+        "y": 0.5,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Recording bench supply",
+      "kind": "pipe",
+      "position": {
+        "x": 9.2,
+        "y": 2.29,
+        "z": 7.15
+      },
+      "size": {
+        "x": 0.1,
+        "y": 1.08,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Gallery operator instrument strip",
+      "kind": "wall-panel",
+      "position": {
+        "x": 14.24,
+        "y": 5.1,
+        "z": -7.15
+      },
+      "size": {
+        "x": 0.97,
+        "y": 0.5,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Shaft isolation wiring cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.5,
+        "y": 5.61,
+        "z": 7.17
+      },
+      "size": {
+        "x": 7.7,
+        "y": 0.24,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Laboratory equipment service margin",
+      "kind": "marking",
+      "position": {
+        "x": 8.75,
+        "y": 0.006,
+        "z": 5.93
+      },
+      "size": {
+        "x": 3.05,
+        "y": 0.012,
+        "z": 0.105
+      },
+      "material": "brass",
+      "solid": false
+    }
+  ],
+  "disable": [
+    "observation-stand"
+  ],
+  "eye": {
+    "position": {
+      "x": 12.4,
+      "y": 1.6,
+      "z": 4.25
+    },
+    "look": {
+      "x": 8.6,
+      "y": 1.3,
+      "z": -0.85
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  }
+}

@@ -1,0 +1,150 @@
+{
+    "moduleId": "spherical-chamber-west-upper",
+    "transit": "Installed service bays and branch decks and two radial shell locations hold loot. The center lanes and dock passages stay clear.",
+    "sites": [
+        {
+            "id": "upper-path-spares",
+            "marker": "loot__upper-path-spares",
+            "floor": "left-rise-landing",
+            "support": "left-rise-sill-deck",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 1.4700000286102296,
+                "y": 15.239999771118164,
+                "z": -0.00800000037997961
+            },
+            "up": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "forward": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "retrievalFeet": {
+                "x": 1.0800000429153443,
+                "y": 15.239999771118164,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "east-shell-spares",
+            "marker": "loot__east-shell-spares",
+            "floor": "ground",
+            "support": "spherical-shell",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 7.8217573165893559,
+                "y": 4.953451156616211,
+                "z": 14.079163551330567
+            },
+            "up": {
+                "x": -0.4662523865699768,
+                "y": -0.2797515094280243,
+                "z": -0.8392543792724609
+            },
+            "forward": {
+                "x": 0.13585931062698365,
+                "y": -0.9600725173950195,
+                "z": 0.24454674124717713
+            },
+            "retrievalFeet": {
+                "x": 7.760241508483887,
+                "y": 5.385221481323242,
+                "z": 13.968435287475586
+            }
+        },
+        {
+            "id": "west-shell-spares",
+            "marker": "loot__west-shell-spares",
+            "floor": "ground",
+            "support": "spherical-shell",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": -7.822779178619385,
+                "y": -4.95406436920166,
+                "z": -14.081003189086914
+            },
+            "up": {
+                "x": 0.4662523865699768,
+                "y": 0.27975142002105715,
+                "z": 0.8392543792724609
+            },
+            "forward": {
+                "x": -0.13585931062698365,
+                "y": 0.9600725173950195,
+                "z": -0.2445468306541443
+            },
+            "retrievalFeet": {
+                "x": -7.762772560119629,
+                "y": -5.386880874633789,
+                "z": -13.972991943359375
+            }
+        },
+        {
+            "id": "west-bay-spares",
+            "marker": "loot__west-bay-spares",
+            "floor": "ground",
+            "support": "left-service-bay",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": -9.75,
+                "y": 0.00800000037997961,
+                "z": 3.0899999141693117
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -9.75,
+                "y": 0.0,
+                "z": 2.6999998092651369
+            }
+        }
+    ]
+}

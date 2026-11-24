@@ -24,18 +24,26 @@ internal static class NativeRaidExtraction
         var machines = prefab ? prefab.GetComponentsInChildren<ExtractionPoint>(true) : Array.Empty<ExtractionPoint>();
         if (machines.Length != 1) throw new InvalidOperationException($"Cannot load the stock extraction point from {StockRoom}.");
         var source = machines[0];
-        if (!Ramp(source) || !Platform(source) || !Tube(source) ||
-            !Ramp(source).IsChildOf(source.transform) || !Platform(source).IsChildOf(source.transform) ||
-            !Tube(source).IsChildOf(source.transform))
+        var ramp = Ramp(source);
+        var platform = Platform(source);
+        var tube = Tube(source);
+        if (!ramp || !platform || !tube || !ramp.IsChildOf(source.transform) ||
+            !platform.IsChildOf(source.transform) || !tube.IsChildOf(source.transform))
             throw new InvalidOperationException("The stock extraction point is missing its native ramp, platform or tube.");
+
+        // The ramp's immediate parent is rotated relative to the stock machine root.
+        var loadingDirection = Vector3.ProjectOnPlane(source.transform.InverseTransformDirection(ramp.forward), Vector3.up);
+        var rampOffset = source.transform.InverseTransformVector(ramp.position - platform.position);
+        if (Vector3.Dot(loadingDirection, rampOffset) <= .01f)
+            throw new InvalidOperationException("The stock extraction ramp axis does not point towards its loading approach.");
 
         foreach (var room in raid.Rooms)
         {
             if (!room.Plan.Module.Landmarks.TryGetValue(RaidExtraction.Machine, out var position)) continue;
-            // Its serialized ramp starts on local -Z. Face it into the hall's open freight approach.
+            var entry = room.Plan.Dock(RaidExtraction.Entry);
             var machine = UnityEngine.Object.Instantiate(source, room.Root);
             machine.transform.SetLocalPositionAndRotation(RaidPlan.Vector(position),
-                Quaternion.LookRotation(Vector3.right, Vector3.up));
+                RaidExtraction.FaceEntry(entry, position, loadingDirection));
             machine.name = "Contour-4 native extraction point";
         }
     }

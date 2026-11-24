@@ -1,0 +1,222 @@
+{
+    "moduleId": "mobius-hall",
+    "transit": "Small valuables rest on both faces of the flat lower ribbon beside the walking lane. The access ramp stays clear.",
+    "sites": [
+        {
+            "id": "ribbon-west-spares",
+            "marker": "loot__ribbon-west-spares",
+            "floor": "ground",
+            "support": "mobius-ribbon",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 0.26413723826408389,
+                "y": 3.7282958030700685,
+                "z": 5.745988845825195
+            },
+            "up": {
+                "x": 0.0,
+                "y": -1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 0.26413723826408389,
+                "y": 3.7282958030700685,
+                "z": 6.135988712310791
+            }
+        },
+        {
+            "id": "ribbon-east-instrument",
+            "marker": "loot__ribbon-east-instrument",
+            "floor": "ground",
+            "support": "mobius-ribbon",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 1.9076063632965088,
+                "y": 3.933776617050171,
+                "z": 5.870988845825195
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 1.9076063632965088,
+                "y": 3.933776617050171,
+                "z": 6.260988712310791
+            }
+        },
+        {
+            "id": "ceiling-west-spares",
+            "marker": "loot__ceiling-west-spares",
+            "floor": "ceiling",
+            "support": "roof",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 9.0,
+                "y": 11.991999626159668,
+                "z": -5.25
+            },
+            "up": {
+                "x": 0.0,
+                "y": -1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 9.229999542236329,
+                "y": 12.0,
+                "z": -5.639999866485596
+            }
+        },
+        {
+            "id": "ceiling-east-instrument",
+            "marker": "loot__ceiling-east-instrument",
+            "floor": "ceiling",
+            "support": "roof",
+            "surface": "Floor",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 9.0,
+                "y": 11.991999626159668,
+                "z": 4.587500095367432
+            },
+            "up": {
+                "x": 0.0,
+                "y": -1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 9.0,
+                "y": 12.0,
+                "z": 4.197500228881836
+            }
+        },
+        {
+            "id": "west-instrument-spares",
+            "marker": "loot__west-instrument-spares",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": -16.49506187438965,
+                "y": 0.00800000037997961,
+                "z": -11.545372009277344
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": -16.49506187438965,
+                "y": 0.0,
+                "z": -11.155372619628907
+            }
+        },
+        {
+            "id": "east-field-spares",
+            "marker": "loot__east-field-spares",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 16.49506187438965,
+                "y": 0.00800000037997961,
+                "z": -11.545372009277344
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 16.26506233215332,
+                "y": 0.0,
+                "z": -11.155372619628907
+            }
+        }
+    ]
+}

@@ -1,0 +1,172 @@
+{
+  "id": "gallery-chamber",
+  "title": "Лаборатория с боковой камерой",
+  "purpose": "На нижнем этаже настраивают зонды, на галерее записывают показания, а в повёрнутой камере выполняют световую сверку перед передачей образца.",
+  "items": [
+    {
+      "id": "Lower probe preparation workbench",
+      "kind": "bench",
+      "position": {
+        "x": 8.8,
+        "y": 0.483,
+        "z": 6.95
+      },
+      "size": {
+        "x": 2.4,
+        "y": 0.95,
+        "z": 0.6
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Lower probe test connection plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.8,
+        "y": 1.44,
+        "z": 7.17
+      },
+      "size": {
+        "x": 2.16,
+        "y": 0.4,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Lower preparation feed",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.98,
+        "y": 2.91,
+        "z": 7.17
+      },
+      "size": {
+        "x": 3.72,
+        "y": 0.26,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Probe bench cable drop",
+      "kind": "pipe",
+      "position": {
+        "x": 8.8,
+        "y": 2.2,
+        "z": 7.16
+      },
+      "size": {
+        "x": 0.1,
+        "y": 1.17,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Gallery recording console table",
+      "kind": "bench",
+      "position": {
+        "x": 12.2,
+        "y": 4.063,
+        "z": -6.95
+      },
+      "size": {
+        "x": 0.85,
+        "y": 0.91,
+        "z": 0.4
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Gallery duplicate record display",
+      "kind": "wall-panel",
+      "position": {
+        "x": 12.2,
+        "y": 5.02,
+        "z": -7.18
+      },
+      "size": {
+        "x": 1.03,
+        "y": 0.46,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "Transverse light comparison bench",
+      "kind": "bench",
+      "position": {
+        "x": 12.2,
+        "y": 5.95,
+        "z": -8.308
+      },
+      "size": {
+        "x": 1.4,
+        "y": 1.1,
+        "z": 0.58
+      },
+      "material": "enamel",
+      "solid": true,
+      "pitch": -90
+    },
+    {
+      "id": "Rotated cell light monitor",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.5,
+        "y": 4.05,
+        "z": -9.24
+      },
+      "size": {
+        "x": 1.08,
+        "y": 0.5,
+        "z": 0.11
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": -90
+    },
+    {
+      "id": "Rotated comparison feed",
+      "kind": "pipe",
+      "position": {
+        "x": 8.54,
+        "y": 4.03,
+        "z": -9.73
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.64,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false,
+      "pitch": -90
+    }
+  ],
+  "eye": {
+    "position": {
+      "x": 2.25,
+      "y": 1.6,
+      "z": 1.25
+    },
+    "look": {
+      "x": 8.1,
+      "y": 1.65,
+      "z": 4.4
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  }
+}

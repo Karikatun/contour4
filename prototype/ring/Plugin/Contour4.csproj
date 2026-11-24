@@ -3,7 +3,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>12.0</LangVersion>
     <AssemblyName>Contour4</AssemblyName>
-    <Version>0.2.18</Version>
+    <Version>0.2.35</Version>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <ItemGroup>
@@ -33,3 +33,4 @@
     <Error Condition="!Exists('$(Contour4ValuablesPath)')" Text="Set Contour4ValuablesPath to the built mandatory Contour4Valuables.dll." />
   </Target>
 </Project>
+

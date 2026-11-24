@@ -1,0 +1,150 @@
+{
+    "moduleId": "top-to-top-chambers",
+    "transit": "",
+    "sites": [
+        {
+            "id": "a-test-bay-hatch-test-console-top-1",
+            "marker": "loot__a-test-bay-hatch-test-console-top-1",
+            "floor": "a",
+            "support": "a-test-bay-hatch-test-console-top",
+            "surface": "Table",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 3.2899999618530275,
+                "y": 1.0080000162124634,
+                "z": -2.4421000480651857
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 3.059999942779541,
+                "y": 0.0,
+                "z": -2.0520999431610109
+            }
+        },
+        {
+            "id": "a-test-bay-isolation-locker-body-top",
+            "marker": "loot__a-test-bay-isolation-locker-body-top",
+            "floor": "a",
+            "support": "a-test-bay-isolation-locker-body-top",
+            "surface": "Raised",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 4.119999885559082,
+                "y": 2.2279999256134035,
+                "z": 2.6077001094818117
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 4.119999885559082,
+                "y": 0.0,
+                "z": 2.2177000045776369
+            }
+        },
+        {
+            "id": "b-test-bay-hatch-test-console-top-1",
+            "marker": "loot__b-test-bay-hatch-test-console-top-1",
+            "floor": "b",
+            "support": "b-test-bay-hatch-test-console-top",
+            "surface": "Table",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 3.2899999618530275,
+                "y": 7.742000102996826,
+                "z": 2.4421000480651857
+            },
+            "up": {
+                "x": 0.0,
+                "y": -1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 3.2899999618530275,
+                "y": 8.75,
+                "z": 2.0520999431610109
+            }
+        },
+        {
+            "id": "b-test-bay-isolation-locker-body-top",
+            "marker": "loot__b-test-bay-isolation-locker-body-top",
+            "floor": "b",
+            "support": "b-test-bay-isolation-locker-body-top",
+            "surface": "Raised",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 4.119999885559082,
+                "y": 6.521999835968018,
+                "z": -2.6077001094818117
+            },
+            "up": {
+                "x": 0.0,
+                "y": -1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 4.119999885559082,
+                "y": 8.75,
+                "z": -2.2177000045776369
+            }
+        }
+    ]
+}

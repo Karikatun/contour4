@@ -1,0 +1,269 @@
+{
+    "schemaVersion": 1,
+    "id": "spherical-chamber-west",
+    "units": "meters in module space",
+    "transformConvention": "Unity forward/up match catalog forward/up. Unity local +X is negative catalog lateral.",
+    "dockDefault": "Plugs are closed. Disable the named plug when creating an appropriate connection.",
+    "difficulty": 2,
+    "planWidth": 45.0,
+    "planLength": 45.0,
+    "boundsMin": {
+        "x": -22.5,
+        "y": -16.875,
+        "z": -16.875
+    },
+    "boundsMax": {
+        "x": 16.875,
+        "y": 16.875,
+        "z": 16.875
+    },
+    "floors": [
+        {
+            "id": "ground",
+            "frame": {
+                "position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "mapContour": [
+                {
+                    "x": -22.5,
+                    "y": -2.25
+                },
+                {
+                    "x": 2.25,
+                    "y": -2.25
+                },
+                {
+                    "x": 2.25,
+                    "y": 2.25
+                },
+                {
+                    "x": -7.5,
+                    "y": 2.25
+                },
+                {
+                    "x": -7.5,
+                    "y": 4.099999904632568
+                },
+                {
+                    "x": -12.0,
+                    "y": 4.099999904632568
+                },
+                {
+                    "x": -12.0,
+                    "y": 2.25
+                },
+                {
+                    "x": -22.5,
+                    "y": 2.25
+                }
+            ]
+        }
+    ],
+    "docks": [
+        {
+            "id": "west",
+            "floor": "ground",
+            "use": "Physical",
+            "cargo": "Hand",
+            "plug": "west-plug",
+            "external": true,
+            "width": 4.5,
+            "height": 4.0,
+            "frame": {
+                "position": {
+                    "x": -22.5,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": -1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "contactStart": {
+                "x": -22.5,
+                "y": 0.0,
+                "z": 2.25
+            },
+            "contactEnd": {
+                "x": -22.5,
+                "y": 0.0,
+                "z": -2.25
+            },
+            "mapPoint": {
+                "x": -22.5,
+                "y": 0.0
+            }
+        }
+    ],
+    "internalPortals": [],
+    "haulRoutes": [
+        {
+            "id": "diameter-terminal",
+            "from": "west",
+            "to": "diameter-junction",
+            "cargo": "Hand",
+            "condition": "",
+            "envelope": {
+                "x": 0.800000011920929,
+                "y": 1.8799999952316285,
+                "z": 0.8999999761581421
+            },
+            "stepClearance": 0.029999999329447748,
+            "hasFlight": false,
+            "flightStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "flightEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "knots": [
+                {
+                    "position": {
+                        "x": -24.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                }
+            ]
+        }
+    ],
+    "reserveVolumes": [
+        {
+            "id": "west-approach",
+            "vertices": [
+                {
+                    "x": -19.700000762939454,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                {
+                    "x": -19.700000762939454,
+                    "y": 4.0,
+                    "z": 2.25
+                },
+                {
+                    "x": -19.700000762939454,
+                    "y": 4.0,
+                    "z": -2.25
+                },
+                {
+                    "x": -19.700000762939454,
+                    "y": 0.0,
+                    "z": -2.25
+                },
+                {
+                    "x": -22.5,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                {
+                    "x": -22.5,
+                    "y": 4.0,
+                    "z": 2.25
+                },
+                {
+                    "x": -22.5,
+                    "y": 4.0,
+                    "z": -2.25
+                },
+                {
+                    "x": -22.5,
+                    "y": 0.0,
+                    "z": -2.25
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        }
+    ],
+    "fallVolumes": [],
+    "mechanisms": []
+}

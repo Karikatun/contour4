@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using Contour4.NativeRaid;
 using HarmonyLib;
 using UnityEngine;
 
@@ -681,6 +682,7 @@ internal sealed partial class RingRuntime
             avatar.Jump(extra);
             if (Active)
                 Active.RecordStockJump(avatar, extra);
+            if (NativeJumpMotion.Bound) NativeRaidGravity.RecordNativeStockJump(avatar, extra);
         }
     }
 
@@ -727,7 +729,7 @@ internal sealed partial class RingRuntime
             if (runtime && runtime.jumpTurn == JumpTurn.Turning && controller && controller.transform == controllerTransform &&
                 runtime.OwnsJumpMotion(controller.rb))
                 SetJumpBodyRotation(controller.rb, runtime.jumpTilt * nativeRotation);
-            else
+            else if (!NativeRaidGravity.TurnNativeJump(controllerTransform, nativeRotation))
                 controllerTransform.rotation = nativeRotation;
         }
 
@@ -748,7 +750,8 @@ internal sealed partial class RingRuntime
                 runtime.acceptedExtraJump = false;
                 runtime.redirectExtraImpulse = false;
             }
-            body.AddForce(impulse, mode);
+            body.AddForce(NativeRaidGravity.NativeJumpImpulse(body, impulse), mode);
+            NativeRaidGravity.NotifyRibbonJump(body);
         }
 
         private static void ApplyMovement(Rigidbody body, Vector3 impulse, ForceMode mode)
@@ -756,7 +759,7 @@ internal sealed partial class RingRuntime
             var runtime = Active;
             if (runtime && runtime.jumpTurn != JumpTurn.None && runtime.OwnsJumpMotion(body))
                 body.AddForce(Vector3.ProjectOnPlane(body.rotation * impulse, runtime.playerGravityUp), mode);
-            else
+            else if (!NativeRaidGravity.MoveNativeJump(body, impulse, mode))
                 body.AddRelativeForce(impulse, mode);
         }
     }

@@ -34,6 +34,7 @@ internal sealed class NativeRaidFeature : IDisposable
     private readonly Action<Level> bindLoadingArt;
     private Action<RaidAssembly> prepareCatalog, spawnCatalog, present;
     private Func<RaidPrefabBranch> prefabBranch;
+    private RaidRoomPrefabs roomPrefabs;
 
     private NativeRaidFeature(ConfigFile config, ManualLogSource logger, string patchOwner,
         string additionalSoloLevel, Action<Level> bindLoadingArt)
@@ -48,7 +49,7 @@ internal sealed class NativeRaidFeature : IDisposable
     internal static NativeRaidFeature Attach(ConfigFile config, ManualLogSource logger, string patchOwner,
         string additionalSoloLevel = null, Action<Level> bindLoadingArt = null,
         bool deferredRegistration = false, Action<RaidAssembly> prepareCatalog = null, Action<RaidAssembly> spawnCatalog = null,
-        Action<RaidAssembly> present = null, Func<RaidPrefabBranch> prefabBranch = null)
+        Action<RaidAssembly> present = null, Func<RaidPrefabBranch> prefabBranch = null, RaidRoomPrefabs roomPrefabs = null)
     {
         if (instance != null) throw new InvalidOperationException("The Contour-4 procedural feature is already attached.");
         RequireSupportedGame();
@@ -57,6 +58,7 @@ internal sealed class NativeRaidFeature : IDisposable
         feature.spawnCatalog = spawnCatalog;
         feature.present = present;
         feature.prefabBranch = prefabBranch;
+        feature.roomPrefabs = roomPrefabs;
         feature.InstallPatches();
         instance = feature;
         if (!deferredRegistration) BundleLoader.OnAllBundlesLoaded += feature.Register;
@@ -87,6 +89,7 @@ internal sealed class NativeRaidFeature : IDisposable
             harmony.CreateClassProcessor(typeof(SpawnCatalogPatch)).Patch();
             NativeRaidLoot.Patch(harmony);
             harmony.CreateClassProcessor(typeof(NativeRaidCabinetGrab.FallHeightPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(NativeRaidSphericalFallPatch)).Patch();
             EnemyHooks.Install(harmony);
         }
         catch
@@ -194,7 +197,7 @@ internal sealed class NativeRaidFeature : IDisposable
             if (!generator || !IsThisLevel(generator.Level) || GameManager.Multiplayer()) return;
             var entry = __instance.GetComponent<NativeRaidModule>();
             if (entry) entry.Place(__instance, instance.RaidSeed, instance.stockManor, instance.prepareCatalog,
-                instance.prefabBranch?.Invoke());
+                instance.prefabBranch?.Invoke(), instance.roomPrefabs);
         }
     }
 

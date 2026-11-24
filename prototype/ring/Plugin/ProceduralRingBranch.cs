@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Contour4.NativeRaid.Runtime;
 using Unity.AI.Navigation;
 using UnityEngine;
@@ -20,7 +21,29 @@ internal static class ProceduralRingBranch
             Quaternion.Inverse(root.rotation) * entry.rotation);
         // Quota__South_Truck is authored as a cart dock of 3.6 × 3.2 before the 1.25 grid scale.
         return new RaidPrefabBranch("test-ring", reservation, entrance, new Vector2(4.5f, 4f),
-            host => Mount(prefab, host, reservation));
+            RingRuntime.PortalPairCount, host => Mount(prefab, host, reservation), DescribeOutline(root, entry));
+    }
+
+    private static RaidPlanarLayout.BranchOutline DescribeOutline(Transform root, Transform entrance)
+    {
+        string[] names = RingRuntime.RoomNames;
+        var floors = names.Select(name => (name, new Rect(-6f, -6f, 12f, 12f))).ToArray();
+        string[] bridges = { "BridgeQuotaLoot1", "BridgeLoot1Loot2" };
+        var passages = bridges.Select((name, index) =>
+        {
+            Transform bridge = root.Find(name);
+            Transform from = RingRuntime.Marker(bridge, name + "__Start");
+            Transform to = RingRuntime.Marker(bridge, name + "__End");
+            return (names[index], LocalPoint(root.Find(names[index]), from),
+                names[index + 1], LocalPoint(root.Find(names[index + 1]), to));
+        }).ToArray();
+        return new RaidPlanarLayout.BranchOutline((names[0], LocalPoint(root.Find(names[0]), entrance)), floors, passages);
+
+        static Vector2 LocalPoint(Transform room, Transform marker)
+        {
+            Vector3 point = room.InverseTransformPoint(marker.position);
+            return new Vector2(point.x, point.z);
+        }
     }
 
     private static void Mount(GameObject prefab, Transform host, Bounds reservation)

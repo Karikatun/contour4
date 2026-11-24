@@ -1,0 +1,1207 @@
+{
+    "schemaVersion": 1,
+    "id": "niche-chamber",
+    "units": "meters in module space",
+    "transformConvention": "Unity forward/up match catalog forward/up. Unity local +X is negative catalog lateral.",
+    "dockDefault": "Plugs are closed. Disable the named plug when creating an appropriate connection.",
+    "difficulty": 0,
+    "planWidth": 15.0,
+    "planLength": 22.5,
+    "boundsMin": {
+        "x": 0.0,
+        "y": -0.25,
+        "z": -7.5
+    },
+    "boundsMax": {
+        "x": 22.5,
+        "y": 7.5,
+        "z": 7.5
+    },
+    "floors": [
+        {
+            "id": "hall",
+            "frame": {
+                "position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "mapContour": [
+                {
+                    "x": 0.0,
+                    "y": -7.5
+                },
+                {
+                    "x": 22.5,
+                    "y": -7.5
+                },
+                {
+                    "x": 22.5,
+                    "y": 7.5
+                },
+                {
+                    "x": 15.0,
+                    "y": 7.5
+                },
+                {
+                    "x": 15.0,
+                    "y": 2.25
+                },
+                {
+                    "x": 7.5,
+                    "y": 2.25
+                },
+                {
+                    "x": 7.5,
+                    "y": 7.5
+                },
+                {
+                    "x": 0.0,
+                    "y": 7.5
+                }
+            ]
+        },
+        {
+            "id": "cell-floor",
+            "frame": {
+                "position": {
+                    "x": 11.25,
+                    "y": 0.0,
+                    "z": 2.5
+                },
+                "forward": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 1.0
+                }
+            },
+            "mapContour": [
+                {
+                    "x": 0.0,
+                    "y": -3.75
+                },
+                {
+                    "x": 7.5,
+                    "y": -3.75
+                },
+                {
+                    "x": 7.5,
+                    "y": 3.75
+                },
+                {
+                    "x": 0.0,
+                    "y": 3.75
+                }
+            ]
+        }
+    ],
+    "docks": [
+        {
+            "id": "hall-west",
+            "floor": "hall",
+            "use": "Physical",
+            "cargo": "Cart",
+            "plug": "hall-west-plug",
+            "external": true,
+            "width": 4.5,
+            "height": 4.0,
+            "frame": {
+                "position": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": -1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "contactStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 2.25
+            },
+            "contactEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -2.25
+            },
+            "mapPoint": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "id": "hall-east",
+            "floor": "hall",
+            "use": "Physical",
+            "cargo": "Cart",
+            "plug": "hall-east-plug",
+            "external": true,
+            "width": 4.5,
+            "height": 4.0,
+            "frame": {
+                "position": {
+                    "x": 22.5,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "forward": {
+                    "x": 1.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "contactStart": {
+                "x": 22.5,
+                "y": 0.0,
+                "z": -2.25
+            },
+            "contactEnd": {
+                "x": 22.5,
+                "y": 0.0,
+                "z": 2.25
+            },
+            "mapPoint": {
+                "x": 22.5,
+                "y": 0.0
+            }
+        },
+        {
+            "id": "hall-niche-portal",
+            "floor": "hall",
+            "use": "DoorPortal",
+            "cargo": "Hand",
+            "plug": "hall-niche-portal-plug",
+            "external": false,
+            "width": 1.5,
+            "height": 2.5,
+            "frame": {
+                "position": {
+                    "x": 11.25,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                "forward": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 1.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                }
+            },
+            "contactStart": {
+                "x": 12.0,
+                "y": 0.0,
+                "z": 2.25
+            },
+            "contactEnd": {
+                "x": 10.5,
+                "y": 0.0,
+                "z": 2.25
+            },
+            "mapPoint": {
+                "x": 11.25,
+                "y": 2.25
+            }
+        },
+        {
+            "id": "cell-portal",
+            "floor": "cell-floor",
+            "use": "DoorPortal",
+            "cargo": "Hand",
+            "plug": "cell-portal-plug",
+            "external": false,
+            "width": 1.5,
+            "height": 2.5,
+            "frame": {
+                "position": {
+                    "x": 11.25,
+                    "y": 0.0,
+                    "z": 2.5
+                },
+                "forward": {
+                    "x": 0.0,
+                    "y": -1.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 1.0
+                }
+            },
+            "contactStart": {
+                "x": 12.0,
+                "y": 0.0,
+                "z": 2.5
+            },
+            "contactEnd": {
+                "x": 10.5,
+                "y": 0.0,
+                "z": 2.5
+            },
+            "mapPoint": {
+                "x": 0.0,
+                "y": 0.0
+            }
+        },
+        {
+            "id": "cell-service",
+            "floor": "cell-floor",
+            "use": "Physical",
+            "cargo": "Cart",
+            "plug": "cell-service-plug",
+            "external": true,
+            "width": 4.5,
+            "height": 4.0,
+            "frame": {
+                "position": {
+                    "x": 11.25,
+                    "y": 7.5,
+                    "z": 2.5
+                },
+                "forward": {
+                    "x": 0.0,
+                    "y": 1.0,
+                    "z": 0.0
+                },
+                "up": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 1.0
+                }
+            },
+            "contactStart": {
+                "x": 9.0,
+                "y": 7.5,
+                "z": 2.5
+            },
+            "contactEnd": {
+                "x": 13.5,
+                "y": 7.5,
+                "z": 2.5
+            },
+            "mapPoint": {
+                "x": 7.5,
+                "y": 0.0
+            }
+        }
+    ],
+    "internalPortals": [
+        {
+            "a": "hall-niche-portal",
+            "b": "cell-portal"
+        }
+    ],
+    "haulRoutes": [
+        {
+            "id": "hall-cart-past-niche",
+            "from": "hall-west",
+            "to": "hall-east",
+            "cargo": "Cart",
+            "condition": "",
+            "envelope": {
+                "x": 2.5999999046325685,
+                "y": 2.049999952316284,
+                "z": 1.7999999523162842
+            },
+            "stepClearance": 0.029999999329447748,
+            "hasFlight": false,
+            "flightStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "flightEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "knots": [
+                {
+                    "position": {
+                        "x": -1.7999999523162842,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 24.299999237060548,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "hall-hand-to-niche",
+            "from": "hall-west",
+            "to": "hall-niche-portal",
+            "cargo": "Hand",
+            "condition": "",
+            "envelope": {
+                "x": 0.800000011920929,
+                "y": 1.8799999952316285,
+                "z": 0.8999999761581421
+            },
+            "stepClearance": 0.029999999329447748,
+            "hasFlight": false,
+            "flightStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "flightEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "knots": [
+                {
+                    "position": {
+                        "x": -1.7999999523162842,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 1.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "forward": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 1.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 0.0,
+                        "z": 1.5499999523162842
+                    },
+                    "forward": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 1.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 1.0,
+                        "z": 0.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "cell-service-cart-access",
+            "from": "cell-service",
+            "to": "cell-service-dropoff",
+            "cargo": "Cart",
+            "condition": "",
+            "envelope": {
+                "x": 2.5999999046325685,
+                "y": 2.049999952316284,
+                "z": 1.7999999523162842
+            },
+            "stepClearance": 0.029999999329447748,
+            "hasFlight": false,
+            "flightStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "flightEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "knots": [
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 9.300000190734864,
+                        "z": 2.5
+                    },
+                    "forward": {
+                        "x": 0.0,
+                        "y": -1.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 1.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 3.5999999046325685,
+                        "z": 2.5
+                    },
+                    "forward": {
+                        "x": 0.0,
+                        "y": -1.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 1.0
+                    }
+                }
+            ]
+        },
+        {
+            "id": "cell-service-hand-to-portal",
+            "from": "cell-service",
+            "to": "cell-portal",
+            "cargo": "Hand",
+            "condition": "",
+            "envelope": {
+                "x": 0.800000011920929,
+                "y": 1.8799999952316285,
+                "z": 0.8999999761581421
+            },
+            "stepClearance": 0.029999999329447748,
+            "hasFlight": false,
+            "flightStart": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "flightEnd": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "knots": [
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 9.300000190734864,
+                        "z": 2.5
+                    },
+                    "forward": {
+                        "x": 0.0,
+                        "y": -1.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 1.0
+                    }
+                },
+                {
+                    "position": {
+                        "x": 11.25,
+                        "y": 0.699999988079071,
+                        "z": 2.5
+                    },
+                    "forward": {
+                        "x": 0.0,
+                        "y": -1.0,
+                        "z": 0.0
+                    },
+                    "up": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 1.0
+                    }
+                }
+            ]
+        }
+    ],
+    "reserveVolumes": [
+        {
+            "id": "hall-west-approach",
+            "vertices": [
+                {
+                    "x": 2.799999952316284,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 2.799999952316284,
+                    "y": 4.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 2.799999952316284,
+                    "y": 4.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 2.799999952316284,
+                    "y": 0.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 0.0,
+                    "y": 4.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 0.0,
+                    "y": 4.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": -2.25
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        },
+        {
+            "id": "hall-east-approach",
+            "vertices": [
+                {
+                    "x": 19.700000762939454,
+                    "y": 0.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 19.700000762939454,
+                    "y": 4.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 19.700000762939454,
+                    "y": 4.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 19.700000762939454,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 22.5,
+                    "y": 0.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 22.5,
+                    "y": 4.0,
+                    "z": -2.25
+                },
+                {
+                    "x": 22.5,
+                    "y": 4.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 22.5,
+                    "y": 0.0,
+                    "z": 2.25
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        },
+        {
+            "id": "hall-niche-portal-approach",
+            "vertices": [
+                {
+                    "x": 12.0,
+                    "y": 0.0,
+                    "z": -0.5499999523162842
+                },
+                {
+                    "x": 12.0,
+                    "y": 2.5,
+                    "z": -0.5499999523162842
+                },
+                {
+                    "x": 10.5,
+                    "y": 2.5,
+                    "z": -0.5499999523162842
+                },
+                {
+                    "x": 10.5,
+                    "y": 0.0,
+                    "z": -0.5499999523162842
+                },
+                {
+                    "x": 12.0,
+                    "y": 0.0,
+                    "z": 2.25
+                },
+                {
+                    "x": 12.0,
+                    "y": 2.5,
+                    "z": 2.25
+                },
+                {
+                    "x": 10.5,
+                    "y": 2.5,
+                    "z": 2.25
+                },
+                {
+                    "x": 10.5,
+                    "y": 0.0,
+                    "z": 2.25
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        },
+        {
+            "id": "cell-portal-approach",
+            "vertices": [
+                {
+                    "x": 12.0,
+                    "y": 2.799999952316284,
+                    "z": 2.5
+                },
+                {
+                    "x": 12.0,
+                    "y": 2.799999952316284,
+                    "z": 5.0
+                },
+                {
+                    "x": 10.5,
+                    "y": 2.799999952316284,
+                    "z": 5.0
+                },
+                {
+                    "x": 10.5,
+                    "y": 2.799999952316284,
+                    "z": 2.5
+                },
+                {
+                    "x": 12.0,
+                    "y": 0.0,
+                    "z": 2.5
+                },
+                {
+                    "x": 12.0,
+                    "y": 0.0,
+                    "z": 5.0
+                },
+                {
+                    "x": 10.5,
+                    "y": 0.0,
+                    "z": 5.0
+                },
+                {
+                    "x": 10.5,
+                    "y": 0.0,
+                    "z": 2.5
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        },
+        {
+            "id": "cell-service-approach",
+            "vertices": [
+                {
+                    "x": 9.0,
+                    "y": 4.699999809265137,
+                    "z": 2.5
+                },
+                {
+                    "x": 9.0,
+                    "y": 4.699999809265137,
+                    "z": 6.5
+                },
+                {
+                    "x": 13.5,
+                    "y": 4.699999809265137,
+                    "z": 6.5
+                },
+                {
+                    "x": 13.5,
+                    "y": 4.699999809265137,
+                    "z": 2.5
+                },
+                {
+                    "x": 9.0,
+                    "y": 7.5,
+                    "z": 2.5
+                },
+                {
+                    "x": 9.0,
+                    "y": 7.5,
+                    "z": 6.5
+                },
+                {
+                    "x": 13.5,
+                    "y": 7.5,
+                    "z": 6.5
+                },
+                {
+                    "x": 13.5,
+                    "y": 7.5,
+                    "z": 2.5
+                }
+            ],
+            "triangles": [
+                0,
+                2,
+                1,
+                0,
+                3,
+                2,
+                4,
+                5,
+                6,
+                4,
+                6,
+                7,
+                0,
+                1,
+                5,
+                0,
+                5,
+                4,
+                1,
+                2,
+                6,
+                1,
+                6,
+                5,
+                2,
+                3,
+                7,
+                2,
+                7,
+                6,
+                3,
+                0,
+                4,
+                3,
+                4,
+                7
+            ]
+        }
+    ],
+    "fallVolumes": [],
+    "mechanisms": [
+        {
+            "id": "freight-hall-isolated-breakers-left-door",
+            "kind": "cabinet hinge",
+            "pivot": "freight-hall-isolated-breakers-left-door pivot",
+            "panel": "freight-hall-isolated-breakers-left-door",
+            "handle": "freight-hall-isolated-breakers-left-handle",
+            "tray": "",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": -101.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "freight-hall-isolated-breakers-right-door",
+            "kind": "cabinet hinge",
+            "pivot": "freight-hall-isolated-breakers-right-door pivot",
+            "panel": "freight-hall-isolated-breakers-right-door",
+            "handle": "freight-hall-isolated-breakers-right-handle",
+            "tray": "",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 101.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "freight-hall-freight-manifest-drawers-drawer-0",
+            "kind": "drawer slide",
+            "pivot": "freight-hall-freight-manifest-drawers-drawer-0 pivot",
+            "panel": "freight-hall-freight-manifest-drawers-drawer-0",
+            "handle": "freight-hall-freight-manifest-drawers-pull-0",
+            "tray": "freight-hall-freight-manifest-drawers-tray-0",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "freight-hall-freight-manifest-drawers-drawer-1",
+            "kind": "drawer slide",
+            "pivot": "freight-hall-freight-manifest-drawers-drawer-1 pivot",
+            "panel": "freight-hall-freight-manifest-drawers-drawer-1",
+            "handle": "freight-hall-freight-manifest-drawers-pull-1",
+            "tray": "freight-hall-freight-manifest-drawers-tray-1",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "freight-hall-freight-manifest-drawers-drawer-2",
+            "kind": "drawer slide",
+            "pivot": "freight-hall-freight-manifest-drawers-drawer-2 pivot",
+            "panel": "freight-hall-freight-manifest-drawers-drawer-2",
+            "handle": "freight-hall-freight-manifest-drawers-pull-2",
+            "tray": "freight-hall-freight-manifest-drawers-tray-2",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -0.3400000035762787
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "cell-side-instrument-room-instrument-cabinet-door",
+            "kind": "cabinet hinge",
+            "pivot": "cell-side-instrument-room-instrument-cabinet-door pivot",
+            "panel": "cell-side-instrument-room-instrument-cabinet-door",
+            "handle": "cell-side-instrument-room-instrument-cabinet-handle",
+            "tray": "",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 101.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "cell-side-instrument-room-record-lockers-1-door",
+            "kind": "cabinet hinge",
+            "pivot": "cell-side-instrument-room-record-lockers-1-door pivot",
+            "panel": "cell-side-instrument-room-record-lockers-1-door",
+            "handle": "cell-side-instrument-room-record-lockers-1-handle",
+            "tray": "",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 101.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        },
+        {
+            "id": "cell-side-instrument-room-record-lockers-2-door",
+            "kind": "cabinet hinge",
+            "pivot": "cell-side-instrument-room-record-lockers-2-door pivot",
+            "panel": "cell-side-instrument-room-record-lockers-2-door",
+            "handle": "cell-side-instrument-room-record-lockers-2-handle",
+            "tray": "",
+            "openLocalRotationDegrees": {
+                "x": 0.0,
+                "y": 101.0,
+                "z": 0.0
+            },
+            "openLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "closeLocalTranslation": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            }
+        }
+    ]
+}

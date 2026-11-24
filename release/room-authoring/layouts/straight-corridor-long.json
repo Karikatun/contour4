@@ -1,0 +1,104 @@
+{
+  "id": "straight-corridor-long",
+  "title": "Длинный прямой коридор",
+  "purpose": "Магистральная галерея. В середине предусмотрена зона обслуживания линии питания.",
+  "items": [
+    {
+      "id": "Main conduit cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.5,
+        "y": 2.86,
+        "z": 2.45
+      },
+      "size": {
+        "x": 11.5,
+        "y": 0.27,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Centre cable descent",
+      "kind": "pipe",
+      "position": {
+        "x": 7.5,
+        "y": 2.29,
+        "z": 2.42
+      },
+      "size": {
+        "x": 0.12,
+        "y": 0.95,
+        "z": 0.12
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Cable repeater with test terminals",
+      "kind": "machine",
+      "position": {
+        "x": 7.5,
+        "y": 0.78,
+        "z": 2.2
+      },
+      "size": {
+        "x": 1.45,
+        "y": 1.56,
+        "z": 0.56
+      },
+      "material": "enamel",
+      "solid": true,
+      "face": "south"
+    },
+    {
+      "id": "Western inspection plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": 3.8,
+        "y": 1.48,
+        "z": 2.45
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.36,
+        "z": 0.11
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Eastern inspection plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": 11,
+        "y": 1.48,
+        "z": 2.45
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.36,
+        "z": 0.11
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Continuous service strip",
+      "kind": "marking",
+      "position": {
+        "x": 7.5,
+        "y": 0.005,
+        "z": 1.92
+      },
+      "size": {
+        "x": 12.2,
+        "y": 0.01,
+        "z": 0.13
+      },
+      "material": "bakelite",
+      "solid": false
+    }
+  ]
+}

@@ -3,16 +3,21 @@ param(
     [Parameter(Mandatory)] [string] $Plugin,
     [Parameter(Mandatory)] [string] $Output,
     [string] $Runtime,
-    [string] $LoadingBundle
+    [string] $LoadingBundle,
+    [string] $RoomsBundle,
+    [Parameter(Mandatory)] [string] $PreparedModulesBundle
 )
 $ErrorActionPreference = 'Stop'
 $bundlePath = (Resolve-Path -LiteralPath $Bundle).Path
 $pluginPath = (Resolve-Path -LiteralPath $Plugin).Path
 if (!$LoadingBundle) { $LoadingBundle = Join-Path ([IO.Path]::GetDirectoryName($bundlePath)) 'contour4-loading.bundle' }
 $loadingPath = (Resolve-Path -LiteralPath $LoadingBundle).Path
+if (!$RoomsBundle) { $RoomsBundle = Join-Path ([IO.Path]::GetDirectoryName($bundlePath)) 'contour4-rooms.bundle' }
+$roomsPath = (Resolve-Path -LiteralPath $RoomsBundle).Path
+$preparedPath = (Resolve-Path -LiteralPath $PreparedModulesBundle).Path
 if (!$Runtime) { $Runtime = Join-Path ([IO.Path]::GetDirectoryName($pluginPath)) 'Contour4NativeRaidRuntime.dll' }
 $runtimePath = (Resolve-Path -LiteralPath $Runtime).Path
-$iconPath = (Resolve-Path -LiteralPath "$PSScriptRoot/icon.png").Path
+$iconPackage = (Resolve-Path -LiteralPath "$PSScriptRoot/../first-raid/dist/SpaceJourney-Contour4-0.1.0.zip").Path
 $outPath = [IO.Path]::GetFullPath($Output)
 if (Test-Path -LiteralPath $outPath) { throw 'Choose a new package path.' }
 New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($outPath)) -Force | Out-Null
@@ -31,15 +36,22 @@ try {
         $entries = [ordered]@{
             'README.md' = "$PSScriptRoot/README.md"
             'manifest.json' = "$PSScriptRoot/manifest.json"
-            'icon.png' = $iconPath
             'plugins/Contour4/Contour4.dll' = $pluginPath
             'plugins/Contour4/Contour4NativeRaidRuntime.dll' = $runtimePath
             'plugins/Contour4/contour4-ring.bundle' = $bundlePath
             'plugins/Contour4/contour4-loading.bundle' = $loadingPath
+            'plugins/Contour4/contour4-rooms.bundle' = $roomsPath
+            'plugins/Contour4/contour4-prepared-modules.bundle' = $preparedPath
         }
         foreach ($entry in $entries.GetEnumerator()) {
             [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $entry.Value, $entry.Key) | Out-Null
         }
+        $original = [IO.Compression.ZipFile]::OpenRead($iconPackage)
+        try {
+            $source = $original.GetEntry('icon.png').Open()
+            $destination = $zip.CreateEntry('icon.png').Open()
+            try { $source.CopyTo($destination) } finally { $destination.Dispose(); $source.Dispose() }
+        } finally { $original.Dispose() }
     } finally { $zip.Dispose() }
     [IO.File]::Move($partial, $outPath)
 } finally {

@@ -1,0 +1,150 @@
+{
+    "moduleId": "service-cupboard",
+    "transit": "",
+    "sites": [
+        {
+            "id": "service-maintenance-table-top-1",
+            "marker": "loot__service-maintenance-table-top-1",
+            "floor": "ground",
+            "support": "service-maintenance-table-top",
+            "surface": "Table",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 3.3949999809265138,
+                "y": 1.0080000162124634,
+                "z": -2.4421000480651857
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 3.3949999809265138,
+                "y": 0.0,
+                "z": -2.0520999431610109
+            }
+        },
+        {
+            "id": "service-maintenance-table-top-2",
+            "marker": "loot__service-maintenance-table-top-2",
+            "floor": "ground",
+            "support": "service-maintenance-table-top",
+            "surface": "Table",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 4.40500020980835,
+                "y": 1.0080000162124634,
+                "z": -2.4421000480651857
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 4.40500020980835,
+                "y": 0.0,
+                "z": -2.0520999431610109
+            }
+        },
+        {
+            "id": "service-tool-locker-body-top",
+            "marker": "loot__service-tool-locker-body-top",
+            "floor": "ground",
+            "support": "service-tool-locker-body-top",
+            "surface": "Raised",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 3.6500000953674318,
+                "y": 2.2279999256134035,
+                "z": 2.311300039291382
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 3.6500000953674318,
+                "y": 0.0,
+                "z": 1.7312999963760377
+            }
+        },
+        {
+            "id": "service-stacked-spares-upper-body-top",
+            "marker": "loot__service-stacked-spares-upper-body-top",
+            "floor": "ground",
+            "support": "service-stacked-spares-upper-body-top",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 1.340000033378601,
+                "y": 2.1679999828338625,
+                "z": -2.7372000217437746
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 1.340000033378601,
+                "y": 0.0,
+                "z": -2.1572000980377199
+            }
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+{
+ "id":"service-cupboard",
+ "title":"Служебная кладовая",
+ "purpose":"Выдача инструмента и хранение запасных частей; сохраняется узкий штатный вход.",
+ "disable":["supplies"],
+ "eye":{"position":{"x":1.25,"y":1.6,"z":0.15},"look":{"x":6.1,"y":1.35,"z":0},"up":{"x":0,"y":1,"z":0}},
+ "items":[
+  {"id":"Открытая стойка комплектующих","kind":"rack","position":{"x":6.52,"y":1.18,"z":0},"size":{"x":5.8,"y":2.36,"z":1.40},"yaw":90,"shelves":4,"material":"ivory","solid":true},
+  {"id":"Настенная рейка приёмки","kind":"wall-panel","position":{"x":6.98,"y":2.75,"z":0},"size":{"x":3.1,"y":0.42,"z":0.08},"yaw":90,"material":"enamel","solid":false},
+  {"id":"Линия питания вдоль потолка","kind":"pipe","position":{"x":6.95,"y":3.30,"z":0},"size":{"x":0.12,"y":0.12,"z":5.7},"material":"brass","solid":false},
+  {"id":"Ввод обслуживания стойки","kind":"pipe","position":{"x":6.95,"y":2.98,"z":-2.75},"size":{"x":0.12,"y":0.68,"z":0.12},"material":"brass","solid":false}
+ ]
+}

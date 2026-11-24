@@ -1,0 +1,106 @@
+{
+  "id": "quarter-turn-bridge",
+  "title": "Поворотный мост",
+  "purpose": "На посадках видны отдельные узлы контроля поля. Стенки дуги и габарит настила принадлежат самому мосту.",
+  "items": [
+    {
+      "id": "Entry field-feed cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": -1.45,
+        "y": 2.65,
+        "z": 2.21
+      },
+      "size": {
+        "x": 2,
+        "y": 0.24,
+        "z": 0.085
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Entry continuity terminal",
+      "kind": "wall-panel",
+      "position": {
+        "x": -1.2,
+        "y": 1.45,
+        "z": 2.21
+      },
+      "size": {
+        "x": 0.82,
+        "y": 0.55,
+        "z": 0.082
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Entry field drop",
+      "kind": "pipe",
+      "position": {
+        "x": -1.2,
+        "y": 2.03,
+        "z": 2.21
+      },
+      "size": {
+        "x": 0.09,
+        "y": 0.64,
+        "z": 0.09
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Rotated landing field-feed cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.65,
+        "y": -7.58,
+        "z": -2.21
+      },
+      "size": {
+        "x": 1.85,
+        "y": 0.24,
+        "z": 0.08
+      },
+      "material": "enamel",
+      "solid": false,
+      "roll": -90
+    },
+    {
+      "id": "Rotated landing inspection cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.38,
+        "y": -7.72,
+        "z": -2.21
+      },
+      "size": {
+        "x": 0.86,
+        "y": 0.54,
+        "z": 0.08
+      },
+      "material": "enamel",
+      "solid": false,
+      "roll": -90
+    },
+    {
+      "id": "Rotated landing instrument drop",
+      "kind": "pipe",
+      "position": {
+        "x": 8.02,
+        "y": -7.72,
+        "z": -2.21
+      },
+      "size": {
+        "x": 0.09,
+        "y": 0.77,
+        "z": 0.08
+      },
+      "material": "brass",
+      "solid": false,
+      "roll": -90
+    }
+  ]
+}

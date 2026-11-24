@@ -18,7 +18,7 @@ using Contour4Valuables;
 
 namespace SpaceJourney;
 
-[BepInPlugin(Id, "Contour-4", "0.2.18")]
+[BepInPlugin(Id, "Contour-4", "0.2.35")]
 [BepInDependency("REPOLib", "4.5.1")]
 [BepInDependency("spacejourney.contour4.valuables", BepInDependency.DependencyFlags.HardDependency)]
 public sealed class Contour4 : BaseUnityPlugin
@@ -32,15 +32,19 @@ public sealed class Contour4 : BaseUnityPlugin
     private NativeRaidFeature nativeRaid;
     private RaidPrefabBranch proceduralRing;
     private LoadingArt loadingArt;
+    private RoomPrefabBundle roomBundle;
 
     private void Awake()
     {
         try
         {
-            loadingArt = LoadingArt.Load(Path.GetDirectoryName(Info.Location));
+            string directory = Path.GetDirectoryName(Info.Location);
+            loadingArt = LoadingArt.Load(directory);
+            roomBundle = RoomPrefabBundle.Load(Path.Combine(directory, RoomPrefabBundle.BundleName),
+                Path.Combine(directory, RoomPrefabBundle.PreparedBundleName));
             nativeRaid = NativeRaidFeature.Attach(Config, Logger, Id + ".procedural-feature", LevelName, loadingArt.Bind,
                 deferredRegistration: true, prepareCatalog: PrepareProceduralRaid, spawnCatalog: ProceduralCatalogLoot.Spawn,
-                present: PresentProceduralRaid, prefabBranch: () => proceduralRing);
+                present: PresentProceduralRaid, prefabBranch: () => proceduralRing, roomPrefabs: roomBundle.Prefabs);
             patches = new Harmony(Id);
             foreach (var type in typeof(Contour4).Assembly.GetTypes().Where(type =>
                 type.Namespace == typeof(Contour4).Namespace && type.IsDefined(typeof(HarmonyPatch), false)))
@@ -69,7 +73,11 @@ public sealed class Contour4 : BaseUnityPlugin
         finally
         {
             try { nativeRaid?.Dispose(); }
-            finally { loadingArt?.Dispose(); }
+            finally
+            {
+                try { roomBundle?.Dispose(); }
+                finally { loadingArt?.Dispose(); }
+            }
         }
     }
 
@@ -101,9 +109,9 @@ public sealed class Contour4 : BaseUnityPlugin
     {
         if (registrationStarted) return;
         registrationStarted = true;
-        if (typeof(ValuableApi).Assembly.GetName().Version < new System.Version(0, 2, 3))
+        if (typeof(ValuableApi).Assembly.GetName().Version < new System.Version(0, 2, 4))
         {
-            Logger.LogError("Contour-4 levels were not registered: Contour4Valuables 0.2.3 or newer is required.");
+            Logger.LogError("Contour-4 levels were not registered: Contour4Valuables 0.2.4 or newer is required.");
             return;
         }
         StartCoroutine(RegisterWhenReady());
@@ -116,12 +124,12 @@ public sealed class Contour4 : BaseUnityPlugin
             yield return null;
         if (!ValuableApi.IsReady)
         {
-            Logger.LogError("Contour-4 levels were not registered: required Contour4Valuables 0.2.3 did not become ready within 30 seconds. Check its bundle and registration log.");
+            Logger.LogError("Contour-4 levels were not registered: required Contour4Valuables 0.2.4 did not become ready within 30 seconds. Check its bundle and registration log.");
             yield break;
         }
         try
         {
-            foreach (string key in CatalogLoot.Keys.Concat(new[] { "field-core" }))
+            foreach (string key in CatalogLoot.Keys.Concat(new[] { "field-core" }).Concat(RaidCatalogSites.LaboratoryKeys))
             {
                 var prefab = ValuableApi.GetPrefab(key);
                 if (!prefab || !prefab.GetComponent<ValuableObject>() || !prefab.GetComponent<Rigidbody>())
@@ -327,3 +335,4 @@ public sealed class Contour4 : BaseUnityPlugin
         }
     }
 }
+

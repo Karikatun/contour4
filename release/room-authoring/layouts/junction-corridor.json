@@ -1,0 +1,104 @@
+{
+  "id": "junction-corridor",
+  "title": "Т-образный коридор",
+  "purpose": "Узел обслуживает прямую магистраль и линию бокового ответвления. Свободная площадка в середине нужна для поворота тележки.",
+  "items": [
+    {
+      "id": "Trunk enclosed raceway",
+      "kind": "wall-panel",
+      "position": {
+        "x": 7.5,
+        "y": 2.85,
+        "z": -3.45
+      },
+      "size": {
+        "x": 11.8,
+        "y": 0.24,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Branch telemetry station",
+      "kind": "machine",
+      "position": {
+        "x": 5.35,
+        "y": 0.72,
+        "z": -3.2
+      },
+      "size": {
+        "x": 1.52,
+        "y": 1.44,
+        "z": 0.6
+      },
+      "material": "enamel",
+      "solid": true,
+      "face": "north"
+    },
+    {
+      "id": "Telemetry drop",
+      "kind": "pipe",
+      "position": {
+        "x": 5.35,
+        "y": 2.05,
+        "z": -3.42
+      },
+      "size": {
+        "x": 0.11,
+        "y": 1.37,
+        "z": 0.11
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Spur wall distribution line",
+      "kind": "wall-panel",
+      "position": {
+        "x": 10.7,
+        "y": 2.76,
+        "z": 7.25
+      },
+      "size": {
+        "x": 0.13,
+        "y": 0.22,
+        "z": 4.8
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Spur continuity plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": 10.71,
+        "y": 1.55,
+        "z": 7.4
+      },
+      "size": {
+        "x": 0.12,
+        "y": 0.46,
+        "z": 0.65
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "South service strip",
+      "kind": "marking",
+      "position": {
+        "x": 7.5,
+        "y": 0.005,
+        "z": -2.72
+      },
+      "size": {
+        "x": 10.5,
+        "y": 0.01,
+        "z": 0.13
+      },
+      "material": "bakelite",
+      "solid": false
+    }
+  ]
+}

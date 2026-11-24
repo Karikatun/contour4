@@ -40,7 +40,8 @@ namespace SpaceJourney
             map.originalRootToWorld = map.raidRoot.localToWorldMatrix;
             Transform start = LevelGenerator.Instance.LevelParent.GetComponentInChildren<StartRoom>()?.transform;
             map.stockBounds = StartBounds(start);
-            map.plan = RaidMapPlan.Create(raid.Plan, map.stockBounds);
+            map.plan = RaidMapPlan.Create(raid.Plan, map.stockBounds,
+                preparedRooms: raid.Rooms.Where(room => room.Prepared).Select(room => room.Plan));
             map.native = Map.Instance;
             map.playerSource = RaidAssembly.Child(map.transform, "Stock map player source");
             map.markerSource = RaidAssembly.Child(map.transform, "Stock map marker source");
@@ -50,7 +51,8 @@ namespace SpaceJourney
         internal static void AttachRing(RaidAssembly raid, RingRuntime ring, RaidPlan.End parentDock)
         {
             var map = raid.GetComponent<ProceduralRaidMap>();
-            map.plan = RaidMapPlan.Create(raid.Plan, map.stockBounds, ring, parentDock, map.WorldToPlan);
+            map.plan = RaidMapPlan.Create(raid.Plan, map.stockBounds, ring, parentDock, map.WorldToPlan,
+                raid.Rooms.Where(room => room.Prepared).Select(room => room.Plan));
         }
 
         private static Bounds? StartBounds(Transform start)
@@ -161,11 +163,20 @@ namespace SpaceJourney
                 foreach (Rect tile in floor.Slabs.Length == 0 ? new[] { BoundsOf(floor.Local) } : floor.Slabs)
                     Tile(group, floor.Flat(tile.min), floor.Flat(tile.min + Vector2.up) - floor.Flat(tile.min),
                         tile.width, tile.height);
+                foreach (var route in floor.SurfaceRoutes)
+                for (int i = 1; i < route.Length; i++)
+                {
+                    Vector2 start = floor.Flat(route[i - 1]);
+                    Vector2 along = floor.Flat(route[i]) - start;
+                    const float width = 1f;
+                    Vector2 side = new Vector2(along.y, -along.x).normalized;
+                    Tile(group, start - side * (width / 2), along, width, along.magnitude);
+                }
                 var openings = plan.Doors.Where(door => door.End.Floor == floor).ToArray();
                 for (int i = 0; i < floor.Local.Length; i++)
                     Wall(group, floor, floor.Local[i], floor.Local[(i + 1) % floor.Local.Length], openings);
                 foreach (var door in openings.Where(door => door.Portal))
-                    Door(group, floor, door);
+                    DrawPortalMouth(group, door);
             }
 
             foreach (var link in plan.Links)
@@ -173,7 +184,7 @@ namespace SpaceJourney
                 Transform group = Group("Contour-4 " + (link.Stairs ? "stairs" : "passage"), link.A.Floor);
                 corridorGraphics.Add(link, group.gameObject);
                 Vector2[] path = plan.Corridor(link).ToArray();
-                const float width = 1.45f;
+                const float width = RaidMapPlan.CorridorWidth;
                 for (int i = 1; i < path.Length; i++)
                 {
                     var from = path[i - 1];
@@ -185,10 +196,11 @@ namespace SpaceJourney
                     if (i < path.Length - 1)
                         Tile(group, path[i] - Vector2.one * (width / 2), Vector2.up, width, width);
                 }
-                if (link.Stairs && native.StairsShortObject && path.Length > 2)
+                if (link.Stairs && native.StairsShortObject && path.Length >= 2)
                     Glyph(native.StairsShortObject, group, (path[0] + path[1]) / 2, path[1] - path[0],
                         new Vector3(.6f, 1f, .6f));
             }
+
         }
 
         private static Rect BoundsOf(IReadOnlyList<Vector2> polygon)
@@ -215,7 +227,7 @@ namespace SpaceJourney
             Vector2 direction = (b - a).normalized;
             float length = Vector2.Distance(a, b);
             // The landing for an internal stair can meet the edge without a door model.
-            var cutouts = openings.Select(door => door.End)
+            var cutouts = openings.Where(door => !door.End.Interior).Select(door => door.End)
                 .Concat(plan.Links.Where(link => link.Stairs).Select(link => link.A.Floor == floor ? link.A : link.B)
                     .Where(end => end.Floor == floor))
                 .Where(end => Mathf.Abs(Vector2.Dot(new Vector2(-direction.y, direction.x), end.Edge - a)) < .09f)
@@ -233,31 +245,30 @@ namespace SpaceJourney
             void Segment(float low, float high)
             {
                 if (high - low < .04f) return;
-                // Native wall graphics span .50 units along local Z, with a .025 offset.
-                float scale = (high - low) * native.Scale / .50f;
-                Vector2 center = a + direction * ((low + high) / 2f - .05f * (high - low));
-                Glyph(native.Wall1x1Object, group, floor.Flat(center), floor.Flat(center + direction) - floor.Flat(center),
-                    new Vector3(1, 1, scale));
+                WallStrip(group, floor.Flat(a + direction * low), floor.Flat(a + direction * high));
             }
         }
 
-        private void Door(Transform group, RaidMapPlan.FloorView floor, RaidMapPlan.Door door)
+        private void DrawPortalMouth(Transform group, RaidMapPlan.Door door)
         {
-            Vector2 center = floor.Flat(door.End.Edge);
-            Vector2 normal = floor.Flat(door.End.Edge + door.End.Outward) - center;
-            var tangent = new Vector2(normal.y, -normal.x);
-            float width = door.End.Width * native.Scale;
-            var model = Glyph(native.Door1x1Object, group, center - tangent * width * .35f / native.Scale,
-                normal, new Vector3(width / .50f, 1, 1));
+            var (from, to) = door.PortalStroke();
+            // The native door model has two marks. Use a single native wall strip across the aperture.
+            var glyph = WallStrip(group, from, to);
+            glyph.name = "Portal opening";
             var color = new MaterialPropertyBlock();
-            foreach (var mesh in model.GetComponentsInChildren<Renderer>(true))
-            {
-                mesh.GetPropertyBlock(color);
-                color.SetColor(ColorProperty, door.Color);
-                color.SetColor(EmissionColorProperty, door.Color);
+            color.SetColor(ColorProperty, door.Color);
+            color.SetColor(EmissionColorProperty, door.Color);
+            foreach (var mesh in glyph.GetComponentsInChildren<Renderer>(true))
                 mesh.SetPropertyBlock(color);
-                color.Clear();
-            }
+        }
+
+        private GameObject WallStrip(Transform group, Vector2 from, Vector2 to)
+        {
+            Vector2 along = to - from;
+            Vector2 normal = new Vector2(-along.y, along.x).normalized;
+            // The native wall mesh runs from the prefab origin to .50 along local X.
+            return Glyph(native.Wall1x1Object, group, from, normal,
+                new Vector3(along.magnitude * native.Scale / .50f, 1f, 1f));
         }
 
         private GameObject Glyph(GameObject prefab, Transform group, Vector2 point, Vector2 along, Vector3 scale)
@@ -395,6 +406,16 @@ namespace SpaceJourney
         [HarmonyPatch(typeof(Map), nameof(Map.AddFloor))]
         private static class NativeFloorPatch
         {
+            private static bool Prefix(Map __instance, DirtFinderMapFloor __0)
+            {
+                var map = For(__instance);
+                if (!map || map.setupFailed || !__0 || !__0.transform.IsChildOf(map.raid.transform)) return true;
+                // ExtractionPoint.Show/Hide uses these native glyphs for the three quota states.
+                return __0.Type is DirtFinderMapFloor.FloorType.Truck_Floor or DirtFinderMapFloor.FloorType.Truck_Wall or
+                    DirtFinderMapFloor.FloorType.Used_Floor or DirtFinderMapFloor.FloorType.Used_Wall or
+                    DirtFinderMapFloor.FloorType.Inactive_Floor or DirtFinderMapFloor.FloorType.Inactive_Wall;
+            }
+
             private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code) => MapRoomGeometry(code);
 
             private static void Postfix(Map __instance, DirtFinderMapFloor __0)
@@ -414,7 +435,11 @@ namespace SpaceJourney
         [HarmonyPatch(typeof(Map), nameof(Map.AddWall))]
         private static class NativeWallPatch
         {
-            private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code) => MapRoomGeometry(code);
+            private static bool Prefix(Map __instance, DirtFinderMapWall __0)
+            {
+                var map = For(__instance);
+                return !map || map.setupFailed || !__0 || !__0.transform.IsChildOf(map.raid.transform);
+            }
         }
 
         private static IEnumerable<CodeInstruction> MapRoomGeometry(IEnumerable<CodeInstruction> instructions)

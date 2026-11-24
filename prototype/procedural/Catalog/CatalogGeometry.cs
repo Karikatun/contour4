@@ -18,6 +18,7 @@ namespace Contour4.Procedural.Catalog
         public Vector3[] Vertices { get; }
         public int[] Faces { get; }
         public DressingSurface? Surface { get; }
+        public bool Convex { get; }
         // Counterclockwise as seen from outside in the source coordinate system.
         private static readonly int[] SpanTriangles = {
             0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7,
@@ -25,13 +26,15 @@ namespace Contour4.Procedural.Catalog
             2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7,
         };
 
-        private Block(string id, BlockRole role, Vector3[] vertices, int[] faces, DressingSurface? surface = null)
+        private Block(string id, BlockRole role, Vector3[] vertices, int[] faces, DressingSurface? surface = null,
+            bool convex = true)
         {
             Id = id;
             Role = role;
             Vertices = vertices;
             Faces = faces;
             Surface = surface;
+            Convex = convex;
         }
 
         // For curved decks, an end cross section can be at a different tangent and roll.
@@ -39,6 +42,9 @@ namespace Contour4.Procedural.Catalog
             float low, float high, float left, float right) =>
             new Block(id, role, Ring(start, low, high, left, right).Concat(Ring(end, low, high, left, right)).ToArray(),
                 SpanTriangles);
+
+        internal static Block FromMesh(string id, BlockRole role, Vector3[] vertices, int[] triangles) =>
+            new Block(id, role, vertices, triangles, convex: false);
 
         public static Block FromPrism(string id, BlockRole role, Solid solid)
         {
@@ -59,7 +65,7 @@ namespace Contour4.Procedural.Catalog
         }
 
         public Block Reframe(string id, ModulePose placement) => new Block(id, Role,
-            Vertices.Select(v => placement.Point(v.X, v.Y, v.Z)).ToArray(), Faces, Surface);
+            Vertices.Select(v => placement.Point(v.X, v.Y, v.Z)).ToArray(), Faces, Surface, Convex);
 
         public static Block FromFixture(RoomDressing dressing, RoomDressing.Part part)
         {
@@ -181,6 +187,7 @@ namespace Contour4.Procedural.Catalog
         public List<Dock> Docks { get; } = new List<Dock>();
         public List<Block> Geometry { get; } = new List<Block>();
         public List<Block> Approaches { get; } = new List<Block>();
+        public Block LayoutReservation { get; internal set; }
         public List<Block> FallVolumes { get; } = new List<Block>();
         public List<RoomDressing> Dressing { get; } = new List<RoomDressing>();
         public List<HaulRoute> Routes { get; } = new List<HaulRoute>();

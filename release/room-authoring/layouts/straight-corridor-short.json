@@ -1,0 +1,71 @@
+{
+  "id": "straight-corridor-short",
+  "title": "Короткий прямой коридор",
+  "purpose": "Переход для тележки. У стены проходит линия питания соседних помещений.",
+  "items": [
+    {
+      "id": "Enamel wall cable raceway",
+      "kind": "wall-panel",
+      "position": {
+        "x": 3.75,
+        "y": 2.95,
+        "z": 2.455
+      },
+      "size": {
+        "x": 4.8,
+        "y": 0.26,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Branch conduit",
+      "kind": "pipe",
+      "position": {
+        "x": 3.25,
+        "y": 2.21,
+        "z": 2.425
+      },
+      "size": {
+        "x": 0.085,
+        "y": 1.26,
+        "z": 0.085
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Removable service cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": 3.25,
+        "y": 1.51,
+        "z": 2.435
+      },
+      "size": {
+        "x": 0.64,
+        "y": 0.48,
+        "z": 0.12
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Service band south",
+      "kind": "marking",
+      "position": {
+        "x": 3.75,
+        "y": 0.005,
+        "z": -2.31
+      },
+      "size": {
+        "x": 5.8,
+        "y": 0.01,
+        "z": 0.12
+      },
+      "material": "bakelite",
+      "solid": false
+    }
+  ]
+}

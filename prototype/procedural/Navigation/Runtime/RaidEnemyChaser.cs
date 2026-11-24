@@ -24,6 +24,7 @@ namespace Contour4.Procedural.Navigation
         private float returnsIn;
         private RaidNavigation.Edge passage;
         private Vector3 passageLanding;
+        private int deckSample;
 
         public RaidFloor Floor { get; private set; }
         public RaidTarget Target { get; private set; }
@@ -37,7 +38,7 @@ namespace Contour4.Procedural.Navigation
             Func<bool> authority, Func<Pose, bool> poseWriter = null)
         {
             if (raid || !isActiveAndEnabled || !navigation || authority == null ||
-                !navigation.Supports(enemy) || !navigation.TryStand(spawnFloor, transform.position, out _) ||
+                !navigation.Supports(enemy) || !navigation.TryStand(spawnFloor, transform.position, enemy, out _) ||
                 Vector3.Dot(transform.up, spawnFloor.Up) < .999f ||
                 !navigation.BodyClear(transform.position, spawnFloor.Up, enemy))
                 throw new InvalidOperationException("The enemy needs a supported unoccupied spawn, matching up and authority.");
@@ -204,7 +205,7 @@ namespace Contour4.Procedural.Navigation
                 }
 
                 var next = Vector3.MoveTowards(position, corner, Mathf.Min(distance, .125f));
-                if (!raid.TryStand(Floor, next, out var supported) ||
+                if (!raid.TryStand(Floor, next, profile, out var supported) ||
                     !raid.BodyTravel(position, supported, Floor.Up, profile) ||
                     !TryWrite(new Pose(supported, Heading(supported - position, Floor.Up))))
                 {
@@ -239,10 +240,11 @@ namespace Contour4.Procedural.Navigation
                 !raid.BodyTravel(transform.position, approach, Floor.Up, profile))
                 return;
 
-            if (edge.Kind == RaidRouteKind.PhysicalPassage)
+            if (edge.Kind is RaidRouteKind.PhysicalPassage or RaidRouteKind.OrientedDeck)
             {
                 passage = edge;
                 passageLanding = landing;
+                deckSample = 0;
                 return;
             }
             if (!TryWrite(new Pose(landing, edge.Rotation * transform.rotation)))
@@ -257,6 +259,11 @@ namespace Contour4.Procedural.Navigation
 
         private void FollowPassage(float distance)
         {
+            if (passage.Deck is { } deck)
+            {
+                FollowDeck(deck, distance);
+                return;
+            }
             var position = transform.position;
             var next = Vector3.MoveTowards(position, passageLanding, Mathf.Min(distance, .125f));
             if (!raid.PhysicalIsClear(passage, position, next, profile) ||
@@ -264,6 +271,27 @@ namespace Contour4.Procedural.Navigation
                 return;
             if (Vector3.Distance(transform.position, passageLanding) > .008f)
                 return;
+            Floor = passage.To;
+            passage = null;
+            thinkIn = 0;
+        }
+
+        private void FollowDeck(RaidDeckPassage deck, float distance)
+        {
+            while (deckSample < deck.Count && distance > MotionEpsilon)
+            {
+                var target = deck.World(deckSample);
+                var position = transform.position;
+                float remaining = Vector3.Distance(position, target.position);
+                float step = Mathf.Min(distance, .125f, remaining);
+                float amount = remaining > MotionEpsilon ? step / remaining : 1f;
+                var next = new Pose(Vector3.Lerp(position, target.position, amount),
+                    Quaternion.Slerp(transform.rotation, target.rotation, amount));
+                if (!raid.DeckIsClear(deck, next, profile) || !TryWrite(next)) return;
+                distance -= step;
+                if (amount >= 1) deckSample++;
+            }
+            if (deckSample != deck.Count) return;
             Floor = passage.To;
             passage = null;
             thinkIn = 0;

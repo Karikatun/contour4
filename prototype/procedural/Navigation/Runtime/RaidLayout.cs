@@ -16,10 +16,12 @@ namespace Contour4.Procedural.Navigation
         public Bounds LocalBakeBounds { get; }
         internal Collider[] Geometry { get; }
         internal HashSet<Collider> Support { get; }
+        internal bool Prepared { get; }
         public Vector3 Up => Frame.rotation * Vector3.up;
 
         public RaidFloor(string roomId, string floorId, string islandId, Pose frame,
-            Bounds localBakeBounds, IEnumerable<Collider> geometry, IEnumerable<Collider> support, Transform liveFrame = null)
+            Bounds localBakeBounds, IEnumerable<Collider> geometry, IEnumerable<Collider> support, Transform liveFrame = null,
+            bool prepared = false)
         {
             if (string.IsNullOrWhiteSpace(roomId) || string.IsNullOrWhiteSpace(floorId) ||
                 string.IsNullOrWhiteSpace(islandId) || !RaidGeometry.Valid(frame) ||
@@ -32,6 +34,7 @@ namespace Contour4.Procedural.Navigation
             IslandId = islandId;
             placed = frame;
             live = liveFrame;
+            Prepared = prepared;
             LocalBakeBounds = localBakeBounds;
             Geometry = new List<Collider>(geometry).ToArray();
             Support = new HashSet<Collider>(support);
@@ -59,15 +62,16 @@ namespace Contour4.Procedural.Navigation
         public Vector2 Size { get; }
         public Vector3 Approach => live ? live.TransformPoint(localApproach) : localApproach;
         internal Vector3 Normal => Frame.rotation * Vector3.forward;
+        internal float WalkingInset { get; }
 
         // Frame.forward points out of the room. The approach is a feet position inside the room.
         // Vision-only apertures have no need for a walkable approach.
         public RaidAperture(RaidFloor floor, RaidPortalKind kind, Pose frame, Vector2 size, Vector3 approach,
-            Transform liveFrame = null)
+            Transform liveFrame = null, float walkingInset = 0)
         {
             if (floor == null || !Enum.IsDefined(typeof(RaidPortalKind), kind) || !RaidGeometry.Valid(frame) ||
                 !RaidGeometry.Finite(new Vector3(size.x, size.y, 0)) || size.x <= 0 || size.y <= 0 ||
-                !RaidGeometry.Finite(approach))
+                !RaidGeometry.Finite(approach) || !float.IsFinite(walkingInset) || walkingInset is < 0 or >= 1)
                 throw new ArgumentException("A raid aperture needs a floor, rigid frame and positive dimensions.");
             if (kind == RaidPortalKind.Door &&
                 Vector3.Dot(frame.rotation * Vector3.up, floor.Up) < .999f)
@@ -77,6 +81,7 @@ namespace Contour4.Procedural.Navigation
             Kind = kind;
             placed = frame;
             live = liveFrame;
+            WalkingInset = walkingInset;
             Size = size;
             localApproach = live ? live.InverseTransformPoint(approach) : approach;
         }
@@ -123,11 +128,16 @@ namespace Contour4.Procedural.Navigation
 
         // A directed physical threshold. The reserved segment connects nearby pads on the two floors.
         public RaidWalkPassage(RaidFloor from, RaidFloor to, Vector3 approach, Vector3 landing)
+            : this(from, to, approach, landing, 2f)
+        {
+        }
+
+        internal RaidWalkPassage(RaidFloor from, RaidFloor to, Vector3 approach, Vector3 landing, float maximumLength)
         {
             float length = Vector3.Distance(approach, landing);
             if (from == null || to == null || ReferenceEquals(from, to) ||
                 Vector3.Dot(from.Up, to.Up) < .999f ||
-                !RaidGeometry.Finite(approach) || !RaidGeometry.Finite(landing) || length < .05f || length > 2)
+                !RaidGeometry.Finite(approach) || !RaidGeometry.Finite(landing) || length < .05f || length > maximumLength)
                 throw new ArgumentException("Physical walking passages need adjoining floors in the same gravity frame.");
             From = from;
             To = to;
@@ -141,6 +151,7 @@ namespace Contour4.Procedural.Navigation
         internal RaidFloor[] Floors { get; }
         internal RaidPortal[] Portals { get; }
         internal RaidWalkPassage[] Passages { get; }
+        internal RaidDeckPassage[] Decks { get; }
         public LayerMask SolidMask { get; }
         public Vector3 QueryOrigin { get; }
         public float BakeRadius { get; }
@@ -150,6 +161,13 @@ namespace Contour4.Procedural.Navigation
         public RaidLayout(IEnumerable<RaidFloor> floors, IEnumerable<RaidPortal> portals,
             IEnumerable<RaidWalkPassage> passages, LayerMask solidMask, Vector3 queryOrigin,
             float bakeRadius, float bakeHeight)
+            : this(floors, portals, passages, solidMask, queryOrigin, bakeRadius, bakeHeight, Array.Empty<RaidDeckPassage>())
+        {
+        }
+
+        internal RaidLayout(IEnumerable<RaidFloor> floors, IEnumerable<RaidPortal> portals,
+            IEnumerable<RaidWalkPassage> passages, LayerMask solidMask, Vector3 queryOrigin,
+            float bakeRadius, float bakeHeight, IEnumerable<RaidDeckPassage> decks)
         {
             if (solidMask.value == 0 || !RaidGeometry.Finite(queryOrigin) ||
                 !RaidGeometry.Finite(new Vector3(bakeRadius, bakeHeight, 0)) ||
@@ -158,6 +176,7 @@ namespace Contour4.Procedural.Navigation
             Floors = new List<RaidFloor>(floors).ToArray();
             Portals = new List<RaidPortal>(portals).ToArray();
             Passages = new List<RaidWalkPassage>(passages).ToArray();
+            Decks = new List<RaidDeckPassage>(decks).ToArray();
             if (Floors.Length == 0)
                 throw new ArgumentException("A raid needs at least one placed navigation floor.");
             SolidMask = solidMask;
@@ -165,6 +184,27 @@ namespace Contour4.Procedural.Navigation
             BakeRadius = bakeRadius;
             BakeHeight = bakeHeight;
         }
+    }
+
+    // Live frames keep the checked route and its local up aligned when the world rolls.
+    internal sealed class RaidDeckPassage
+    {
+        internal readonly RaidFloor From, To;
+        internal readonly HashSet<Collider> Supports;
+        private readonly Transform root;
+        private readonly Pose[] poses;
+        internal int Count => poses.Length;
+
+        internal RaidDeckPassage(RaidFloor from, RaidFloor to, Transform root, Pose[] poses, HashSet<Collider> supports)
+        {
+            From = from;
+            To = to;
+            this.root = root;
+            this.poses = poses;
+            Supports = supports;
+        }
+
+        internal Pose World(int index) => new(root.TransformPoint(poses[index].position), root.rotation * poses[index].rotation);
     }
 
     public sealed class RaidEnemyProfile
@@ -206,5 +246,28 @@ namespace Contour4.Procedural.Navigation
         internal static bool Finite(Vector3 v) => float.IsFinite(v.x) && float.IsFinite(v.y) && float.IsFinite(v.z);
         internal static bool Valid(Pose pose) => Finite(pose.position) &&
             Mathf.Abs(Quaternion.Dot(pose.rotation, pose.rotation) - 1) < .001f;
+
+        internal static bool Supports(PhysicsScene scene, RaycastHit nearest, Vector3 origin, Vector3 up, float normalLimit,
+            int mask, HashSet<Collider> floor, HashSet<Collider> neighbor, RaycastHit[] contacts)
+        {
+            if (Vector3.Dot(nearest.normal, up) < normalLimit) return false;
+            if (Matches(nearest.collider)) return true;
+
+            // The authored shaft sill and upper deck have coincident top faces.
+            // PhysX may report the sill first. Require the declared deck at the same height.
+            const float contactTolerance = .006f;
+            int count = scene.Raycast(origin, -up, contacts, nearest.distance + contactTolerance, mask,
+                QueryTriggerInteraction.Ignore);
+            if (count == contacts.Length) return false;
+            for (int i = 0; i < count; i++)
+            {
+                var hit = contacts[i];
+                if (Matches(hit.collider) && Mathf.Abs(hit.distance - nearest.distance) <= contactTolerance &&
+                    Vector3.Dot(hit.normal, up) >= normalLimit) return true;
+            }
+            return false;
+
+            bool Matches(Collider collider) => floor.Contains(collider) || (neighbor != null && neighbor.Contains(collider));
+        }
     }
 }

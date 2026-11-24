@@ -12,8 +12,9 @@ namespace Contour4.NativeRaid.Runtime
         internal const string InstrumentService = "instrument-service";
         internal const string SampleReceiving = "sample-receiving";
         internal const string ResearchDoor = "research-door";
+        internal const string CartParking = "protected-cart-parking";
 
-        internal static GrayModule Create(string purpose, bool portal)
+        internal static GrayModule Create(string purpose, bool portal, bool portalAnnex = false)
         {
             float length = purpose == Dispatch ? 11f : 9.25f;
             const float halfWidth = 4.375f;
@@ -22,7 +23,8 @@ namespace Contour4.NativeRaid.Runtime
             var room = new GrayBuilder(purpose, halfWidth * 2f, length);
             room.Floor("ground", 0, length, 0, -halfWidth, halfWidth);
             room.Roof(0, length, Height, -halfWidth, halfWidth);
-            var west = room.Door("west", "ground", Pose(0, 0, 0, -Vector3.UnitX), Cargo.Cart);
+            var west = room.Door("west", "ground", Pose(0, 0, 0, -Vector3.UnitX),
+                portalAnnex ? Cargo.Hand : Cargo.Cart, portalAnnex ? DockUse.DoorPortal : DockUse.Physical);
             var east = room.Door("east", "ground", Pose(length, 0, 0), Cargo.Cart);
             var spur = room.Door("spur", "ground", Pose(center, 0, halfWidth, Vector3.UnitZ), Cargo.Cart);
             var supply = purpose == InstrumentService
@@ -73,6 +75,14 @@ namespace Contour4.NativeRaid.Runtime
                 room.Route("cross-service-aisles", supply.Id, spur.Id, Cargo.Cart,
                     Pose(center, 0, -halfWidth, Vector3.UnitZ), Pose(center, 0, halfWidth, Vector3.UnitZ));
 
+            if (purpose == SampleReceiving)
+            {
+                var receivingFixtures = SampleReceivingDressing.Create();
+                if (!portal) AddCartParking(room, receivingFixtures, 2.85f);
+                room.AddDressing(receivingFixtures);
+                return room.Module;
+            }
+
             const float workWall = -halfWidth + Skirt;
             const float farWall = halfWidth - Skirt;
             var fixtures = new RoomDressing(purpose, Level);
@@ -84,6 +94,7 @@ namespace Contour4.NativeRaid.Runtime
                 fixtures.LootBlock("outbound-manifest-bin", 8.15f, 0, -3.05f, -1, 1.90f, 1.40f, 1.18f);
                 fixtures.PartsRack("tag-and-seal-rack", 8.92f, 0, farWall, 1, 1.48f);
                 fixtures.TaskPendant("dispatch-task-light", 4.16f, Height, -2.50f, .52f, LampDuty.Work);
+                if (!portal) AddCartParking(room, fixtures, 3.25f);
             }
             else if (purpose == InstrumentService)
             {
@@ -95,18 +106,18 @@ namespace Contour4.NativeRaid.Runtime
                 fixtures.OverheadFeed("probe-rig-supply", 7.84f, 1.28f, 3.80f, Height, farWall, 1);
                 fixtures.WallLamp("probe-rig-worklight", 7.58f, 3.36f, farWall, 1, LampDuty.Work);
             }
-            else
-            {
-                fixtures.Bench("sample-intake", 2.49f, 0, workWall, -1, 2.36f, FixedSeat.None, powered: true);
-                fixtures.Cabinet("incoming-samples", 5.18f, 0, workWall, -1, 1.72f, 1.05f, powered: true);
-                fixtures.LootBlock("sealed-transfer-locker", 7.53f, 0, -3.15f, -1, 1.74f, 1.35f, 1.45f);
-                fixtures.PartsRack("container-sorting-rack", 7.52f, 0, farWall, 1, 1.59f);
-                fixtures.TaskPendant("intake-task-light", 2.49f, Height, -2.78f, .53f, LampDuty.Work);
-            }
             fixtures.WallLamp("west-guidance", .94f, 2.44f, workWall, -1, LampDuty.Guidance, .28f);
             fixtures.AisleStrip("east-guidance", length - 1.1f, .39f, workWall, -1, -.60f);
             room.AddDressing(fixtures);
             return room.Module;
+        }
+
+        private static void AddCartParking(GrayBuilder room, RoomDressing fixtures, float screenEnd)
+        {
+            const float screenStart = .24f;
+            fixtures.Box("cart-parking-screen", (screenStart + screenEnd) / 2, Height / 2, 1.73f,
+                screenEnd - screenStart, Height, .15f);
+            room.Module.Landmarks.Add(CartParking, new Vector3(screenEnd - .85f, 0, 2.90f));
         }
     }
 }

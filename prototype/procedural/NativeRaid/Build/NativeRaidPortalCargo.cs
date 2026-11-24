@@ -110,6 +110,53 @@ internal sealed class NativeRaidPortalCargo
         return true;
     }
 
+    internal static bool TryPrepareHand(RaidAssembly raid, NativeRaidPortal portal, Rigidbody player, Vector3 previousFeet,
+        PhysGrabber grabber, bool rebase, out NativeRaidPortalCargo transfer, out Vector3 landing)
+    {
+        transfer = null;
+        landing = default;
+        var held = HeldObject(grabber);
+        if (!grabber.isLocal || !held || held.dead || !held.rb || held.rb.isKinematic || !held.rb.detectCollisions ||
+            held.GetComponentInChildren<PhysGrabCart>() || held.GetComponent<Joint>() || !grabber.physGrabPoint ||
+            !grabber.physGrabPointPuller || !grabber.physGrabPointPlane ||
+            !raid.TryPassPlayer(portal, player.position, out landing, previousFeet)) return false;
+        var body = held.rb;
+        Vector3 source = player.position;
+        Quaternion turn = portal.TravelRotation;
+        var pose = new Motion(source, landing, turn);
+        var hull = new Bounds();
+        var hand = Quaternion.LookRotation(portal.Door ? portal.Entrance.forward : portal.Entrance.up, portal.EntryFloor.Up);
+        bool first = true;
+        foreach (Collider collider in body.GetComponentsInChildren<Collider>())
+        {
+            if (!collider.enabled || collider.isTrigger || collider.attachedRigidbody != body) continue;
+            Bounds shape = collider.bounds;
+            Bounds mouth = InFrame(shape, portal.Entrance);
+            if (portal.Door ? !Fits(mouth, portal) :
+                Mathf.Abs(mouth.center.x) + mouth.extents.x > portal.HalfWidth - JambClearance ||
+                Mathf.Abs(mouth.center.y) + mouth.extents.y > portal.HalfHeight - JambClearance) return false;
+            Vector3 size = new Vector3(ExtentAlong(shape, hand * Vector3.right),
+                ExtentAlong(shape, hand * Vector3.up), ExtentAlong(shape, hand * Vector3.forward)) * 2f;
+            var near = new Bounds(Quaternion.Inverse(hand) * (shape.center - source), size);
+            if (first) { hull = near; first = false; }
+            else hull.Encapsulate(near);
+            var avatar = grabber.playerAvatar ? grabber.playerAvatar.transform : null;
+            foreach (Collider hit in Physics.OverlapBox(pose.Map(shape.center), shape.extents, turn,
+                Physics.AllLayers, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.attachedRigidbody == player || hit.attachedRigidbody == body ||
+                    (avatar && hit.transform.IsChildOf(avatar)) ||
+                    Physics.GetIgnoreLayerCollision(collider.gameObject.layer, hit.gameObject.layer) ||
+                    Physics.GetIgnoreCollision(collider, hit)) continue;
+                return false;
+            }
+        }
+        if (first || hull.size.x > .80f || hull.size.y > 1.88f || hull.size.z > .90f) return false;
+        var motion = rebase ? new Motion(source, source, Quaternion.identity) : pose;
+        transfer = new NativeRaidPortalCargo(null, grabber, new HashSet<Rigidbody> { body }, motion);
+        return true;
+    }
+
     private static void CaptureBasket(PhysGrabCart cart, Rigidbody cartBody, HashSet<Rigidbody> bodies)
     {
         // Physical basket membership uses the same overlap and support test as the ring.
@@ -186,12 +233,13 @@ internal sealed class NativeRaidPortalCargo
     internal void Apply(NativeRaidPortal portal)
     {
         foreach (BodyPose pose in poses) pose.Apply();
-        if (motion.Rotation != Quaternion.identity || motion.Source != motion.Destination)
+        if (cart && (motion.Rotation != Quaternion.identity || motion.Source != motion.Destination))
             NativeRaidGravity.TransformCartHistory(cart, motion.Map, motion.Rotation);
         grab.Apply();
         Physics.SyncTransforms();
-        Debug.Log($"[Contour4 Procedural] {portal.Id}: cart {CartBody(cart).GetInstanceID()} and " +
-            $"{Bodies.Count - 1} loose cargo bodies crossed with the native hold.");
+        if (cart)
+            Debug.Log($"[Contour4 Procedural] {portal.Id}: cart {CartBody(cart).GetInstanceID()} and " +
+                $"{Bodies.Count - 1} loose cargo bodies crossed with the native hold.");
     }
 
     private readonly struct ColliderHull

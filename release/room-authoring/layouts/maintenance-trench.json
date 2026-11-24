@@ -1,0 +1,120 @@
+{
+  "id": "maintenance-trench",
+  "title": "Служебная траншея",
+  "purpose": "На широкой стороне расположен пост обслуживания заслонки. У края траншеи оборудование закреплено на ограждении и стенах.",
+  "items": [
+    {
+      "id": "Shutter instrumentation wall trunk",
+      "kind": "wall-panel",
+      "position": {
+        "x": 10.6,
+        "y": 3.1,
+        "z": 6.69
+      },
+      "size": {
+        "x": 11.9,
+        "y": 0.28,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Shutter maintenance drop",
+      "kind": "pipe",
+      "position": {
+        "x": 15.6,
+        "y": 2.12,
+        "z": 6.67
+      },
+      "size": {
+        "x": 0.11,
+        "y": 1.65,
+        "z": 0.11
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Shutter inspection station",
+      "kind": "machine",
+      "position": {
+        "x": 15.6,
+        "y": 0.72,
+        "z": 6.45
+      },
+      "size": {
+        "x": 1.55,
+        "y": 1.44,
+        "z": 0.58
+      },
+      "material": "enamel",
+      "solid": true,
+      "face": "south"
+    },
+    {
+      "id": "Gate maintenance workbench",
+      "kind": "bench",
+      "position": {
+        "x": 9.65,
+        "y": 0.48,
+        "z": 6.4
+      },
+      "size": {
+        "x": 2.45,
+        "y": 0.96,
+        "z": 0.68
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Rail approach safety band",
+      "kind": "marking",
+      "position": {
+        "x": 8.75,
+        "y": 0.005,
+        "z": -2.31
+      },
+      "size": {
+        "x": 5.25,
+        "y": 0.01,
+        "z": 0.14
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Trench near-wall inspection box",
+      "kind": "wall-panel",
+      "position": {
+        "x": 4.35,
+        "y": 1.8,
+        "z": -6.69
+      },
+      "size": {
+        "x": 1.05,
+        "y": 0.55,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Far landing service plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": 15.45,
+        "y": 1.8,
+        "z": -6.69
+      },
+      "size": {
+        "x": 1,
+        "y": 0.53,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    }
+  ]
+}

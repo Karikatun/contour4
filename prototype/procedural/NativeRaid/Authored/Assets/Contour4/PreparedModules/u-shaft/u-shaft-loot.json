@@ -1,0 +1,798 @@
+{
+    "moduleId": "u-shaft",
+    "transit": "Both curved decks serve cargo transit. Loot is on the lower floor and fixed side arms.",
+    "sites": [
+        {
+            "id": "west-control-relay-cabinet-shelf-1",
+            "marker": "loot__west-control-relay-cabinet-shelf-1",
+            "floor": "west",
+            "support": "west-control-relay-cabinet-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Small",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "west-control-relay-cabinet",
+            "leaf": "west-control-relay-cabinet-door",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": -12.244499206542969,
+                "y": 12.385200500488282,
+                "z": 2.8610000610351564
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 12.85520076751709,
+                "z": 1.8910000324249268
+            }
+        },
+        {
+            "id": "west-control-relay-cabinet-shelf-2",
+            "marker": "loot__west-control-relay-cabinet-shelf-2",
+            "floor": "west",
+            "support": "west-control-relay-cabinet-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Small",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "west-control-relay-cabinet",
+            "leaf": "west-control-relay-cabinet-door",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": -11.644499778747559,
+                "y": 12.385200500488282,
+                "z": 2.8610000610351564
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 12.85520076751709,
+                "z": 1.8910000324249268
+            }
+        },
+        {
+            "id": "west-control-relay-spares-1-shelf-1",
+            "marker": "loot__west-control-relay-spares-1-shelf-1",
+            "floor": "west",
+            "support": "west-control-relay-spares-1-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "west-control-relay-spares-1",
+            "leaf": "west-control-relay-spares-1-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -12.244499206542969,
+                "y": 13.924999237060547,
+                "z": 3.064199924468994
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 14.394999504089356,
+                "z": 2.4842000007629396
+            }
+        },
+        {
+            "id": "west-control-relay-spares-1-shelf-2",
+            "marker": "loot__west-control-relay-spares-1-shelf-2",
+            "floor": "west",
+            "support": "west-control-relay-spares-1-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "west-control-relay-spares-1",
+            "leaf": "west-control-relay-spares-1-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -11.644499778747559,
+                "y": 13.924999237060547,
+                "z": 3.064199924468994
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 14.394999504089356,
+                "z": 2.4842000007629396
+            }
+        },
+        {
+            "id": "west-control-relay-spares-2-shelf-1",
+            "marker": "loot__west-control-relay-spares-2-shelf-1",
+            "floor": "west",
+            "support": "west-control-relay-spares-2-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "west-control-relay-spares-2",
+            "leaf": "west-control-relay-spares-2-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -12.244499206542969,
+                "y": 14.555000305175782,
+                "z": 3.064199924468994
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -12.999999046325684,
+                "y": 15.02500057220459,
+                "z": 2.4842000007629396
+            }
+        },
+        {
+            "id": "west-control-relay-spares-2-shelf-2",
+            "marker": "loot__west-control-relay-spares-2-shelf-2",
+            "floor": "west",
+            "support": "west-control-relay-spares-2-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "west-control-relay-spares-2",
+            "leaf": "west-control-relay-spares-2-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -11.644499778747559,
+                "y": 14.555000305175782,
+                "z": 3.064199924468994
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 15.02500057220459,
+                "z": 2.4842000007629396
+            }
+        },
+        {
+            "id": "west-control-relay-cabinet-body-top",
+            "marker": "loot__west-control-relay-cabinet-body-top",
+            "floor": "west",
+            "support": "west-control-relay-cabinet-body-top",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": -10.77199935913086,
+                "y": 12.149999618530274,
+                "z": 2.827399969100952
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 12.149999618530274,
+                "z": 2.4373998641967775
+            }
+        },
+        {
+            "id": "west-control-relay-spares-1-body-top",
+            "marker": "loot__west-control-relay-spares-1-body-top",
+            "floor": "west",
+            "support": "west-control-relay-spares-1-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -10.77199935913086,
+                "y": 13.924999237060547,
+                "z": 3.030600070953369
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 13.924999237060547,
+                "z": 2.4506001472473146
+            }
+        },
+        {
+            "id": "west-control-relay-spares-2-body-top",
+            "marker": "loot__west-control-relay-spares-2-body-top",
+            "floor": "west",
+            "support": "west-control-relay-spares-2-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -10.77199935913086,
+                "y": 14.555000305175782,
+                "z": 3.030600070953369
+            },
+            "up": {
+                "x": 1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -13.0,
+                "y": 14.555000305175782,
+                "z": 2.4506001472473146
+            }
+        },
+        {
+            "id": "east-control-relay-cabinet-shelf-1",
+            "marker": "loot__east-control-relay-cabinet-shelf-1",
+            "floor": "east",
+            "support": "east-control-relay-cabinet-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Small",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "east-control-relay-cabinet",
+            "leaf": "east-control-relay-cabinet-door",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 12.244499206542969,
+                "y": 12.385200500488282,
+                "z": -2.8610000610351564
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 12.85520076751709,
+                "z": -1.8909997940063477
+            }
+        },
+        {
+            "id": "east-control-relay-cabinet-shelf-2",
+            "marker": "loot__east-control-relay-cabinet-shelf-2",
+            "floor": "east",
+            "support": "east-control-relay-cabinet-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Small",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "east-control-relay-cabinet",
+            "leaf": "east-control-relay-cabinet-door",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 11.644499778747559,
+                "y": 12.385200500488282,
+                "z": -2.8610000610351564
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 12.85520076751709,
+                "z": -1.8909997940063477
+            }
+        },
+        {
+            "id": "east-control-relay-spares-1-shelf-1",
+            "marker": "loot__east-control-relay-spares-1-shelf-1",
+            "floor": "east",
+            "support": "east-control-relay-spares-1-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "east-control-relay-spares-1",
+            "leaf": "east-control-relay-spares-1-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 12.244499206542969,
+                "y": 13.924999237060547,
+                "z": -3.064199924468994
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 14.394999504089356,
+                "z": -2.4841997623443605
+            }
+        },
+        {
+            "id": "east-control-relay-spares-1-shelf-2",
+            "marker": "loot__east-control-relay-spares-1-shelf-2",
+            "floor": "east",
+            "support": "east-control-relay-spares-1-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "east-control-relay-spares-1",
+            "leaf": "east-control-relay-spares-1-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 11.644499778747559,
+                "y": 13.924999237060547,
+                "z": -3.064199924468994
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 14.394999504089356,
+                "z": -2.4841997623443605
+            }
+        },
+        {
+            "id": "east-control-relay-spares-2-shelf-1",
+            "marker": "loot__east-control-relay-spares-2-shelf-1",
+            "floor": "east",
+            "support": "east-control-relay-spares-2-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "east-control-relay-spares-2",
+            "leaf": "east-control-relay-spares-2-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 12.244499206542969,
+                "y": 14.555000305175782,
+                "z": -3.064199924468994
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 12.999999046325684,
+                "y": 15.02500057220459,
+                "z": -2.4841997623443605
+            }
+        },
+        {
+            "id": "east-control-relay-spares-2-shelf-2",
+            "marker": "loot__east-control-relay-spares-2-shelf-2",
+            "floor": "east",
+            "support": "east-control-relay-spares-2-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "east-control-relay-spares-2",
+            "leaf": "east-control-relay-spares-2-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 11.644499778747559,
+                "y": 14.555000305175782,
+                "z": -3.064199924468994
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 15.02500057220459,
+                "z": -2.4841997623443605
+            }
+        },
+        {
+            "id": "east-control-relay-cabinet-body-top",
+            "marker": "loot__east-control-relay-cabinet-body-top",
+            "floor": "east",
+            "support": "east-control-relay-cabinet-body-top",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 10.77199935913086,
+                "y": 12.149999618530274,
+                "z": -2.827399969100952
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 12.149999618530274,
+                "z": -2.4373998641967775
+            }
+        },
+        {
+            "id": "east-control-relay-spares-1-body-top",
+            "marker": "loot__east-control-relay-spares-1-body-top",
+            "floor": "east",
+            "support": "east-control-relay-spares-1-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 10.77199935913086,
+                "y": 13.924999237060547,
+                "z": -3.030600070953369
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 13.924999237060547,
+                "z": -2.4505999088287355
+            }
+        },
+        {
+            "id": "east-control-relay-spares-2-body-top",
+            "marker": "loot__east-control-relay-spares-2-body-top",
+            "floor": "east",
+            "support": "east-control-relay-spares-2-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 10.77199935913086,
+                "y": 14.555000305175782,
+                "z": -3.030600070953369
+            },
+            "up": {
+                "x": -1.0000001192092896,
+                "y": -1.1920928955078126e-7,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.000000238418579
+            },
+            "retrievalFeet": {
+                "x": 13.0,
+                "y": 14.555000305175782,
+                "z": -2.4505999088287355
+            }
+        },
+        {
+            "id": "field-floor-comparison-console-top",
+            "marker": "loot__field-floor-comparison-console-top",
+            "floor": "lower",
+            "support": "field-floor-comparison-console-top",
+            "surface": "Table",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 1.5909000635147095,
+                "y": 1.0080000162124634,
+                "z": 2.4421000480651857
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 1.3609000444412232,
+                "y": 0.0,
+                "z": 2.0520999431610109
+            }
+        },
+        {
+            "id": "field-floor-lower-feed-cabinet-shelf-1",
+            "marker": "loot__field-floor-lower-feed-cabinet-shelf-1",
+            "floor": "lower",
+            "support": "field-floor-lower-feed-cabinet-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "field-floor-lower-feed-cabinet",
+            "leaf": "field-floor-lower-feed-cabinet-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -2.0887999534606935,
+                "y": 0.7555000185966492,
+                "z": 2.7443997859954836
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -1.6187999248504639,
+                "y": 0.0,
+                "z": 1.964399814605713
+            }
+        },
+        {
+            "id": "field-floor-lower-feed-cabinet-shelf-2",
+            "marker": "loot__field-floor-lower-feed-cabinet-shelf-2",
+            "floor": "lower",
+            "support": "field-floor-lower-feed-cabinet-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "field-floor-lower-feed-cabinet",
+            "leaf": "field-floor-lower-feed-cabinet-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": -2.0887999534606935,
+                "y": 1.3555001020431519,
+                "z": 2.7443997859954836
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -1.6187999248504639,
+                "y": 0.0,
+                "z": 1.964399814605713
+            }
+        },
+        {
+            "id": "field-floor-lower-feed-cabinet-body-top",
+            "marker": "loot__field-floor-lower-feed-cabinet-body-top",
+            "floor": "lower",
+            "support": "field-floor-lower-feed-cabinet-body-top",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": -2.450000047683716,
+                "y": 2.2279999256134035,
+                "z": 2.6557998657226564
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": -2.450000047683716,
+                "y": 0.0,
+                "z": 2.0757999420166017
+            }
+        }
+    ]
+}

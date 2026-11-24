@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Contour4.NativeRaid.Runtime;
 using Contour4.Procedural;
+using Contour4.Procedural.Catalog;
 using HarmonyLib;
 using UnityEngine;
 
@@ -21,6 +22,7 @@ internal static class NativeRaidLoot
     private static readonly AccessTools.FieldRef<ValuableDirector, float> SpawnValue =
         AccessTools.FieldRefAccess<ValuableDirector, float>("totalCurrentValue");
     private static readonly Dictionary<ValuableDirector, RaidLootBudget.Allocation> Populating = new();
+    private static readonly Dictionary<ValuableDirector, (ValuableVolume Volume, int[] Limits, int[] Original)> PendingFloor = new();
 
     internal static Dictionary<ValuableVolume, RaidLootSlot> Install(RaidAssembly raid)
     {
@@ -80,9 +82,17 @@ internal static class NativeRaidLoot
         }
         finally
         {
+            RestoreFloorLimits(director);
             Populating.Remove(director);
             (routine as IDisposable)?.Dispose();
         }
+    }
+
+    private static void RestoreFloorLimits(ValuableDirector director)
+    {
+        if (!PendingFloor.TryGetValue(director, out var floor)) return;
+        Array.Copy(floor.Original, floor.Limits, floor.Limits.Length);
+        PendingFloor.Remove(director);
     }
 
     private static T ReadState<T>(Type iterator, IEnumerator routine, string name)
@@ -118,12 +128,15 @@ internal static class NativeRaidLoot
             {
                 all.Add(volume);
                 bool authored = module.Loot.TryGetValue(volume, out var slot);
+                bool sphereShell = authored && SphericalChamber.IsVariant(slot.Room.Plan.Module.Id) &&
+                    slot.Support.name == SphericalChamber.Shell;
                 candidates.Add(new RaidLootBudget.Candidate(type, authored ? slot.Room.Plan.Index : -1,
-                    authored ? slot.Kind : LootSurfaceKind.Floor));
+                    authored ? slot.Kind : LootSurfaceKind.Floor, sphereShell));
             }
         }
+        bool preparedCatalog = module.Loot.Values.Any(slot => slot.FloorId != null);
         var plan = RaidLootBudget.Select(candidates, maximums, MaximumCount(director),
-            Mathf.RoundToInt(MaximumValue(director) * 1000), averageDollars, module.LootSeed);
+            Mathf.RoundToInt(MaximumValue(director) * 1000), averageDollars, module.LootSeed, preparedCatalog);
         var chosen = plan.Picks.Select(index => all[index]).ToLookup(volume => (int)volume.VolumeType);
         for (int type = 0; type < volumes.Length; type++)
         {
@@ -138,6 +151,16 @@ internal static class NativeRaidLoot
         MaximumCount(director) = plan.Count;
         MaximumValue(director) = plan.Dollars / 1000.0f;
         Populating.Add(director, plan);
+        var firstFloor = plan.Picks.Select(index => all[index])
+            .FirstOrDefault(volume => module.Loot.TryGetValue(volume, out var slot) && slot.Kind == LootSurfaceKind.Floor);
+        if (firstFloor)
+        {
+            var originalLimits = (int[])maximums.Clone();
+            int floorCategory = (int)firstFloor.VolumeType;
+            for (int type = 0; type < maximums.Length; type++)
+                if (type != floorCategory) maximums[type] = 0;
+            PendingFloor.Add(director, (firstFloor, maximums, originalLimits));
+        }
         Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, candidates={all.Count}, allocated={plan.Count}, " +
             $"capacity by size={string.Join("/", maximums)}, target=${plan.Dollars}.");
     }
@@ -145,13 +168,15 @@ internal static class NativeRaidLoot
     [HarmonyPatch(typeof(ValuableDirector), "SpawnValuable")]
     private static class SpawnValuablePatch
     {
-        private static void Postfix(ValuableDirector __instance, ValuableObject __result)
+        private static void Postfix(ValuableDirector __instance, ValuableVolume __1, ValuableObject __result)
         {
+            // Stock advances the volume index even when the spawn returns null.
+            if (PendingFloor.TryGetValue(__instance, out var floor) && floor.Volume == __1)
+                RestoreFloorLimits(__instance);
             if (!__result || !Populating.TryGetValue(__instance, out var plan))
                 return;
+            NativeRaidGravity.TrackRibbonSpawn(__1, __result);
             ref int maximum = ref MaximumCount(__instance);
-            // The stock method normally truncates the amount on the first cash crossing.
-            // Finish this protected room allocation so a high-value roll cannot empty the next rooms.
             maximum = plan.ContinueUntil(SpawnCount(__instance), maximum);
         }
     }

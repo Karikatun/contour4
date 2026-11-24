@@ -1,0 +1,78 @@
+{
+    "moduleId": "junction-corridor",
+    "transit": "",
+    "sites": [
+        {
+            "id": "south-wall-spares",
+            "marker": "loot__south-wall-spares",
+            "floor": "ground",
+            "support": "main-floor",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 7.550000190734863,
+                "y": 0.00800000037997961,
+                "z": -2.7100000381469728
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 7.550000190734863,
+                "y": 0.0,
+                "z": -2.320000171661377
+            }
+        },
+        {
+            "id": "branch-wall-spares",
+            "marker": "loot__branch-wall-spares",
+            "floor": "ground",
+            "support": "spur-floor",
+            "surface": "Floor",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 4.75,
+                "y": 0.00800000037997961,
+                "z": 6.295000076293945
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 4.75,
+                "y": 0.0,
+                "z": 5.90500020980835
+            }
+        }
+    ]
+}

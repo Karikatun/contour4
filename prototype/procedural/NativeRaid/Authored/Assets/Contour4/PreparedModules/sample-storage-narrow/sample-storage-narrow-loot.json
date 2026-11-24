@@ -1,0 +1,942 @@
+{
+    "moduleId": "sample-storage-narrow",
+    "transit": "",
+    "sites": [
+        {
+            "id": "freight-south-west",
+            "marker": "loot__freight-south-west",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "VeryTall",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 1.25,
+                "y": 3.5,
+                "z": 1.25
+            },
+            "pivot": {
+                "x": 1.2999999523162842,
+                "y": 0.00800000037997961,
+                "z": -5.894999980926514
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 1.2999999523162842,
+                "y": 0.0,
+                "z": -5.505000114440918
+            }
+        },
+        {
+            "id": "freight-south-east",
+            "marker": "loot__freight-south-east",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Big",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 1.25,
+                "y": 1.5,
+                "z": 1.25
+            },
+            "pivot": {
+                "x": 13.779999732971192,
+                "y": 0.00800000037997961,
+                "z": -3.494999885559082
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 13.779999732971192,
+                "y": 0.0,
+                "z": -3.1050000190734865
+            }
+        },
+        {
+            "id": "freight-intake-wide",
+            "marker": "loot__freight-intake-wide",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Wide",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 3.0,
+                "y": 2.4000000953674318,
+                "z": 1.2000000476837159
+            },
+            "pivot": {
+                "x": 1.75,
+                "y": 0.00800000037997961,
+                "z": -3.9000000953674318
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 1.75,
+                "y": 0.0,
+                "z": -3.509999990463257
+            }
+        },
+        {
+            "id": "freight-intake-tall",
+            "marker": "loot__freight-intake-tall",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Tall",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 2.4000000953674318,
+                "y": 3.0,
+                "z": 1.2000000476837159
+            },
+            "pivot": {
+                "x": 1.5,
+                "y": 0.00800000037997961,
+                "z": 3.1500000953674318
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 1.5,
+                "y": 0.0,
+                "z": 2.759999990463257
+            }
+        },
+        {
+            "id": "freight-intake-very-tall",
+            "marker": "loot__freight-intake-very-tall",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "VeryTall",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 1.25,
+                "y": 3.5,
+                "z": 1.25
+            },
+            "pivot": {
+                "x": 1.0,
+                "y": 0.00800000037997961,
+                "z": 5.125
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 1.0,
+                "y": 0.0,
+                "z": 4.735000133514404
+            }
+        },
+        {
+            "id": "freight-archive-wall",
+            "marker": "loot__freight-archive-wall",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Big",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 1.25,
+                "y": 1.5,
+                "z": 1.25
+            },
+            "pivot": {
+                "x": 2.75,
+                "y": 0.00800000037997961,
+                "z": -5.875
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 2.75,
+                "y": 0.0,
+                "z": -5.485000133514404
+            }
+        },
+        {
+            "id": "freight-rack-approach",
+            "marker": "loot__freight-rack-approach",
+            "floor": "ground",
+            "support": "ground",
+            "surface": "Floor",
+            "capacity": "Big",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 1.25,
+                "y": 1.5,
+                "z": 1.25
+            },
+            "pivot": {
+                "x": 4.25,
+                "y": 0.00800000037997961,
+                "z": -0.625
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 4.25,
+                "y": 0.0,
+                "z": -0.23500001430511475
+            }
+        },
+        {
+            "id": "samples-intake-inventory-top-1",
+            "marker": "loot__samples-intake-inventory-top-1",
+            "floor": "ground",
+            "support": "samples-intake-inventory-top",
+            "surface": "Table",
+            "capacity": "Medium",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.824999988079071,
+                "y": 1.0,
+                "z": 0.824999988079071
+            },
+            "pivot": {
+                "x": 3.132499933242798,
+                "y": 1.0080000162124634,
+                "z": 6.1921000480651859
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 3.132499933242798,
+                "y": 0.0,
+                "z": 5.80210018157959
+            }
+        },
+        {
+            "id": "samples-intake-inventory-top-2",
+            "marker": "loot__samples-intake-inventory-top-2",
+            "floor": "ground",
+            "support": "samples-intake-inventory-top",
+            "surface": "Table",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 4.367499828338623,
+                "y": 1.0080000162124634,
+                "z": 6.318599700927734
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 4.367499828338623,
+                "y": 0.0,
+                "z": 5.73859977722168
+            }
+        },
+        {
+            "id": "samples-cold-monitor-rack-shelf-1",
+            "marker": "loot__samples-cold-monitor-rack-shelf-1",
+            "floor": "ground",
+            "support": "samples-cold-monitor-rack-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-cold-monitor-rack",
+            "leaf": "samples-cold-monitor-rack-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.461200714111329,
+                "y": 0.7555000185966492,
+                "z": -6.525599956512451
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 13.931200981140137,
+                "y": 0.0,
+                "z": -5.745599746704102
+            }
+        },
+        {
+            "id": "samples-cold-monitor-rack-shelf-2",
+            "marker": "loot__samples-cold-monitor-rack-shelf-2",
+            "floor": "ground",
+            "support": "samples-cold-monitor-rack-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-cold-monitor-rack",
+            "leaf": "samples-cold-monitor-rack-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.461200714111329,
+                "y": 1.3555001020431519,
+                "z": -6.525599956512451
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 13.931200981140137,
+                "y": 0.0,
+                "z": -5.745599746704102
+            }
+        },
+        {
+            "id": "samples-sample-lockers-1-shelf-1",
+            "marker": "loot__samples-sample-lockers-1-shelf-1",
+            "floor": "ground",
+            "support": "samples-sample-lockers-1-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-sample-lockers-1",
+            "leaf": "samples-sample-lockers-1-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 7.7699995040893559,
+                "y": 0.7555000185966492,
+                "z": -6.814199924468994
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 8.239999771118164,
+                "y": 0.0,
+                "z": -6.2342000007629398
+            }
+        },
+        {
+            "id": "samples-sample-lockers-1-shelf-2",
+            "marker": "loot__samples-sample-lockers-1-shelf-2",
+            "floor": "ground",
+            "support": "samples-sample-lockers-1-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-sample-lockers-1",
+            "leaf": "samples-sample-lockers-1-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 7.7699995040893559,
+                "y": 1.3555001020431519,
+                "z": -6.814199924468994
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 8.239999771118164,
+                "y": 0.0,
+                "z": -6.2342000007629398
+            }
+        },
+        {
+            "id": "samples-sample-lockers-2-shelf-1",
+            "marker": "loot__samples-sample-lockers-2-shelf-1",
+            "floor": "ground",
+            "support": "samples-sample-lockers-2-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-sample-lockers-2",
+            "leaf": "samples-sample-lockers-2-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 8.399999618530274,
+                "y": 0.7555000185966492,
+                "z": -6.814199924468994
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 8.869999885559082,
+                "y": 0.0,
+                "z": -6.2342000007629398
+            }
+        },
+        {
+            "id": "samples-sample-lockers-2-shelf-2",
+            "marker": "loot__samples-sample-lockers-2-shelf-2",
+            "floor": "ground",
+            "support": "samples-sample-lockers-2-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-sample-lockers-2",
+            "leaf": "samples-sample-lockers-2-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 8.399999618530274,
+                "y": 1.3555001020431519,
+                "z": -6.814199924468994
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 8.869999885559082,
+                "y": 0.0,
+                "z": -6.2342000007629398
+            }
+        },
+        {
+            "id": "samples-sample-lockers-3-shelf-1",
+            "marker": "loot__samples-sample-lockers-3-shelf-1",
+            "floor": "ground",
+            "support": "samples-sample-lockers-3-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-sample-lockers-3",
+            "leaf": "samples-sample-lockers-3-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 9.029999732971192,
+                "y": 0.7555000185966492,
+                "z": -6.814199924468994
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 9.5,
+                "y": 0.0,
+                "z": -6.2342000007629398
+            }
+        },
+        {
+            "id": "samples-sample-lockers-3-shelf-2",
+            "marker": "loot__samples-sample-lockers-3-shelf-2",
+            "floor": "ground",
+            "support": "samples-sample-lockers-3-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "samples-sample-lockers-3",
+            "leaf": "samples-sample-lockers-3-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 9.029999732971192,
+                "y": 1.3555001020431519,
+                "z": -6.814199924468994
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 9.5,
+                "y": 0.0,
+                "z": -6.2342000007629398
+            }
+        },
+        {
+            "id": "samples-cold-monitor-rack-body-top",
+            "marker": "loot__samples-cold-monitor-rack-body-top",
+            "floor": "ground",
+            "support": "samples-cold-monitor-rack-body-top",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 13.100000381469727,
+                "y": 2.2279999256134035,
+                "z": -6.436999797821045
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 13.100000381469727,
+                "y": 0.0,
+                "z": -5.85699987411499
+            }
+        },
+        {
+            "id": "samples-specimen-drawers-body-top",
+            "marker": "loot__samples-specimen-drawers-body-top",
+            "floor": "ground",
+            "support": "samples-specimen-drawers-body-top",
+            "surface": "Raised",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 5.449999809265137,
+                "y": 1.0880000591278077,
+                "z": -6.137199878692627
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 5.919999599456787,
+                "y": 0.0,
+                "z": -5.747200012207031
+            }
+        },
+        {
+            "id": "samples-sample-lockers-1-body-top",
+            "marker": "loot__samples-sample-lockers-1-body-top",
+            "floor": "ground",
+            "support": "samples-sample-lockers-1-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 7.7699995040893559,
+                "y": 2.2279999256134035,
+                "z": -6.780599594116211
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 7.7699995040893559,
+                "y": 0.0,
+                "z": -6.200599670410156
+            }
+        },
+        {
+            "id": "samples-sample-lockers-2-body-top",
+            "marker": "loot__samples-sample-lockers-2-body-top",
+            "floor": "ground",
+            "support": "samples-sample-lockers-2-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 8.399999618530274,
+                "y": 2.2279999256134035,
+                "z": -6.780599594116211
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 8.399999618530274,
+                "y": 0.0,
+                "z": -6.200599670410156
+            }
+        },
+        {
+            "id": "samples-sample-lockers-3-body-top",
+            "marker": "loot__samples-sample-lockers-3-body-top",
+            "floor": "ground",
+            "support": "samples-sample-lockers-3-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 9.029999732971192,
+                "y": 2.2279999256134035,
+                "z": -6.780599594116211
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 9.029999732971192,
+                "y": 0.0,
+                "z": -6.200599670410156
+            }
+        },
+        {
+            "id": "samples-packing-trays-shelf-0",
+            "marker": "loot__samples-packing-trays-shelf-0",
+            "floor": "ground",
+            "support": "samples-packing-trays-shelf-0",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.985599517822266,
+                "y": 0.42549997568130495,
+                "z": 6.776199817657471
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 13.985599517822266,
+                "y": 0.0,
+                "z": 6.386199951171875
+            }
+        },
+        {
+            "id": "samples-packing-trays-shelf-1",
+            "marker": "loot__samples-packing-trays-shelf-1",
+            "floor": "ground",
+            "support": "samples-packing-trays-shelf-1",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.699999809265137,
+                "y": 1.0455000400543213,
+                "z": 6.776199817657471
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 13.699999809265137,
+                "y": 0.0,
+                "z": 6.386199951171875
+            }
+        },
+        {
+            "id": "samples-packing-trays-shelf-2",
+            "marker": "loot__samples-packing-trays-shelf-2",
+            "floor": "ground",
+            "support": "samples-packing-trays-shelf-2",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.699999809265137,
+                "y": 1.6655000448226929,
+                "z": 6.776199817657471
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 13.699999809265137,
+                "y": 0.0,
+                "z": 6.386199951171875
+            }
+        },
+        {
+            "id": "large-containers",
+            "marker": "loot__large-containers",
+            "floor": "ground",
+            "support": "large-containers",
+            "surface": "Raised",
+            "capacity": "Big",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 1.25,
+                "y": 1.5,
+                "z": 1.25
+            },
+            "pivot": {
+                "x": 11.550000190734864,
+                "y": 1.7080000638961793,
+                "z": -0.9753999710083008
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 11.550000190734864,
+                "y": 0.0,
+                "z": -0.3954000473022461
+            }
+        }
+    ]
+}

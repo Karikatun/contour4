@@ -18,7 +18,7 @@ namespace Contour4.NativeRaid.Runtime
         internal RaidSightStrips(Shader standard, ICollection<Material> ownedMaterials, ICollection<Mesh> ownedMeshes)
         {
             this.ownedMeshes = ownedMeshes;
-            roofGlass = Glazing(standard, "Contour-4 roof glazing", new Color(.29f, .46f, .54f, .38f));
+            roofGlass = Glazing(standard, "Contour-4 roof glazing", new Color(.29f, .46f, .54f, .15f));
             floorGlass = Glazing(standard, "Contour-4 floor glazing", new Color(.25f, .42f, .47f, .66f));
             ownedMaterials.Add(roofGlass);
             ownedMaterials.Add(floorGlass);

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using Contour4.NativeRaid;
+using Contour4.NativeRaid.Runtime;
 using HarmonyLib;
 using UnityEngine;
 
@@ -11,12 +13,21 @@ namespace SpaceJourney;
 internal sealed partial class RingRuntime : MonoBehaviour
 {
     internal static readonly string[] RoomNames = { "Quota", "Loot1", "Loot2", "Loot3" };
+    private static readonly (string A, string B, bool Upper)[] AuthoredPortalPairs =
+    {
+        ("Loot1", "Loot3", false),
+        ("Loot2", "Loot3", false),
+        ("Quota", "Loot3", true),
+    };
+    internal static int PortalPairCount => AuthoredPortalPairs.Length;
     private static readonly System.Reflection.FieldInfo GameState = AccessTools.Field(typeof(GameDirector), "currentState");
 
     private readonly Dictionary<Rigidbody, Vector3> bodies = new();
     private readonly List<Rigidbody> bodyBuffer = new();
     private readonly List<Bridge> bridges = new();
     private readonly List<Portal> portals = new();
+    private readonly PortalDoorDebris portalDoorDebris = new();
+    private readonly RingFurnitureMounts furniture = new();
     private readonly List<Crossing> doors = new();
     private readonly Dictionary<Rigidbody, Vector3> lastCenters = new();
     private readonly Dictionary<Rigidbody, PortalEnd> exitThresholds = new();
@@ -94,14 +105,15 @@ internal sealed partial class RingRuntime : MonoBehaviour
     private void PrepareRing()
     {
         rooms = RoomNames.Select(room => ring.Find(room)).ToArray();
+        foreach (Transform room in rooms)
+            RaidLighting.Brighten(room.Find("Wall lights"));
         Vector3 shaftCenter = (rooms[0].position + rooms[2].position) * .5f;
         roomGravity = rooms.Select(room => new RoomGravity(room, ring, shaftCenter)).ToArray();
         gravityTurnAxis = Vector3.Cross(roomGravity[0].Up, roomGravity[1].Up).normalized;
         bridges.Add(new Bridge(ring.Find("BridgeQuotaLoot1")));
         bridges.Add(new Bridge(ring.Find("BridgeLoot1Loot2")));
-        portals.Add(Portal.Pair(rooms[1], "Loot3", rooms[3], "Loot1", false));
-        portals.Add(Portal.Pair(rooms[2], "Loot3", rooms[3], "Loot2", false));
-        portals.Add(Portal.Pair(rooms[0], "Loot3", rooms[3], "Quota", true));
+        foreach (var (a, b, upper) in AuthoredPortalPairs)
+            portals.Add(Portal.Pair(ring.Find(a), b, ring.Find(b), a, upper));
         foreach (var portal in portals.Where(portal => !portal.A.Upper))
         {
             doors.Add(new Crossing(portal.A, portal.B));
@@ -162,6 +174,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
             }
         }
 
+        furniture.Bind(rooms);
         Physics.SyncTransforms();
         CatalogLoot.Spawn(this);
         live = true;
@@ -177,12 +190,13 @@ internal sealed partial class RingRuntime : MonoBehaviour
     internal void BeginProceduralRaid()
     {
         if (live || !connected || !proceduralBranch) return;
+        furniture.Bind(rooms);
         Physics.SyncTransforms();
         live = true;
         active = this;
         portalViews = gameObject.AddComponent<PortalViews>();
         portalViews.Initialize(this);
-        Debug.Log("[Contour4Ring] Authored procedural branch ready: four rooms, two bridges, three portal pairs.");
+        Debug.Log($"[Contour4Ring] Authored procedural branch ready: {rooms.Length} rooms, {bridges.Count} bridges, {portals.Count} portal pairs.");
     }
 
     private bool InBranch(Vector3 point) =>
@@ -203,7 +217,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
         {
             scanTimer = .5f;
             foreach (var prop in FindObjectsByType<PhysGrabObject>(FindObjectsSortMode.None))
-                if (prop.rb && InBranch(prop.rb.worldCenterOfMass) && !bodies.ContainsKey(prop.rb))
+                if (prop.rb && !furniture.OwnsFront(prop.rb) && InBranch(prop.rb.worldCenterOfMass) && !bodies.ContainsKey(prop.rb))
                     bodies.Add(prop.rb, Vector3.up);
             foreach (var cart in FindObjectsByType<PhysGrabCart>(FindObjectsSortMode.None))
                 if (InBranch(cart.transform.position)) cartSeams.Register(cart);
@@ -218,6 +232,14 @@ internal sealed partial class RingRuntime : MonoBehaviour
             bool landedTumbling = TumbleOnJumpLanding(controller);
             bool usedDoor = false;
             Vector3 canonical = ring.InverseTransformPoint(player.worldCenterOfMass);
+            if (!landedTumbling && !player.isKinematic && portalDoorDebris.NeedsCheck())
+                foreach (var portal in portals)
+                {
+                    PortalEnd a = portal.A, b = portal.B;
+                    Vector3 observer = player.worldCenterOfMass;
+                    portalDoorDebris.ClearNear(observer, a.Center, a.Orientation, a.Width * .5f, a.Height * .5f, b.Center, b.Orientation);
+                    portalDoorDebris.ClearNear(observer, b.Center, b.Orientation, b.Width * .5f, b.Height * .5f, a.Center, a.Orientation);
+                }
             if (!landedTumbling && !player.isKinematic && TryCross(player, canonical, out var crossing, true))
             {
                 AdjustHeldTransfer(player, player, crossing);
@@ -324,7 +346,11 @@ internal sealed partial class RingRuntime : MonoBehaviour
         }
     }
 
-    private void OnDisable() => ReleaseJumpControl();
+    private void OnDisable()
+    {
+        if (furniture.ReleaseHeld()) ClearHeldTransfer(PhysGrabber.instance);
+        ReleaseJumpControl();
+    }
 
     private void OnDestroy()
     {
@@ -502,6 +528,12 @@ internal sealed partial class RingRuntime : MonoBehaviour
         var held = grabber && grabber.grabbed ? HeldObject.GetValue(grabber) as PhysGrabObject : null;
         if (!held || !held.rb || (body != player && body != held.rb))
             return;
+        if (furniture.OwnsFront(held.rb))
+        {
+            grabber.ReleaseObject(-1);
+            ClearHeldTransfer(grabber);
+            return;
+        }
 
         Crossing fromPlayer = body == player ? crossing.Reverse() : crossing;
         if (heldTransit == held && heldPull is Crossing previous &&
@@ -872,6 +904,8 @@ internal sealed partial class RingRuntime : MonoBehaviour
                 continue;
             bodyMoves.Add(new BodyMove(body, pivot, destination, delta));
         }
+        foreach (var body in furniture.RebaseBodies)
+            if (body) bodyMoves.Add(new BodyMove(body, pivot, destination, delta));
 
         levelRoot.SetPositionAndRotation(newRoot, newRotation);
         foreach (var move in bodyMoves)
@@ -1013,6 +1047,52 @@ internal sealed partial class RingRuntime : MonoBehaviour
             end = Marker(root, root.name + "__End").localPosition;
             radius = Mathf.Abs(end.z - start.z);
             sign = Mathf.Sign(end.y - start.y);
+            InstallSafetyBarriers();
+        }
+
+        private void InstallSafetyBarriers()
+        {
+            const int segments = 32;
+            const float halfWidth = 2.05f;
+            const float thickness = .08f;
+            float height = 4f / Root.lossyScale.y;
+            float railHeight = .85f / Root.lossyScale.y;
+            var barriers = new GameObject("Invisible bridge barriers").transform;
+            barriers.SetParent(Root, false);
+
+            for (int i = 0; i < segments; i++)
+            {
+                float angleA = i * Mathf.PI / (2f * segments);
+                float angleB = (i + 1) * Mathf.PI / (2f * segments);
+                Vector3 a = Point(angleA);
+                Vector3 b = Point(angleB);
+                float angle = (angleA + angleB) / 2f;
+                Vector3 up = new Vector3(0f, Mathf.Cos(angle), -sign * Mathf.Sin(angle));
+                Quaternion rotation = Quaternion.LookRotation((b - a).normalized, up);
+                float length = Vector3.Distance(a, b) + thickness;
+                Vector3 center = (a + b) / 2f;
+                Add("left", center + rotation * new Vector3(-halfWidth - thickness / 2f,
+                    (height + railHeight) / 2f, 0f), rotation,
+                    new Vector3(thickness, height - railHeight, length));
+                Add("right", center + rotation * new Vector3(halfWidth + thickness / 2f,
+                    (height + railHeight) / 2f, 0f), rotation,
+                    new Vector3(thickness, height - railHeight, length));
+                Add("ceiling", center + up * (height + thickness / 2f), rotation,
+                    new Vector3(2f * (halfWidth + thickness), thickness, length));
+            }
+
+            Vector3 Point(float angle) => start + new Vector3(0f,
+                sign * radius * (1f - Mathf.Cos(angle)), radius * Mathf.Sin(angle));
+
+            void Add(string name, Vector3 center, Quaternion rotation, Vector3 size)
+            {
+                var node = new GameObject(name);
+                node.layer = Root.gameObject.layer;
+                node.transform.SetParent(barriers, false);
+                node.transform.localPosition = center;
+                node.transform.localRotation = rotation;
+                node.AddComponent<BoxCollider>().size = size;
+            }
         }
 
         internal Vector3 SafeDeckPoint(Vector3 up)

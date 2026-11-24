@@ -1,0 +1,144 @@
+{
+  "id": "floor-to-floor-chambers",
+  "title": "Камеры полом к полу",
+  "purpose": "В верхней камере работает пост подготовки образцов к спуску. Под плитой расположен резерв оснастки для приёма ручного груза.",
+  "items": [
+    {
+      "id": "A sample preparation table",
+      "kind": "bench",
+      "position": {
+        "x": 5.6,
+        "y": 0.478,
+        "z": -2
+      },
+      "size": {
+        "x": 1.45,
+        "y": 0.94,
+        "z": 0.63
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "A sample handoff reader",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1.04,
+        "y": 1.52,
+        "z": -3.44
+      },
+      "size": {
+        "x": 1.2,
+        "y": 0.52,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "A preparation utility strip",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1.78,
+        "y": 2.41,
+        "z": -3.44
+      },
+      "size": {
+        "x": 2.64,
+        "y": 0.25,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "A task instrument feed",
+      "kind": "pipe",
+      "position": {
+        "x": 1.03,
+        "y": 1.99,
+        "z": -3.43
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.6,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "B inverted handoff terminal",
+      "kind": "wall-panel",
+      "position": {
+        "x": 0.9,
+        "y": -1.46,
+        "z": 3.46
+      },
+      "size": {
+        "x": 1.2,
+        "y": 0.56,
+        "z": 0.08
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 180,
+      "yaw": 180
+    },
+    {
+      "id": "B inventory monitoring plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1,
+        "y": -2.21,
+        "z": 3.45
+      },
+      "size": {
+        "x": 1.02,
+        "y": 0.4,
+        "z": 0.12
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 180,
+      "yaw": 180
+    },
+    {
+      "id": "B inverted equipment supply",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1.72,
+        "y": -2.72,
+        "z": 3.44
+      },
+      "size": {
+        "x": 2.52,
+        "y": 0.24,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false,
+      "pitch": 180,
+      "yaw": 180
+    }
+  ],
+  "eye": {
+    "position": {
+      "x": 1.7,
+      "y": 1.6,
+      "z": 0.7
+    },
+    "look": {
+      "x": 5.1,
+      "y": 1.05,
+      "z": -0.8
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  }
+}

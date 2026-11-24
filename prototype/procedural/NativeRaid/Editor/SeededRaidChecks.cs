@@ -40,13 +40,22 @@ namespace Contour4.NativeRaid.Editor
                     "Both physical fold ends meet their dock at the matching support frame");
                 CheckBridgeGeometry(link);
             }
+            foreach (var (a, b) in plan.HandPassages) Join(a.Room, b.Room);
+            var reached = new HashSet<RaidPlan.Room> { root };
+            var queue = new Queue<RaidPlan.Room>();
+            queue.Enqueue(root);
+            while (queue.Count != 0)
+                foreach (RaidPlan.Room room in adjacencies[queue.Dequeue()])
+                    if (reached.Add(room)) queue.Enqueue(room);
+            Require(rooms.SetEquals(reached), $"Every room has a physical path from the start (seed {plan.Seed})");
             foreach (var (a, b) in plan.Portals) Join(a.Room, b.Room);
-            foreach (var (room, neighbors) in adjacencies)
-            {
-                int matching = neighbors.Count(other => RaidPlan.Parallel(room.Up, other.Up));
-                if (room == root) matching++; // the stock starter and its truck
-                Require(matching <= 1, $"No three distinct rooms in one plane, including reverse paths and portals ({plan.Seed})");
-            }
+            var samePlaneDocks = plan.Freight.Where(link => link.Fold == null).Select(link => (link.From, link.To))
+                .Concat(plan.HandPassages).Concat(plan.Portals.Where(pair => RaidPlan.Parallel(pair.A.Up, pair.B.Up)))
+                .SelectMany(pair => new[] { pair.Item1, pair.Item2 }).Append(plan.Entrance).ToArray();
+            foreach (var dock in samePlaneDocks)
+                Require(samePlaneDocks.Count(other => other.Room == dock.Room && other.Dock.FloorId == dock.Dock.FloorId &&
+                    Vector3.Dot(other.Up, dock.Up) > .999f) == 1,
+                    $"No three rooms share one oriented floor, including reverse paths and portals ({plan.Seed}, {dock.Room.Module.Id}/{dock.Dock.Id})");
             string Arm(RaidPlan.Room room)
             {
                 var parent = plan.Freight.Single(edge => edge.To.Room == room).From;
@@ -84,14 +93,16 @@ namespace Contour4.NativeRaid.Editor
                     "The gap between drop thresholds is exactly the short supported bridge span");
             }
             else
-                Require(bridge.Id == RaidFreightFold.LongSpan && Vector3.Dot(to.Sill - from.Sill, from.Up) < 0f,
+                Require(IsLongSpan(bridge.Id) && Vector3.Dot(to.Sill - from.Sill, from.Up) < 0f,
                     "An extended connector is a descent");
         }
+
+        private static bool IsLongSpan(string id) => id is RaidFreightFold.LongSpan or "quarter-turn-bridge";
 
         private static void CheckDenseComposition(RaidPlan plan)
         {
             var bridges = plan.Freight.Where(link => link.Fold != null).Select(link => link.Fold.Module).ToArray();
-            int longSpans = bridges.Count(module => module.Id == RaidFreightFold.LongSpan);
+            int longSpans = bridges.Count(module => IsLongSpan(module.Id));
             Require(longSpans <= 1, "A raid has at most one enclosed long descent");
             if (plan.CompletedLevels != 6 || plan.Seed != 1499861616) return;
 
@@ -135,6 +146,7 @@ namespace Contour4.NativeRaid.Editor
 
                 raid.InstallNavigation();
                 Require(raid.Context.Navigation.BakedFloorCount == raid.Plan.Rooms.Count, "Every room has a gravity-local query mesh");
+                CheckCupboardSill(raid);
                 foreach (var portal in raid.Context.Portals)
                 {
                     Vector3 sill = portal.Entrance.position - portal.Entrance.up * portal.HalfHeight;
@@ -160,6 +172,31 @@ namespace Contour4.NativeRaid.Editor
                     $" extraQuotas={raid.Plan.QuotaCount}, cart supports, shafts, portal landing and root rebase verified.");
             }
             finally { Object.DestroyImmediate(root); }
+        }
+
+        private static void CheckCupboardSill(RaidAssembly raid)
+        {
+            var (shaft, cupboard) = raid.Plan.HandPassages.Single(link => link.From.Room.Module.Id == "shaft-plant" &&
+                link.From.Dock.Id == "upper-exit");
+            Require(raid.Room(shaft.Room).Root.Find(shaft.Dock.PlugId) == null &&
+                raid.Room(cupboard.Room).Root.Find(cupboard.Dock.PlugId) == null, "Both hand doors are open in the baked layout");
+            Physics.SyncTransforms();
+            Quaternion frame = Quaternion.LookRotation(shaft.Outward, shaft.Up);
+            for (int step = -15; step <= 15; step++)
+            {
+                Vector3 feet = shaft.Sill + shaft.Outward * (step / 10f);
+                Require(!Physics.CheckBox(feet + shaft.Up * .955f, new Vector3(.395f, .925f, .445f), frame, 1,
+                    QueryTriggerInteraction.Ignore), "Hand-cargo envelope clears both sides of the real upper sill");
+                Require(Physics.Raycast(feet + shaft.Up * .06f, -shaft.Up, .16f, 1, QueryTriggerInteraction.Ignore),
+                    "Both sides of the cupboard sill have continuous support");
+            }
+            var from = raid.Room(shaft.Room).Floor;
+            var to = raid.Room(cupboard.Room).Floor;
+            var navigation = raid.Context.Navigation;
+            Require(navigation.TryGetRouteKind(from, shaft.Pad(1.4f), to, cupboard.Pad(1.4f), RaidAssembly.Character, out var outward) &&
+                outward == RaidRouteKind.PhysicalPassage &&
+                navigation.TryGetRouteKind(to, cupboard.Pad(1.4f), from, shaft.Pad(1.4f), RaidAssembly.Character, out var back) &&
+                back == RaidRouteKind.PhysicalPassage, "The narrow sill has a reversible walking route for a compatible character");
         }
 
         private static void AssertFoldClearance(FreightFold fold)
@@ -323,7 +360,10 @@ namespace Contour4.NativeRaid.Editor
             if (!Application.isBatchMode) throw new InvalidOperationException("Run in the dedicated batch project.");
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var entrance = new Pose(new Vector3(40, 0, -20), Quaternion.Euler(0, 90, 0));
-            foreach (int completed in new[] { 0, 1, 3, 6, 14 })
+            var transits = new HashSet<string>();
+            bool catalogBridge = false;
+            var catalogLayouts = new Dictionary<string, (int Seed, int Completed)>();
+            foreach (int completed in new[] { 0, 1, 3, 5, 6, 14 })
             {
                 var plans = Enumerable.Range(-32, 64).Append(2133).Append(1499861616)
                     .Select(seed => RaidPlan.Generate(seed, entrance, completed,
@@ -334,14 +374,44 @@ namespace Contour4.NativeRaid.Editor
                 {
                     Require(plan.Rooms.Count >= RaidPlan.CatalogCapacity(completed) + plan.QuotaCount &&
                         plan.QuotaCount == RaidExtraction.AdditionalCount(RaidPlan.CatalogCapacity(completed)) &&
-                        plan.Freight.Count == plan.Rooms.Count - 1, "Progression budget fits in one connected freight tree");
+                        plan.Freight.Count + plan.HandPassages.Count == plan.Rooms.Count - 1,
+                        "Progression budget fits in one connected physical tree");
                     foreach (var (from, to) in plan.Passages)
+                    {
+                        bool handOnly = plan.HandPassages.Contains((from, to));
                         Require(Vector3.Distance(from.Sill, to.Sill) < .001f && Vector3.Dot(from.Outward, to.Outward) < -.999f &&
-                            Vector3.Dot(from.Up, to.Up) > .999f && from.Dock.Opening == to.Dock.Opening,
-                            "Physical passages match world threshold, directions, up and cargo opening");
-                    Require(plan.Rooms.Count(room => room.Module.Id == "shaft-plant") == 1, "Exactly one additional authored shaft");
-                    var shaft = plan.Rooms.Single(room => room.Module.Id == "shaft-plant");
-                    Require(shaft.Dock("upper-exit").MaxCargo == Contour4.Procedural.Catalog.Cargo.Hand && !shaft.OpenPlugs.Contains(shaft.Dock("upper-exit").PlugId), "Upper shaft exit remains hand-only and closed");
+                            Vector3.Dot(from.Up, to.Up) > .999f && (handOnly
+                                ? RaidPlan.HandCompatible(from.Dock, to.Dock)
+                                : from.Dock.Opening == to.Dock.Opening),
+                            "Physical passages match world threshold, directions, up and their cargo profile");
+                    }
+                    var (shaft, cupboard) = plan.HandPassages.Single(link => link.From.Room.Module.Id == "shaft-plant" &&
+                        link.From.Dock.Id == "upper-exit");
+                    Require(cupboard.Room.Module.Id == "service-cupboard" && cupboard.Dock.Id == "service-entry" &&
+                        shaft.Dock.MaxCargo == Contour4.Procedural.Catalog.Cargo.Hand &&
+                        cupboard.Dock.MaxCargo == Contour4.Procedural.Catalog.Cargo.Hand &&
+                        plan.Freight.All(link => link.To.Room != cupboard.Room && link.From.Room != cupboard.Room),
+                        "The real upper dock connects a hand-only cupboard beyond the heavy-freight shaft route");
+                    foreach (var spiral in plan.Rooms.Where(room => room.Module.Id == "spiral-corridor"))
+                    {
+                        var entry = plan.HandPassages.Single(link => link.To.Room == spiral);
+                        var exit = plan.HandPassages.Single(link => link.From.Room == spiral);
+                        Require(entry.To.Dock.Id == "flat-entry" && exit.From.Dock.Id == "inverted-exit" &&
+                            Vector3.Dot(entry.To.Up, exit.From.Up) < -.999f &&
+                            plan.Freight.All(link => link.From.Room != spiral && link.To.Room != spiral),
+                            "The spiral reverses its support orientation along a hand-only branch outside the freight tree");
+                    }
+                    string transit = plan.ShaftTransit.Module.Id;
+                    transits.Add(transit);
+                    if (transit == "junction-corridor")
+                        Require(plan.ShaftTransit.OpenPlugs.Count == 3, "The junction serves both shaft and calibration branches");
+                    catalogLayouts.TryAdd(transit, (plan.Seed, completed));
+                    if (plan.Rooms.Any(room => room.Module.Id == "quarter-turn-bridge") ||
+                        plan.Freight.Any(link => link.Fold?.Module.Id == "quarter-turn-bridge"))
+                    {
+                        catalogBridge = true;
+                        catalogLayouts.TryAdd("quarter-turn-bridge", (plan.Seed, completed));
+                    }
                     CheckGraph(plan);
                     CheckDenseComposition(plan);
                     Require(Signature(plan) == Signature(RaidPlan.Generate(plan.Seed, entrance, completed,
@@ -352,6 +422,10 @@ namespace Contour4.NativeRaid.Editor
                     $"extraQuotas={plans[0].QuotaCount}, portalPairs={plans[0].Portals.Count}, " +
                     $"{variants} distinct layouts over {plans.Length} seeds.");
             }
+            Require(new[] { "straight-corridor-short", "straight-corridor-long", "elbow-corridor", "junction-corridor" }
+                .All(transits.Contains) && catalogBridge, "Every enabled authored transit occurs in the fixed corpus");
+            Debug.Log($"{Log} authored transit layouts: " + string.Join(", ", catalogLayouts.Select(layout =>
+                $"{layout.Key} seed={layout.Value.Seed} stage={layout.Value.Completed}")));
             Require(RaidPlan.CatalogCapacity(0) == 5 && RaidPlan.CatalogCapacity(6) == 10,
                 "Stock-size expectation at level 1 and owner level 7");
             foreach (float yaw in new[] { 0f, 90f, 180f, 270f, 41f })
@@ -363,9 +437,17 @@ namespace Contour4.NativeRaid.Editor
             }
             foreach (int level in new[] { 0, 6, 14 })
                 foreach (int seed in new[] { 2133, 1499861616 })
-                    CheckFreightRaid(seed, entrance, level);
+                    CheckFreightRaid(Enumerable.Range(seed, 16).First(candidate => HasGrayPassageFrames(candidate, level)), entrance, level);
+            foreach (var (seed, completed) in catalogLayouts.Values.Distinct())
+                if (HasGrayPassageFrames(seed, completed)) CheckFreightRaid(seed, entrance, completed);
 
             Debug.Log($"{Log} PASSED ({Application.unityVersion}, PhysX and NavMeshBuilder)");
+
+            // The gray fixture has one floor frame per room. PreparedModulePackageChecks loads the
+            // shipped prefabs and checks passage frames for layouts with turned or inverted docks.
+            bool HasGrayPassageFrames(int seed, int completed) => RaidPlan.Generate(seed, entrance, completed,
+                    maintenance: Contour4.Procedural.Catalog.MaintenanceTrench.Create).Passages
+                .All(passage => Vector3.Dot(passage.From.Room.Up, passage.To.Room.Up) > .999f);
         }
 
         private static GameObject Block(Transform root, Vector3 position, Vector3 scale)
@@ -387,4 +469,3 @@ namespace Contour4.NativeRaid.Editor
         }
     }
 }
-

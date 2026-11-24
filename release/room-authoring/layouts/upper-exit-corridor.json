@@ -1,0 +1,120 @@
+{
+  "id": "upper-exit-corridor",
+  "title": "Коридор с верхним выходом",
+  "purpose": "Нижняя линия обслуживает два торца. На ответвлении размещён местный контроль привода поворотного моста.",
+  "items": [
+    {
+      "id": "Drive instrumentation supply",
+      "kind": "wall-panel",
+      "position": {
+        "x": 10.85,
+        "y": 2.92,
+        "z": 3.45
+      },
+      "size": {
+        "x": 10.1,
+        "y": 0.27,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Drive console feed",
+      "kind": "pipe",
+      "position": {
+        "x": 13.35,
+        "y": 2.12,
+        "z": 3.41
+      },
+      "size": {
+        "x": 0.11,
+        "y": 1.35,
+        "z": 0.11
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Bridge readings enclosure",
+      "kind": "wall-panel",
+      "position": {
+        "x": 11.65,
+        "y": 1.72,
+        "z": 3.44
+      },
+      "size": {
+        "x": 1.48,
+        "y": 0.6,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Drive service area edge",
+      "kind": "marking",
+      "position": {
+        "x": 11.85,
+        "y": 0.005,
+        "z": 2.95
+      },
+      "size": {
+        "x": 4.8,
+        "y": 0.01,
+        "z": 0.12
+      },
+      "material": "bakelite",
+      "solid": false
+    },
+    {
+      "id": "Branch drive conduit cover",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.9,
+        "y": 2.94,
+        "z": -8.94
+      },
+      "size": {
+        "x": 7.8,
+        "y": 0.23,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Branch local status",
+      "kind": "wall-panel",
+      "position": {
+        "x": 11.9,
+        "y": 1.65,
+        "z": -8.93
+      },
+      "size": {
+        "x": 1.1,
+        "y": 0.53,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Rotated landing service mount",
+      "kind": "housing",
+      "position": {
+        "x": 18.46,
+        "y": 9.05,
+        "z": -8.98
+      },
+      "size": {
+        "x": 0.12,
+        "y": 0.8,
+        "z": 0.85
+      },
+      "material": "enamel",
+      "solid": false,
+      "roll": 90
+    }
+  ]
+}

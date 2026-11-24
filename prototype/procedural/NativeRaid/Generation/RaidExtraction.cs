@@ -1,6 +1,7 @@
-using System.Numerics;
 using Contour4.Procedural.Catalog;
+using UnityEngine;
 using static Contour4.Procedural.Catalog.GrayBuilder;
+using Vector3 = System.Numerics.Vector3;
 
 namespace Contour4.NativeRaid.Runtime
 {
@@ -15,6 +16,14 @@ namespace Contour4.NativeRaid.Runtime
 
         internal static int AdditionalCount(int moduleCapacity) =>
             moduleCapacity >= 15 ? 4 : moduleCapacity >= 10 ? 3 : moduleCapacity >= 8 ? 2 : moduleCapacity >= 6 ? 1 : 0;
+
+        internal static Quaternion FaceEntry(Dock entry, Vector3 position, UnityEngine.Vector3 loadingDirection)
+        {
+            var up = RaidPlan.Vector(entry.Threshold.Up);
+            var approach = UnityEngine.Vector3.ProjectOnPlane(RaidPlan.Vector(entry.Threshold.Position - position), up);
+            return Quaternion.LookRotation(approach, up) *
+                Quaternion.Inverse(Quaternion.LookRotation(loadingDirection, UnityEngine.Vector3.up));
+        }
 
         internal static GrayModule Create()
         {

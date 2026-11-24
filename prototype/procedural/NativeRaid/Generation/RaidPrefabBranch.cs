@@ -15,11 +15,17 @@ namespace Contour4.NativeRaid.Runtime
         internal Action<Transform> Mount { get; }
         internal float ThresholdSpacing { get; }
         internal Bounds Reservation { get; }
+        internal int PortalPairCount { get; }
+        internal RaidPlanarLayout.BranchOutline Outline { get; }
 
-        internal RaidPrefabBranch(string id, Bounds reservation, Pose entrance, Vector2 opening, Action<Transform> mount)
+        internal RaidPrefabBranch(string id, Bounds reservation, Pose entrance, Vector2 opening, int portalPairCount,
+            Action<Transform> mount, RaidPlanarLayout.BranchOutline outline = null)
         {
+            if (portalPairCount < 0) throw new ArgumentOutOfRangeException(nameof(portalPairCount));
             var gray = new GrayBuilder(id, reservation.size.x, reservation.size.z);
             Reservation = reservation;
+            PortalPairCount = portalPairCount;
+            Outline = outline;
             Vector3 outward = entrance.rotation * Vector3.forward;
             Vector3 up = entrance.rotation * Vector3.up;
             // Some authored frame trim protrudes past the sill. Reserve it and fill the gap with a short collar.

@@ -6,13 +6,14 @@ using UnityEngine.SceneManagement;
 
 namespace Contour4.Procedural.Navigation
 {
-    public enum RaidRouteKind { Local, PhysicalPassage, Portal }
+    public enum RaidRouteKind { Local, PhysicalPassage, Portal, OrientedDeck }
     public enum RaidSightKind { None, Direct, Portal }
 
     [DisallowMultipleComponent]
     public sealed class RaidNavigation : MonoBehaviour
     {
         private readonly Dictionary<RaidFloor, RaidNavSurface> surfaces = new();
+        private readonly Dictionary<RaidFloor, RaidNavSurface> referenceSurfaces = new();
         private readonly Dictionary<RaidFloor, List<Edge>> outgoing = new();
         private readonly List<RaidTarget> targets = new();
         private readonly List<RaidEnemyChaser> enemies = new();
@@ -60,11 +61,25 @@ namespace Contour4.Procedural.Navigation
                         throw new ArgumentException("Each placed navigation floor needs a unique identity.");
 
                     // Build in gravity-local coordinates. Separate the query tiles horizontally, with no links.
-                    var offset = placedLayout.QueryOrigin + Vector3.right * shelf - floor.LocalBakeBounds.min;
-                    surfaces.Add(floor, new RaidNavSurface(floor, offset, settings, gameObject.scene,
-                        placedLayout.SolidMask));
+                    var localSettings = settings;
+                    if (floor.Prepared)
+                    {
+                        localSettings.agentClimb = .40f;
+                        localSettings.agentSlope = 60f;
+                        // Match the verified Mobius authoring grid at its narrow floor apron.
+                        localSettings.voxelSize = floor.RoomId.StartsWith("mobius-hall-", StringComparison.Ordinal) ? .075f : .12f;
+                    }
+                    surfaces.Add(floor, Bake(floor, localSettings));
+                    if (floor.Prepared)
+                    {
+                        localSettings.agentRadius = .35f;
+                        localSettings.agentHeight = 1.80f;
+                        localSettings.agentClimb = .30f;
+                        localSettings.agentSlope = 45f;
+                        localSettings.voxelSize = .08f;
+                        referenceSurfaces.Add(floor, Bake(floor, localSettings));
+                    }
                     outgoing.Add(floor, new List<Edge>());
-                    shelf += floor.LocalBakeBounds.size.x + 8f;
                 }
                 foreach (var portal in placedLayout.Portals)
                 {
@@ -84,12 +99,25 @@ namespace Contour4.Procedural.Navigation
                         throw new ArgumentException("Each physical passage must connect placed floors.");
                     outgoing[passage.From].Add(Edge.ForPassage(passage));
                 }
+                foreach (var deck in placedLayout.Decks)
+                {
+                    if (deck == null || deck.Count < 2 || !outgoing.ContainsKey(deck.From) || !outgoing.ContainsKey(deck.To))
+                        throw new ArgumentException("Each oriented deck must connect two placed floors.");
+                    outgoing[deck.From].Add(Edge.ForDeck(deck));
+                }
                 layout = placedLayout;
             }
             catch
             {
                 Close();
                 throw;
+            }
+
+            RaidNavSurface Bake(RaidFloor floor, NavMeshBuildSettings floorSettings)
+            {
+                var offset = placedLayout.QueryOrigin + Vector3.right * shelf - floor.LocalBakeBounds.min;
+                shelf += floor.LocalBakeBounds.size.x + 8f;
+                return new RaidNavSurface(floor, offset, floorSettings, gameObject.scene, placedLayout.SolidMask);
             }
         }
 
@@ -115,6 +143,9 @@ namespace Contour4.Procedural.Navigation
             foreach (var surface in surfaces.Values)
                 surface.Dispose();
             surfaces.Clear();
+            foreach (var surface in referenceSurfaces.Values)
+                surface.Dispose();
+            referenceSurfaces.Clear();
             outgoing.Clear();
         }
 
@@ -157,7 +188,7 @@ namespace Contour4.Procedural.Navigation
             {
                 if (edge.To != player.Floor)
                     continue;
-                if (edge.Kind == RaidRouteKind.PhysicalPassage &&
+                if (edge.Kind is RaidRouteKind.PhysicalPassage or RaidRouteKind.OrientedDeck &&
                     InSight(target - eye, forward, profile) && RayIsClear(eye, target))
                     return RaidSightKind.Direct;
                 if ((edge.Use & RaidPortalUse.Vision) != 0 &&
@@ -243,18 +274,25 @@ namespace Contour4.Procedural.Navigation
         }
 
         internal bool TryStand(RaidFloor floor, Vector3 feet, out Vector3 supported)
+            => TryStand(floor, feet, null, out supported);
+
+        internal bool TryStand(RaidFloor floor, Vector3 feet, RaidEnemyProfile profile, out Vector3 supported)
         {
             supported = default;
-            return Includes(floor) && RaidGeometry.Finite(feet) && surfaces[floor].TrySample(feet, out supported) &&
+            return Includes(floor) && RaidGeometry.Finite(feet) && Surface(floor, profile).TrySample(feet, out supported) &&
                 HasFloor(floor, supported);
         }
+
+        private RaidNavSurface Surface(RaidFloor floor, RaidEnemyProfile profile) =>
+            profile != null && profile.Radius <= .35f && profile.Height <= 1.80f &&
+                referenceSurfaces.TryGetValue(floor, out var reference) ? reference : surfaces[floor];
 
         // Player feet can stand inside the baked capsule's margin along a wall. Only pursuit goals use this projection.
         internal bool TryProjectPursuitGoal(RaidFloor floor, Vector3 feet, RaidEnemyProfile profile, out Vector3 goal)
         {
             goal = default;
             if (!Includes(floor) || !RaidGeometry.Finite(feet) ||
-                !surfaces[floor].TrySample(feet, layout.BakeRadius + .16f, out goal) ||
+                !Surface(floor, profile).TrySample(feet, layout.BakeRadius + .16f, out goal) ||
                 Mathf.Abs(Vector3.Dot(goal - feet, floor.Up)) > .16f ||
                 !BodyClear(goal, floor.Up, profile) || !SegmentHasFloor(floor, null, feet, goal))
                 return false;
@@ -263,11 +301,12 @@ namespace Contour4.Procedural.Navigation
             return RayIsClear(feet + rayHeight, goal + rayHeight);
         }
 
-        private bool HasFloor(RaidFloor floor, Vector3 feet)
+        private bool HasFloor(RaidFloor floor, Vector3 feet, RaidFloor neighbor = null)
         {
-            return physics.Raycast(feet + floor.Up * .14f, -floor.Up, out var hit, .3f,
-                layout.SolidMask, QueryTriggerInteraction.Ignore) &&
-                floor.Support.Contains(hit.collider) && Vector3.Dot(hit.normal, floor.Up) >= .8f;
+            Vector3 up = floor.Up;
+            Vector3 origin = feet + up * .14f;
+            return physics.Raycast(origin, -up, out var hit, .3f, layout.SolidMask, QueryTriggerInteraction.Ignore) &&
+                RaidGeometry.Supports(physics, hit, origin, up, .8f, layout.SolidMask, floor.Support, neighbor?.Support, portalHits);
         }
 
         public bool TryGetRouteKind(RaidFloor from, Vector3 start, RaidFloor to, Vector3 goal,
@@ -284,7 +323,7 @@ namespace Contour4.Procedural.Navigation
             Edge blocked, out Plan result, Rigidbody portalTraveller = null)
         {
             result = default;
-            if (!Supports(profile) || !TryStand(from, start, out _) || !TryStand(to, goal, out _))
+            if (!Supports(profile) || !TryStand(from, start, profile, out _) || !TryStand(to, goal, profile, out _))
                 return false;
             var queue = new Queue<SearchNode>();
             var reached = new HashSet<Edge>();
@@ -292,7 +331,7 @@ namespace Contour4.Procedural.Navigation
             while (queue.Count > 0)
             {
                 var node = queue.Dequeue();
-                if (node.Floor == to && surfaces[to].TryPath(node.Position, goal, out var path))
+                if (node.Floor == to && Surface(to, profile).TryPath(node.Position, goal, out var path))
                 {
                     result = node.First.Edge == null ? new Plan(path, null) : node.First;
                     return true;
@@ -301,7 +340,7 @@ namespace Contour4.Procedural.Navigation
                 {
                     if (reached.Contains(edge) || edge == blocked ||
                         !TryTransition(edge, profile, out var approach, out var landing, portalTraveller) ||
-                        !surfaces[node.Floor].TryPath(node.Position, approach, out var local))
+                        !Surface(node.Floor, profile).TryPath(node.Position, approach, out var local))
                         continue;
                     reached.Add(edge);
                     var first = node.First.Edge == null ? new Plan(local, edge) : node.First;
@@ -316,16 +355,27 @@ namespace Contour4.Procedural.Navigation
         {
             approach = landing = default;
             if (edge.Kind == RaidRouteKind.PhysicalPassage)
-                return TryStand(edge.From, edge.Approach, out approach) &&
-                    TryStand(edge.To, edge.Landing, out landing) && PhysicalIsClear(edge, approach, landing, profile);
+                return TryStand(edge.From, edge.Approach, profile, out approach) &&
+                    TryStand(edge.To, edge.Landing, profile, out landing) && PhysicalIsClear(edge, approach, landing, profile);
+
+            if (edge.Kind == RaidRouteKind.OrientedDeck)
+            {
+                if (!profile.Reorients || !TryStand(edge.From, edge.Approach, profile, out approach) ||
+                    !TryStand(edge.To, edge.Landing, profile, out landing)) return false;
+                for (int i = 0; i < edge.Deck.Count; i++)
+                    if (!DeckIsClear(edge.Deck, edge.Deck.World(i), profile)) return false;
+                return true;
+            }
 
             if (!profile.WalksPortals || (edge.Use & RaidPortalUse.Walking) == 0 ||
                 (!profile.Reorients && Vector3.Dot(edge.From.Up, edge.To.Up) < .999f) ||
-                !TryStand(edge.From, edge.Approach, out approach) || !TryStand(edge.To, edge.Landing, out landing) ||
+                !TryStand(edge.From, edge.Approach, profile, out approach) || !TryStand(edge.To, edge.Landing, profile, out landing) ||
                 !PortalPad(edge.Entry, approach, profile, out var entryThreshold) ||
                 !PortalPad(edge.Exit, landing, profile, out var exitThreshold) ||
                 Vector3.Distance(edge.Map(entryThreshold), exitThreshold) > .18f)
                 return false;
+            entryThreshold -= edge.Entry.Normal * edge.Entry.WalkingInset;
+            exitThreshold -= edge.Exit.Normal * edge.Exit.WalkingInset;
             return PortalEntryTravel(approach, entryThreshold, edge.From.Up, profile, portalTraveller) &&
                 BodyTravel(exitThreshold, landing, edge.To.Up, profile) &&
                 SegmentHasFloor(edge.From, null, approach, entryThreshold - edge.Entry.Normal * .04f) &&
@@ -349,16 +399,33 @@ namespace Contour4.Procedural.Navigation
                 BodyTravel(from, to, edge.From.Up, profile) && SegmentHasFloor(edge.From, edge.To, from, to);
         }
 
+        internal bool DeckIsClear(RaidDeckPassage deck, Pose sample, RaidEnemyProfile profile)
+        {
+            Vector3 up = sample.up;
+            return BodyClear(sample.position, up, profile) &&
+                physics.SphereCast(sample.position + up * .115f, .045f, -up, out var hit, .26f, layout.SolidMask,
+                    QueryTriggerInteraction.Ignore) && deck.Supports.Contains(hit.collider) &&
+                Vector3.Dot(hit.normal, up) >= .66f;
+        }
+
         private bool SegmentHasFloor(RaidFloor first, RaidFloor second, Vector3 from, Vector3 to)
         {
-            int samples = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(from, to) / .075f));
+            Vector3 segment = to - from;
+            int samples = Mathf.Max(1, Mathf.CeilToInt(segment.magnitude / .075f));
+            Vector3 seamOffset = segment.normalized * .00015f;
             for (int index = 0; index <= samples; index++)
             {
                 var point = Vector3.Lerp(from, to, index / (float)samples);
-                if (!HasFloor(first, point) && (second == null || !HasFloor(second, point)))
-                    return false;
+                if (Supported(point)) continue;
+                // A ray exactly on the common boundary of two oriented meshes can miss both.
+                // Require genuine contact on both sides of that sample and keep the capsule sweep.
+                if (second == null || index == 0 || index == samples ||
+                    !Supported(point - seamOffset) || !Supported(point + seamOffset)) return false;
             }
             return true;
+
+            bool Supported(Vector3 point) => HasFloor(first, point, second) ||
+                (second != null && HasFloor(second, point, first));
         }
 
         internal bool BodyClear(Vector3 feet, Vector3 up, RaidEnemyProfile profile)
@@ -407,8 +474,9 @@ namespace Contour4.Procedural.Navigation
             internal RaidFloor From { get; private set; }
             internal RaidFloor To { get; private set; }
             private RaidWalkPassage Passage { get; set; }
-            internal Vector3 Approach => Passage == null ? Entry.Approach : Passage.Approach;
-            internal Vector3 Landing => Passage == null ? Exit.Approach : Passage.Landing;
+            internal RaidDeckPassage Deck { get; private set; }
+            internal Vector3 Approach => Passage?.Approach ?? Deck?.World(0).position ?? Entry.Approach;
+            internal Vector3 Landing => Passage?.Landing ?? Deck?.World(Deck.Count - 1).position ?? Exit.Approach;
             internal RaidRouteKind Kind { get; private set; }
             internal RaidAperture Entry { get; private set; }
             internal RaidAperture Exit { get; private set; }
@@ -426,6 +494,11 @@ namespace Contour4.Procedural.Navigation
             {
                 From = passage.From, To = passage.To, Passage = passage,
                 Kind = RaidRouteKind.PhysicalPassage
+            };
+
+            internal static Edge ForDeck(RaidDeckPassage deck) => new Edge
+            {
+                From = deck.From, To = deck.To, Deck = deck, Kind = RaidRouteKind.OrientedDeck
             };
 
             internal Vector3 Map(Vector3 position) => Exit.Frame.position + Rotation * (position - Entry.Frame.position);

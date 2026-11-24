@@ -1,0 +1,186 @@
+{
+    "moduleId": "upper-exit-corridor",
+    "transit": "The turn is transit only and the upper landing is a full-width dock approach.",
+    "sites": [
+        {
+            "id": "lower-east-spares",
+            "marker": "loot__lower-east-spares",
+            "floor": "lower",
+            "support": "lower-floor",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 18.649999618530275,
+                "y": 0.00800000037997961,
+                "z": -2.5999999046325685
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": -1.0
+            },
+            "retrievalFeet": {
+                "x": 18.649999618530275,
+                "y": 0.0,
+                "z": -2.2100000381469728
+            }
+        },
+        {
+            "id": "lower-west-spares",
+            "marker": "loot__lower-west-spares",
+            "floor": "lower",
+            "support": "lower-floor",
+            "surface": "Floor",
+            "capacity": "Small",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "pivot": {
+                "x": 3.6500000953674318,
+                "y": 0.00800000037997961,
+                "z": 2.6500000953674318
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 3.6500000953674318,
+                "y": 0.0,
+                "z": 2.260000228881836
+            }
+        },
+        {
+            "id": "lower-transit-bridge-control-shelf-1",
+            "marker": "loot__lower-transit-bridge-control-shelf-1",
+            "floor": "lower",
+            "support": "lower-transit-bridge-control-shelf-1",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "lower-transit-bridge-control",
+            "leaf": "lower-transit-bridge-control-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.543200492858887,
+                "y": 0.7555000185966492,
+                "z": 3.017400026321411
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 14.013200759887696,
+                "y": 0.0,
+                "z": 2.4374001026153566
+            }
+        },
+        {
+            "id": "lower-transit-bridge-control-shelf-2",
+            "marker": "loot__lower-transit-bridge-control-shelf-2",
+            "floor": "lower",
+            "support": "lower-transit-bridge-control-shelf-2",
+            "surface": "Cabinet",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed shelf, closed leaf opened for retrieval",
+            "cabinet": "lower-transit-bridge-control",
+            "leaf": "lower-transit-bridge-control-door",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.543200492858887,
+                "y": 1.3555001020431519,
+                "z": 3.017400026321411
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 14.013200759887696,
+                "y": 0.0,
+                "z": 2.4374001026153566
+            }
+        },
+        {
+            "id": "lower-transit-bridge-control-body-top",
+            "marker": "loot__lower-transit-bridge-control-body-top",
+            "floor": "lower",
+            "support": "lower-transit-bridge-control-body-top",
+            "surface": "Raised",
+            "capacity": "Tiny",
+            "mounting": "Loose on fixed support",
+            "cabinet": "",
+            "leaf": "",
+            "envelope": {
+                "x": 0.25,
+                "y": 0.25,
+                "z": 0.25
+            },
+            "pivot": {
+                "x": 13.350000381469727,
+                "y": 2.2279999256134035,
+                "z": 2.983799934387207
+            },
+            "up": {
+                "x": 0.0,
+                "y": 1.0,
+                "z": 0.0
+            },
+            "forward": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "retrievalFeet": {
+                "x": 13.350000381469727,
+                "y": 0.0,
+                "z": 2.4038000106811525
+            }
+        }
+    ]
+}

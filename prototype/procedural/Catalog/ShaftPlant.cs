@@ -6,7 +6,9 @@ namespace Contour4.Procedural.Catalog
 {
     public static class ShaftPlant
     {
-        public static GrayModule Create()
+        public static GrayModule Create() => Create(cupboardAnnex: false);
+
+        internal static GrayModule Create(bool cupboardAnnex)
         {
             const float length = 22.5f;
             const float middleY = 3.6f;
@@ -20,8 +22,15 @@ namespace Contour4.Procedural.Catalog
             room.Roof(0, length, ceiling, -7.5f, 7.5f);
             var west = room.Door("freight-entry", "ground", Pose(0, 0, 0, -Vector3.UnitX), Cargo.Cart);
             var upper = room.Door("upper-exit", "upper-landing", Pose(length, topY, stairLine),
-                Cargo.Hand, width: 1.8f, height: 2.5f, depth: 2.5f);
+                Cargo.Hand, width: cupboardAnnex ? Carry : 1.8f, height: 2.5f, depth: 2.5f);
             room.RectangleWalls(0, length, 0, ceiling, -7.5f, 7.5f, west: west, east: upper);
+            if (cupboardAnnex)
+            {
+                // The walkable upper deck already fills the top of this wall segment.
+                room.Module.Geometry.RemoveAll(block => block.Id == "east-wall-sill");
+                room.Box("east-wall-sill", BlockRole.Shell, length - Skirt, length, 0, topY - Skirt,
+                    stairLine - Carry / 2, stairLine + Carry / 2);
+            }
             room.Box("shaft-apparatus", BlockRole.Obstacle, 7, 15, 0, 3.8f, 3.5f, 6.75f);
             room.Box("middle-guard", BlockRole.Shell, 9.75f, 11, middleY, middleY + 1, -3.45f, -3.25f);
             room.Box("upper-guard", BlockRole.Shell, 19, length - Skirt, topY, topY + 1, -3.45f, -3.25f);

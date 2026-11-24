@@ -1,0 +1,180 @@
+{
+  "id": "u-shaft",
+  "title": "П-образная испытательная шахта",
+  "purpose": "Снизу находится общий пост диагностики. Западный отсек проверяет реле, восточный снимает показания с датчиков поворота.",
+  "items": [
+    {
+      "id": "Lower diagnostic workbench",
+      "kind": "bench",
+      "position": {
+        "x": -4,
+        "y": 0.483,
+        "z": -3.2
+      },
+      "size": {
+        "x": 1.75,
+        "y": 0.95,
+        "z": 0.58
+      },
+      "material": "enamel",
+      "solid": true
+    },
+    {
+      "id": "Lower field branch monitor",
+      "kind": "wall-panel",
+      "position": {
+        "x": -4,
+        "y": 1.53,
+        "z": -3.43
+      },
+      "size": {
+        "x": 1.45,
+        "y": 0.54,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "Lower bridge service feed",
+      "kind": "wall-panel",
+      "position": {
+        "x": -3.55,
+        "y": 2.74,
+        "z": -3.42
+      },
+      "size": {
+        "x": 2.7,
+        "y": 0.27,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180
+    },
+    {
+      "id": "Lower diagnostic supply",
+      "kind": "pipe",
+      "position": {
+        "x": -4,
+        "y": 2.17,
+        "z": -3.41
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.76,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "West oriented relay service bench",
+      "kind": "bench",
+      "position": {
+        "x": -12.517,
+        "y": 9.7,
+        "z": 3.2
+      },
+      "size": {
+        "x": 1.42,
+        "y": 0.95,
+        "z": 0.6
+      },
+      "material": "enamel",
+      "solid": true,
+      "yaw": 180,
+      "roll": 90
+    },
+    {
+      "id": "West relay terminal rail",
+      "kind": "wall-panel",
+      "position": {
+        "x": -11.48,
+        "y": 9.72,
+        "z": 3.44
+      },
+      "size": {
+        "x": 1.18,
+        "y": 0.54,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180,
+      "roll": 90
+    },
+    {
+      "id": "East oriented comparison instrument",
+      "kind": "machine",
+      "position": {
+        "x": 12.217,
+        "y": 10.55,
+        "z": -3.2
+      },
+      "size": {
+        "x": 1.25,
+        "y": 1.55,
+        "z": 0.64
+      },
+      "material": "enamel",
+      "solid": true,
+      "roll": 90,
+      "yaw": 0,
+      "face": "north"
+    },
+    {
+      "id": "East independent sensor feed",
+      "kind": "wall-panel",
+      "position": {
+        "x": 10.74,
+        "y": 10.55,
+        "z": -3.42
+      },
+      "size": {
+        "x": 1.82,
+        "y": 0.34,
+        "z": 0.13
+      },
+      "material": "enamel",
+      "solid": false,
+      "roll": 90,
+      "yaw": 0
+    },
+    {
+      "id": "East instrument supply",
+      "kind": "pipe",
+      "position": {
+        "x": 11.32,
+        "y": 10.55,
+        "z": -3.42
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.8,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false,
+      "roll": 90
+    }
+  ],
+  "eye": {
+    "position": {
+      "x": 0.18,
+      "y": 1.6,
+      "z": -2.35
+    },
+    "look": {
+      "x": -5.9,
+      "y": 1.9,
+      "z": 0.15
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  }
+}

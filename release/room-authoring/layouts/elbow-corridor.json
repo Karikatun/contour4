@@ -1,0 +1,104 @@
+{
+  "id": "elbow-corridor",
+  "title": "Коридор с поворотом",
+  "purpose": "За поворотом магистраль меняет направление, а прибор обслуживания стоит с внешней стороны поворота.",
+  "items": [
+    {
+      "id": "Lower arm conduit",
+      "kind": "wall-panel",
+      "position": {
+        "x": 4.9,
+        "y": 2.92,
+        "z": -2.94
+      },
+      "size": {
+        "x": 7.2,
+        "y": 0.24,
+        "z": 0.15
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Turning arm conduit",
+      "kind": "wall-panel",
+      "position": {
+        "x": 8.94,
+        "y": 2.92,
+        "z": 3.25
+      },
+      "size": {
+        "x": 0.15,
+        "y": 0.24,
+        "z": 11.8
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Conduit corner coupling",
+      "kind": "housing",
+      "position": {
+        "x": 8.94,
+        "y": 2.92,
+        "z": -2.94
+      },
+      "size": {
+        "x": 0.22,
+        "y": 0.31,
+        "z": 0.22
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Drop to corner diagnostic",
+      "kind": "pipe",
+      "position": {
+        "x": 8.94,
+        "y": 2.2,
+        "z": 1.9
+      },
+      "size": {
+        "x": 0.095,
+        "y": 1.23,
+        "z": 0.095
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Corner diagnostic cabinet",
+      "kind": "machine",
+      "position": {
+        "x": 8.72,
+        "y": 0.75,
+        "z": 1.9
+      },
+      "size": {
+        "x": 0.48,
+        "y": 1.5,
+        "z": 1.05
+      },
+      "material": "enamel",
+      "solid": true,
+      "face": "west"
+    },
+    {
+      "id": "Service margin before bend",
+      "kind": "marking",
+      "position": {
+        "x": 4.6,
+        "y": 0.005,
+        "z": -2.8
+      },
+      "size": {
+        "x": 6.9,
+        "y": 0.01,
+        "z": 0.14
+      },
+      "material": "bakelite",
+      "solid": false
+    }
+  ]
+}

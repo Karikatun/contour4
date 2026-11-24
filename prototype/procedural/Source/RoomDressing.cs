@@ -212,6 +212,13 @@ namespace Contour4.Procedural
             }
         }
 
+        public void HidingCabinet(string id, float x, float y, float wall, int side, float width, float depth)
+        {
+            float center = wall - side * depth / 2;
+            float face = wall - side * depth;
+            CabinetCase(id, x, y, center, side, width, 2.22f, depth);
+            CabinetDoor(id, x, y, face, side, width, 1);
+        }
         public void LootBlock(string id, float x, float y, float z, int side, float width, float depth, float height)
         {
             Box(id, x, y + height / 2, z, width, height, depth, DressingSurface.Worktop);

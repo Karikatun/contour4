@@ -1,0 +1,160 @@
+{
+  "id": "right-angle-chambers",
+  "title": "Шлюз и распределительный зал",
+  "purpose": "В шлюзе проверяют тару перед входом. В повёрнутом распределительном зале диспетчер принимает ведомости и направляет грузы к выходам.",
+  "items": [
+    {
+      "id": "Airlock inspection instrument plate",
+      "kind": "wall-panel",
+      "position": {
+        "x": -11.5,
+        "y": 0.9,
+        "z": 3.46
+      },
+      "size": {
+        "x": 1.4,
+        "y": 0.48,
+        "z": 0.08
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Airlock dock inspection reader",
+      "kind": "wall-panel",
+      "position": {
+        "x": -11.52,
+        "y": 1.5,
+        "z": 3.44
+      },
+      "size": {
+        "x": 1.12,
+        "y": 0.56,
+        "z": 0.12
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Airlock wall cable trunk",
+      "kind": "wall-panel",
+      "position": {
+        "x": -10.85,
+        "y": 2.6,
+        "z": 3.43
+      },
+      "size": {
+        "x": 3.25,
+        "y": 0.23,
+        "z": 0.16
+      },
+      "material": "enamel",
+      "solid": false
+    },
+    {
+      "id": "Dock reader branch",
+      "kind": "pipe",
+      "position": {
+        "x": -11.53,
+        "y": 2.03,
+        "z": 3.43
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.64,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false
+    },
+    {
+      "id": "Dispatch records sorting table",
+      "kind": "bench",
+      "position": {
+        "x": 0.478,
+        "y": -11.4,
+        "z": -7
+      },
+      "size": {
+        "x": 1.6,
+        "y": 0.94,
+        "z": 0.50
+      },
+      "material": "enamel",
+      "solid": true,
+      "yaw": 180,
+      "roll": 90
+    },
+    {
+      "id": "Dispatch relay panel",
+      "kind": "wall-panel",
+      "position": {
+        "x": 1.55,
+        "y": -11.22,
+        "z": -7.17
+      },
+      "size": {
+        "x": 1.38,
+        "y": 0.6,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180,
+      "roll": 90
+    },
+    {
+      "id": "Dispatch records feed",
+      "kind": "wall-panel",
+      "position": {
+        "x": 2.6,
+        "y": -11.48,
+        "z": -7.17
+      },
+      "size": {
+        "x": 3.9,
+        "y": 0.24,
+        "z": 0.14
+      },
+      "material": "enamel",
+      "solid": false,
+      "yaw": 180,
+      "roll": 90
+    },
+    {
+      "id": "Dispatch supply branch",
+      "kind": "pipe",
+      "position": {
+        "x": 2.07,
+        "y": -11.22,
+        "z": -7.16
+      },
+      "size": {
+        "x": 0.1,
+        "y": 0.58,
+        "z": 0.1
+      },
+      "material": "brass",
+      "solid": false,
+      "yaw": 180,
+      "roll": 90
+    }
+  ],
+  "eye": {
+    "position": {
+      "x": -12.5,
+      "y": 1.6,
+      "z": -0.8
+    },
+    "look": {
+      "x": -8.5,
+      "y": 1.35,
+      "z": 1.2
+    },
+    "up": {
+      "x": 0,
+      "y": 1,
+      "z": 0
+    }
+  }
+}

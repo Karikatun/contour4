@@ -365,12 +365,13 @@ internal sealed class NativeRaidModule : MonoBehaviour
             if (depth > .25f || depth < -.75f)
                 continue;
 
-            // The camera may lag on either side of the threshold while the physics body changes rooms.
-            // Preview this side only for a doorway the body can enter and a clear destination.
-            Vector3 atDoor = feet - depth * entrance.forward;
-            Vector3 pastDoor = atDoor + entrance.forward * .002f;
-            if (portal.Crossed(atDoor - entrance.forward * .002f, pastDoor, RaidAssembly.Character.Radius,
-                RaidAssembly.Character.Height) && raid.TryPassPlayer(portal, pastDoor, out _))
+            // The visible aperture selects the view. Test the capsule and destination at the physics threshold.
+            Vector3 threshold = feet + entrance.forward * (portal.DoorCrossingDepth - depth);
+            Vector3 step = entrance.forward * .002f;
+            Vector3 before = threshold - step;
+            Vector3 after = threshold + step;
+            if (portal.Crossed(before, after, RaidAssembly.Character.Radius, RaidAssembly.Character.Height) &&
+                raid.TryPassPlayer(portal, after, out _, before))
                 return portal;
         }
         return null;

@@ -650,18 +650,30 @@ namespace Contour4.NativeRaid.Runtime
 
         internal bool HasCartAccess(Room room, string floorId)
         {
-            End arrival = Arrival(room);
-            if (room != Entrance.Room && !freight.Contains(inbound[room])) return false;
+            if (!TryCartArrival(room, out End arrival)) return false;
             return arrival.Dock.FloorId == floorId || room.Module.ExternalDocks.Any(dock =>
-                dock.FloorId == floorId && FreightRoute(room, arrival.Dock, dock) != null);
+                dock.FloorId == floorId && dock.MaxCargo == Cargo.Cart && FreightRoute(room, arrival.Dock, dock) != null);
         }
 
+        private bool TryCartArrival(Room room, out End arrival)
+        {
+            arrival = Arrival(room);
+            while (room != Entrance.Room)
+            {
+                if (!inbound.TryGetValue(room, out var link) || !freight.Contains(link)) return false;
+                room = link.From.Room;
+                if (FreightRoute(room, Arrival(room).Dock, link.From.Dock) == null) return false;
+            }
+            return true;
+        }
+
+        private bool IsFreeCartExit(End end) => (end.Dock.Use & DockUse.Physical) != 0 &&
+            (end.Dock.Use & DockUse.DoorPortal) == 0 && end.Dock.MaxCargo == Cargo.Cart &&
+            !end.Room.OpenPlugs.Contains(end.Dock.PlugId) && TryCartArrival(end.Room, out End arrival) &&
+            FreightRoute(end.Room, arrival.Dock, end.Dock) != null;
+
         private IEnumerable<End> Exits() =>
-            rooms.SelectMany(room => room.Module.ExternalDocks
-                .Where(dock => !room.OpenPlugs.Contains(dock.PlugId) && (dock.Use & DockUse.Physical) != 0 &&
-                    (dock.Use & DockUse.DoorPortal) == 0 &&
-                    dock.MaxCargo == Cargo.Cart && FreightRoute(room, Arrival(room).Dock, dock) != null)
-                .Select(dock => new End(room, dock)));
+            rooms.SelectMany(room => room.Module.ExternalDocks.Select(dock => new End(room, dock))).Where(IsFreeCartExit);
 
         private void AttachShaftBranch()
         {
@@ -798,7 +810,7 @@ namespace Contour4.NativeRaid.Runtime
                 foreach (string continuation in continuations)
                 {
                     var exit = new End(transit, transit.Dock(continuation));
-                    if (FreightRoute(transit, entry, exit.Dock) == null || !TryAttachBranchRoom(exit, out Room room)) break;
+                    if (!TryAttachBranchRoom(exit, out Room room)) break;
                     destinations.Add(room);
                 }
                 if (destinations.Count == continuations.Length) return true;
@@ -897,7 +909,8 @@ namespace Contour4.NativeRaid.Runtime
         private IEnumerable<(Room Target, Room Fold)> Attachments(End from, GrayModule module, Dock entrance,
             bool initialUp, bool longLink)
         {
-            if (from.Dock.Opening != entrance.Opening || entrance.MaxCargo != Cargo.Cart) yield break;
+            if (!IsFreeCartExit(from) || from.Dock.Opening != entrance.Opening ||
+                (entrance.Use & DockUse.Physical) == 0 || entrance.MaxCargo != Cargo.Cart) yield break;
             if (!longLink && SamePlaneNeighbors(from) == 0)
             {
                 Room flat = Align(from, module, entrance, NextRoomIndex);

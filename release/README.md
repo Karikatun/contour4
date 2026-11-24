@@ -1,4 +1,4 @@
-# «Контур‑4» 0.2.35 из исходников
+# «Контур‑4» 0.2.36 из исходников
 
 Для сборки распакуйте архив исходников и откройте PowerShell 7 в его корне. Используйте .NET SDK 10.0.404 и локальные зависимости из R.E.P.O. 0.5.2, BepInExPack 5.4.2305, REPOLib 4.5.1 и Contour4Valuables 0.2.4. Контрольные суммы зависимостей и ресурсов перечислены в release/input-lock.json.
 
@@ -16,7 +16,7 @@ $assembly = './build/Contour4.dll'
 $bundles = './release/bundles'
 $project = './prototype/ring/Plugin/Contour4.csproj'
 dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4"
-./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/SpaceJourney-Contour4-0.2.35.zip
+./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/SpaceJourney-Contour4-0.2.36.zip
 ~~~
 
 Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей.

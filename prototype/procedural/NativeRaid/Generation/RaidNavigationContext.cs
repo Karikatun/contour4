@@ -82,6 +82,7 @@ namespace Contour4.NativeRaid.Runtime
         public RaidPortalKind ExitKind { get; }
         public bool Door => EntryKind == RaidPortalKind.Door && ExitKind == RaidPortalKind.Door;
         internal float DoorInset { get; }
+        internal float DoorCrossingDepth => -DoorInset;
         public RaidFloor EntryFloor { get; }
         public RaidFloor ExitFloor { get; }
         private readonly Transform entryPad, exitPad;
@@ -142,8 +143,9 @@ namespace Contour4.NativeRaid.Runtime
             }
             Vector3 last = Entrance.InverseTransformPoint(lastFeet);
             Vector3 current = Entrance.InverseTransformPoint(feet);
-            if (last.z >= -DoorInset || current.z < -DoorInset) return false;
-            Vector3 atDoor = Vector3.Lerp(last, current, (-DoorInset - last.z) / (current.z - last.z));
+            float crossingDepth = DoorCrossingDepth;
+            if (last.z >= crossingDepth || current.z < crossingDepth) return false;
+            Vector3 atDoor = Vector3.Lerp(last, current, (crossingDepth - last.z) / (current.z - last.z));
             return Mathf.Abs(atDoor.x) + radius < HalfWidth && atDoor.y >= -HalfHeight - .12f &&
                 atDoor.y + height < HalfHeight;
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Contour4.NativeRaid.Runtime;
+using Contour4.Procedural.Catalog;
 using Contour4.Procedural.Navigation;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace Contour4.NativeRaid.Editor
 
         private static void CheckGraph(RaidPlan plan)
         {
+            CheckCartAccess(plan);
             var root = plan.Entrance.Room;
             var rooms = plan.Rooms.Concat(plan.RingRoom != null ? new[] { plan.RingRoom } : Array.Empty<RaidPlan.Room>()).ToHashSet();
             var adjacencies = rooms.ToDictionary(room => room, _ => new HashSet<RaidPlan.Room>());
@@ -67,6 +69,94 @@ namespace Contour4.NativeRaid.Editor
             if (quotas.Length > 1)
                 Require(quotas.Select(quota => Arm(quota.To.Room)).Distinct().Count() == 2,
                     "Stock quota spacing distributes points between the two first freight branches");
+        }
+
+        internal static void CheckCartAccess(RaidPlan plan)
+        {
+            var rooms = plan.Rooms.Concat(plan.RingRoom == null ? Array.Empty<RaidPlan.Room>() : new[] { plan.RingRoom });
+            var edges = new List<((RaidPlan.Room Room, string Site) From, (RaidPlan.Room Room, string Site) To)>();
+            foreach (var room in rooms)
+                AddCatalogCartRoutes(room, edges);
+            foreach (var link in plan.Freight)
+            {
+                Require(link.From.Dock.MaxCargo == Cargo.Cart && link.To.Dock.MaxCargo == Cargo.Cart,
+                    $"A freight link uses a hand dock (seed {plan.Seed}).");
+                var from = (link.From.Room, link.From.Dock.Id);
+                var to = (link.To.Room, link.To.Dock.Id);
+                if (link.Fold == null)
+                {
+                    edges.Add((from, to));
+                    continue;
+                }
+                AddCatalogCartRoutes(link.Fold, edges);
+                edges.Add((from, (link.Fold, link.Fold.Module.Docks[0].Id)));
+                edges.Add(((link.Fold, link.Fold.Module.Docks[1].Id), to));
+            }
+
+            var neighbors = edges.SelectMany(edge => new[] { edge, (From: edge.To, To: edge.From) })
+                .ToLookup(edge => edge.From, edge => edge.To);
+            var reached = new HashSet<(RaidPlan.Room Room, string Site)> { (plan.Entrance.Room, plan.Entrance.Dock.Id) };
+            var pending = new Queue<(RaidPlan.Room Room, string Site)>(reached);
+            while (pending.TryDequeue(out var site))
+                foreach (var neighbor in neighbors[site])
+                    if (reached.Add(neighbor)) pending.Enqueue(neighbor);
+
+            string context = $"seed {plan.Seed}, completed {plan.CompletedLevels}";
+            foreach (var link in plan.Freight)
+                Require(reached.Contains((link.From.Room, link.From.Dock.Id)) &&
+                    reached.Contains((link.To.Room, link.To.Dock.Id)),
+                    $"Cart link from {link.From.Room.Module.Id}/{link.From.Dock.Id} to " +
+                    $"{link.To.Room.Module.Id}/{link.To.Dock.Id} has no cart path from the truck ({context}).");
+            foreach (var room in rooms)
+            {
+                foreach (var floor in room.Module.Floors)
+                {
+                    bool expected = room.Module.ExternalDocks.Any(dock => dock.FloorId == floor.Id &&
+                        dock.MaxCargo == Cargo.Cart && reached.Contains((room, dock.Id)));
+                    Require(plan.HasCartAccess(room, floor.Id) == expected,
+                        $"Cart access disagrees with the catalog graph at {room.Module.Id}/{floor.Id} ({context}).");
+                }
+                if (room.Module.Landmarks.ContainsKey(RaidExtraction.Machine))
+                    Require(reached.Contains((room, RaidExtraction.Machine)),
+                        $"The quota in room {room.Index} has no cart route to its ramp ({context}).");
+            }
+        }
+
+        private static void AddCatalogCartRoutes(RaidPlan.Room room,
+            List<((RaidPlan.Room Room, string Site) From, (RaidPlan.Room Room, string Site) To)> edges)
+        {
+            var routes = room.Module.Routes.Where(route => route.Cargo == Cargo.Cart && route.Flight == null).ToArray();
+            foreach (var route in routes)
+            {
+                edges.Add(((room, route.From), (room, route.To)));
+                // A named route endpoint can meet an intermediate knot of another route.
+                foreach (string junction in routes.SelectMany(other => new[] { other.From, other.To }).Distinct())
+                    if (room.Module.Landmarks.TryGetValue(junction, out var point) &&
+                        route.Knots.Skip(1).SkipLast(1).Any(knot => knot.Position == point))
+                        edges.Add(((room, route.From), (room, junction)));
+            }
+        }
+
+        internal static void CheckPortalSignature(RaidPlan plan)
+        {
+            var portals = (List<(RaidPlan.End A, RaidPlan.End B)>)plan.Portals;
+            Require(portals.Count > 0, $"Seed {plan.Seed} needs a selected portal pair for the determinism regression.");
+            string before = Signature(plan);
+            var removed = portals[^1];
+            portals.RemoveAt(portals.Count - 1);
+            try
+            {
+                Require(Signature(plan) != before, $"Removing a portal pair must alter the signature (seed {plan.Seed}).");
+            }
+            finally { portals.Add(removed); }
+
+            portals[^1] = (removed.B, removed.A);
+            try
+            {
+                Require(Signature(plan) != before,
+                    $"Reordering the endpoints of a portal pair must alter the signature (seed {plan.Seed}).");
+            }
+            finally { portals[^1] = removed; }
         }
 
         private static void CheckBridgeGeometry(RaidPlan.FreightLink link)
@@ -368,7 +458,7 @@ namespace Contour4.NativeRaid.Editor
                 var plans = Enumerable.Range(-32, 64).Append(2133).Append(1499861616)
                     .Select(seed => RaidPlan.Generate(seed, entrance, completed,
                         maintenance: Contour4.Procedural.Catalog.MaintenanceTrench.Create)).ToArray();
-                int variants = plans.Select(Signature).Distinct().Count();
+                int variants = plans.Select(plan => string.Join(";", plan.Rooms.Select(RoomFrame))).Distinct().Count();
                 Require(variants > 8, $"Level {completed + 1}: seed varies actual rooms and poses ({variants})");
                 foreach (var plan in plans)
                 {
@@ -416,7 +506,7 @@ namespace Contour4.NativeRaid.Editor
                     CheckDenseComposition(plan);
                     Require(Signature(plan) == Signature(RaidPlan.Generate(plan.Seed, entrance, completed,
                         maintenance: Contour4.Procedural.Catalog.MaintenanceTrench.Create)),
-                        "Preserved seed and progression reproduce exact room choices and poses");
+                        "Preserved seed and progression reproduce the complete plan");
                 }
                 Debug.Log($"{Log} level={completed + 1}, modules={plans[0].Rooms.Count}, " +
                     $"extraQuotas={plans[0].QuotaCount}, portalPairs={plans[0].Portals.Count}, " +
@@ -460,8 +550,76 @@ namespace Contour4.NativeRaid.Editor
             return obstacle;
         }
 
-        private static string Signature(RaidPlan plan) => string.Join(";", plan.Rooms.Select(room =>
-            room.Module.Id + "@" + FormattableString.Invariant($"{room.Frame.position:F3}/{room.Frame.rotation:F3}")));
+        internal static string Signature(RaidPlan plan)
+        {
+            var entries = new List<string>
+            {
+                $"attempt|{plan.Attempt}",
+                $"entry|{EndKey(plan.Entrance)}",
+                $"shaft|{plan.ShaftTransit.Index}",
+                $"quotas|{plan.QuotaCount}",
+                $"portal-count|{plan.PortalPairCount}",
+            };
+            foreach (var room in plan.Rooms) RecordRoom(room);
+            if (plan.RingRoom != null) RecordRoom(plan.RingRoom);
+            foreach (var link in plan.Freight)
+            {
+                entries.Add($"cart|{EndKey(link.From)}|{EndKey(link.To)}");
+                if (link.Fold == null) continue;
+                entries.Add($"fold|{RoomFrame(link.Fold)}");
+                foreach (var route in link.Fold.Module.Routes)
+                foreach (var knot in route.Knots)
+                    entries.Add($"fold-knot|{VectorKey(RaidPlan.Vector(knot.Position))}|" +
+                        $"{VectorKey(RaidPlan.Vector(knot.Forward))}|{VectorKey(RaidPlan.Vector(knot.Up))}");
+            }
+            foreach (var (from, to) in plan.HandPassages)
+                entries.Add($"hand|{EndKey(from)}|{EndKey(to)}");
+            foreach (var (a, b) in plan.Portals)
+                entries.Add($"portal|{EndKey(a)}|{EndKey(b)}");
+
+            if (plan.Planar != null)
+            {
+                RecordTabFloor(RaidPlanarLayout.Stock, RaidPlanarLayout.StockFloor);
+                foreach (var room in plan.Rooms)
+                foreach (var floor in room.Module.Floors)
+                    RecordTabFloor(room.Index, floor.Id);
+                if (plan.Branch is { } branch)
+                    foreach (string floor in branch.Descriptor.Outline?.Floors.Select(floor => floor.Name) ?? new[] { "ground" })
+                        RecordTabFloor(plan.RingRoom.Index, floor);
+            }
+            return string.Join("\n", entries);
+
+            void RecordRoom(RaidPlan.Room room)
+            {
+                entries.Add($"room|{RoomFrame(room)}");
+                foreach (var dock in room.Module.Docks)
+                    entries.Add($"dock|{dock.Id}|{dock.FloorId}|{dock.PlugId}|{room.OpenPlugs.Contains(dock.PlugId)}");
+                foreach (var (a, b) in room.Module.InternalPortals)
+                    entries.Add($"internal-portal|{a}|{b}");
+                if (room.Module.Landmarks.TryGetValue(RaidExtraction.Machine, out var quota))
+                    entries.Add($"quota|{room.Index}|{VectorKey(room.Point(quota))}");
+            }
+
+            void RecordTabFloor(int room, string floor)
+            {
+                Require(plan.Planar.TryGetPose(room, floor, out var pose),
+                    $"Missing Tab pose for {room}/{floor} (seed {plan.Seed}).");
+                entries.Add($"tab|{room}|{floor}|{FloatKey(pose.Position.x)},{FloatKey(pose.Position.y)},{FloatKey(pose.Angle)}");
+            }
+        }
+
+        private static string EndKey(RaidPlan.End end) => $"{end.Room.Index}/{end.Dock.Id}";
+
+        private static string RoomFrame(RaidPlan.Room room)
+        {
+            Quaternion rotation = room.Frame.rotation;
+            return $"{room.Index}/{room.Module.Id}|{VectorKey(room.Frame.position)}|" +
+                $"{FloatKey(rotation.x)},{FloatKey(rotation.y)},{FloatKey(rotation.z)},{FloatKey(rotation.w)}";
+        }
+
+        private static string VectorKey(Vector3 vector) => $"{FloatKey(vector.x)},{FloatKey(vector.y)},{FloatKey(vector.z)}";
+
+        private static string FloatKey(float value) => BitConverter.SingleToInt32Bits(value).ToString("X8");
 
         private static void Require(bool passed, string message)
         {

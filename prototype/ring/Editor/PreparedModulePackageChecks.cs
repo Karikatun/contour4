@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Contour4.NativeRaid.Editor;
 using Contour4.NativeRaid.Runtime;
 using Contour4.Procedural.Catalog;
 using Contour4.Procedural.Navigation;
@@ -186,6 +187,7 @@ namespace SpaceJourney
             try
             {
                 raid.Place(seed, Entrance, 0, 0, catalogSites: true, completedLevels: progress, roomPrefabs: prefabs);
+                VerifyTopology(raid.Plan, prefabs);
                 VerifyPhysicalNetwork(raid.Plan);
                 var rooms = raid.Rooms.Where(room => room.Prepared).ToArray();
                 Require(raid.Rooms.All(room => room.Prepared == expected.Contains(room.Plan.Module.Id)),
@@ -223,6 +225,10 @@ namespace SpaceJourney
                             Mathf.Abs(height - dock.Opening.Y) < .002f,
                             $"{id}/{dock.Id} prefab threshold differs from the assembled pose or dimensions.");
                     }
+                    foreach (var cap in room.Plan.Module.Geometry.Where(block => block.Role == BlockRole.Plug))
+                        Require(room.CollidersById.TryGetValue(cap.Id, out var collider) &&
+                            collider.gameObject.activeInHierarchy == !room.Plan.OpenPlugs.Contains(cap.Id),
+                            $"{id}/{cap.Id} collision cap differs from the assembled opening.");
                     var authored = prefabs.PreparedLoot(room);
                     var usable = candidates.Where(slot => slot.Room == room).ToArray();
                     Require(authored.Count == room.Root.Find("Loot candidates").childCount &&
@@ -254,6 +260,31 @@ namespace SpaceJourney
                 raid.ReleaseNavigation();
                 Object.DestroyImmediate(root);
             }
+        }
+
+        private static void VerifyTopology(RaidPlan plan, RaidRoomPrefabs prefabs)
+        {
+            SeededRaidChecks.CheckCartAccess(plan);
+            if ((plan.CompletedLevels, plan.Seed) is not ((14, -16) or (5, -32))) return;
+            // Assembly opens the caps assigned to internal portal pairs. Compare two
+            // generator outputs before the prepared prefab applies those openings.
+            var generated = Generate();
+            var repeated = Generate();
+            Require(SeededRaidChecks.Signature(generated) == SeededRaidChecks.Signature(repeated),
+                $"same seed and exact prefab set must reproduce the complete plan ({plan.CompletedLevels},{plan.Seed}).");
+            Require(TabPoses(plan).SequenceEqual(TabPoses(repeated)),
+                $"same seed and exact prefab set must reproduce every Tab floor pose ({plan.CompletedLevels},{plan.Seed}).");
+            if (plan.Seed == -32) SeededRaidChecks.CheckPortalSignature(generated);
+
+            RaidPlan Generate() => RaidPlan.Generate(plan.Seed, Entrance, plan.CompletedLevels,
+                maintenance: MaintenanceTrench.Create, canPrepare: CanPrepare);
+
+            bool CanPrepare(RaidPlan.Room room) => prefabs.TryGetPrepared(room, out var prefab) && prefab;
+
+            IEnumerable<(string Floor, int X, int Y, int Angle)> TabPoses(RaidPlan candidate) =>
+                RaidMapPlan.Create(candidate, preparedRooms: candidate.Rooms.Where(CanPrepare)).Floors.Select(floor =>
+                    (floor.Floor.Id, BitConverter.SingleToInt32Bits(floor.Position.x),
+                        BitConverter.SingleToInt32Bits(floor.Position.y), BitConverter.SingleToInt32Bits(floor.Angle)));
         }
 
         private static void VerifyPhysicalNetwork(RaidPlan plan)

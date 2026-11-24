@@ -67,7 +67,7 @@ function Test-MainPlugin([string] $Path, [string] $Version) {
     $resolver.AddSearchDirectory((Resolve-Path -LiteralPath $BepInExCore).Path)
     $main = $runtime = $null
     try {
-        $hasPreparedModules = $Version -in '0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35'
+        $hasPreparedModules = $Version -in '0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36'
         $main = Read-EmbeddedAssembly $archive 'plugins/Contour4/Contour4.dll' $resolver -ReadBody:$hasPreparedModules
         $runtime = Read-EmbeddedAssembly $archive 'plugins/Contour4/Contour4NativeRaidRuntime.dll' $resolver -ReadBody:$hasPreparedModules
         $plugins = @($main.MainModule.GetTypes() + $runtime.MainModule.GetTypes() | Where-Object {
@@ -104,7 +104,7 @@ function Test-MainPlugin([string] $Path, [string] $Version) {
                 slots = @($loot, 'Contour4.NativeRaid.Runtime.RaidRoomPrefabs', 'PreparedLoot')
                 stockVolumes = @($install, 'Contour4.NativeRaid.Runtime.RaidLootSites', 'Find')
             }
-            if ($Version -in '0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') {
+            if ($Version -in '0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36') {
                 $fixedUpdate = @(Get-MethodOperands $main 'Contour4.NativeRaid.NativeRaidGravity' 'FixedUpdate')
                 $ribbon = @(Get-MethodOperands $main 'Contour4.NativeRaid.NativeRaidGravity' 'UpdateRibbon')
                 $relayStep = @(Get-MethodOperands $main 'Contour4.NativeRaid.MobiusContactRelay' 'Step')
@@ -115,7 +115,7 @@ function Test-MainPlugin([string] $Path, [string] $Version) {
                 $ribbonJump = @(Get-MethodOperands $main 'Contour4.NativeRaid.NativeRaidGravity' 'NotifyRibbonJump')
                 if ($jumpBinding -cnotcontains 'ApplyJump') { throw 'Stock jump binding does not install the ribbon-aware jump.' }
                 $expectedCalls.Add('playerRebase', @($fixedUpdate, 'Contour4.NativeRaid.NativeRaidGravity', 'Rebase'))
-                if ($Version -in '0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') {
+                if ($Version -in '0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36') {
                     $gravityType = 'Contour4.NativeRaid.NativeRaidGravity'
                     $assemblyType = 'Contour4.NativeRaid.Runtime.RaidAssembly'
                     $sphereOrientation = @(Get-MethodOperands $main $gravityType 'UpdateSphericalOrientation')
@@ -171,10 +171,10 @@ function Test-MainPlugin([string] $Path, [string] $Version) {
 
 $map = Read-Package $MapPackage 'plugins/Contour4/Contour4.dll'
 $valuables = Read-Package $ValuablesPackage 'plugins/Contour4Valuables/Contour4Valuables.dll'
-if ($map.Metadata.name -cne 'Contour4' -or $map.Metadata.version_number -notin '0.2.11','0.2.12','0.2.13','0.2.16','0.2.17','0.2.18','0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') {
-    throw 'This verifier expects a supported Contour4 package through 0.2.35.'
+if ($map.Metadata.name -cne 'Contour4' -or $map.Metadata.version_number -notin '0.2.11','0.2.12','0.2.13','0.2.16','0.2.17','0.2.18','0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36') {
+    throw 'This verifier expects a supported Contour4 package through 0.2.36.'
 }
-$companionVersion = if ($map.Metadata.version_number -in '0.2.32','0.2.33','0.2.34','0.2.35') { '0.2.4' } elseif ($map.Metadata.version_number -in '0.2.18','0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') { '0.2.3' } `
+$companionVersion = if ($map.Metadata.version_number -in '0.2.32','0.2.33','0.2.34','0.2.35','0.2.36') { '0.2.4' } elseif ($map.Metadata.version_number -in '0.2.18','0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') { '0.2.3' } `
     elseif ($map.Metadata.version_number -in '0.2.13','0.2.16','0.2.17') { '0.2.0' } else { '0.1.0' }
 if ($valuables.Metadata.name -ne 'Contour4Valuables' -or $valuables.Metadata.version_number -ne $companionVersion) { throw "Expected companion Contour4Valuables $companionVersion." }
 $baseDependencies = 'BepInEx-BepInExPack-5.4.2305', 'Zehs-REPOLib-4.5.1'
@@ -186,8 +186,8 @@ $mainPlugin = $null
 if ($map.Metadata.version_number -ne '0.2.11') {
     $mapEntries += 'plugins/Contour4/Contour4NativeRaidRuntime.dll', 'plugins/Contour4/contour4-loading.bundle'
 }
-if ($map.Metadata.version_number -in '0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') { $mapEntries += 'plugins/Contour4/contour4-rooms.bundle' }
-if ($map.Metadata.version_number -in '0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35') { $mapEntries += 'plugins/Contour4/contour4-prepared-modules.bundle' }
+if ($map.Metadata.version_number -in '0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36') { $mapEntries += 'plugins/Contour4/contour4-rooms.bundle' }
+if ($map.Metadata.version_number -in '0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36') { $mapEntries += 'plugins/Contour4/contour4-prepared-modules.bundle' }
 Require-ExactSet $map.Entries.Keys $mapEntries 'map archive entries'
 Require-ExactSet $valuables.Entries.Keys ($rootEntries + 'plugins/Contour4Valuables/Contour4Valuables.dll',
     'plugins/Contour4Valuables/contour4-valuables.bundle') 'valuables archive entries'

@@ -1,0 +1,28 @@
+# Local build outputs and verification evidence
+/build/
+/local-evidence/
+/prototype/ring/dist/
+
+# Unity-generated files in the two authoring projects
+/release/ring-authoring/Library/
+/release/ring-authoring/Temp/
+/release/ring-authoring/[Oo]bj/
+/release/ring-authoring/Logs/
+/release/ring-authoring/UserSettings/
+/release/room-authoring/Library/
+/release/room-authoring/Temp/
+/release/room-authoring/[Oo]bj/
+/release/room-authoring/Logs/
+/release/room-authoring/UserSettings/
+
+# .NET build outputs
+/prototype/ring/Plugin/[Bb]in/
+/prototype/ring/Plugin/[Oo]bj/
+/prototype/procedural/NativeRaid/Generation/[Bb]in/
+/prototype/procedural/NativeRaid/Generation/[Oo]bj/
+
+# IDE user caches and settings
+.vs/
+*.csproj.user
+*.suo
+.idea/workspace.xml

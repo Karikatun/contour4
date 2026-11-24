@@ -17,7 +17,6 @@ $roomsPath = (Resolve-Path -LiteralPath $RoomsBundle).Path
 $preparedPath = (Resolve-Path -LiteralPath $PreparedModulesBundle).Path
 if (!$Runtime) { $Runtime = Join-Path ([IO.Path]::GetDirectoryName($pluginPath)) 'Contour4NativeRaidRuntime.dll' }
 $runtimePath = (Resolve-Path -LiteralPath $Runtime).Path
-$iconPackage = (Resolve-Path -LiteralPath "$PSScriptRoot/../first-raid/dist/SpaceJourney-Contour4-0.1.0.zip").Path
 $outPath = [IO.Path]::GetFullPath($Output)
 if (Test-Path -LiteralPath $outPath) { throw 'Choose a new package path.' }
 New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($outPath)) -Force | Out-Null
@@ -42,16 +41,11 @@ try {
             'plugins/Contour4/contour4-loading.bundle' = $loadingPath
             'plugins/Contour4/contour4-rooms.bundle' = $roomsPath
             'plugins/Contour4/contour4-prepared-modules.bundle' = $preparedPath
+            'icon.png' = "$PSScriptRoot/icon.png"
         }
         foreach ($entry in $entries.GetEnumerator()) {
             [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $entry.Value, $entry.Key) | Out-Null
         }
-        $original = [IO.Compression.ZipFile]::OpenRead($iconPackage)
-        try {
-            $source = $original.GetEntry('icon.png').Open()
-            $destination = $zip.CreateEntry('icon.png').Open()
-            try { $source.CopyTo($destination) } finally { $destination.Dispose(); $source.Dispose() }
-        } finally { $original.Dispose() }
     } finally { $zip.Dispose() }
     [IO.File]::Move($partial, $outPath)
 } finally {

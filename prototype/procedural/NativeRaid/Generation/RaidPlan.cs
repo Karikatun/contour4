@@ -120,8 +120,10 @@ namespace Contour4.NativeRaid.Runtime
         private readonly DiversityScope diversity;
         private uint random;
         private int catalogBranchesPlaced;
+        private readonly HashSet<int> catalogBranchRoots = new();
         private const float FitTolerance = .005f;
         private const int CatalogTransitLayouts = 12;
+        private static readonly string[] ResearchDocks = { "east", "supply", "spur" };
         private const int BothSphereBranches = SphericalChamber.UpperMask | SphericalChamber.LowerMask;
         private static readonly int[] SphereBranchChoices =
             { BothSphereBranches, SphericalChamber.UpperMask, SphericalChamber.LowerMask, 0 };
@@ -154,7 +156,7 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         private RaidPlan(int seed, Pose start, int completedLevels, int attempt, RaidPrefabBranch branch,
-            Func<GrayModule> maintenance, DiversityScope diversity, Func<Room, bool> canPrepare, bool drafting,
+            Func<GrayModule> maintenance, DiversityScope diversity, Func<Room, bool> canPrepare, bool drafting, bool spreadQuotas = false,
             int sphereBranches = BothSphereBranches)
         {
             Seed = seed;
@@ -185,25 +187,28 @@ namespace Contour4.NativeRaid.Runtime
             // A later shortcut may use any remaining compatible doorway.
             int staffedMinimum = completedLevels >= 5 ? 6 : 2;
             bool diversifyArms = diversity == DiversityScope.EntireLayout;
-            int staffed = 0;
-            int neededExits = contentCount + quotaCount + (useBranch ? 1 : 0) + 1;
-            while (rooms.Count < branchRooms)
+            AttachFreightCluster(root, fullRaid || target >= 10);
+
+            // Receiving is a staffed room and storage is already included in contentCount.
+            int staffed = 1;
+            int neededExits = quotaCount + (useBranch ? 1 : 0) + (maintenance != null && target >= 7 ? 1 : 0) + 1;
+            while (rooms.Count < branchRooms + 1)
             {
                 bool instrumentFirst = (rooms.Count + serviceOrder) % 2 == 0;
                 var choices = StaffedRooms(fullRaid || target >= 10, instrumentFirst);
                 if (!diversifyArms) choices = choices.Take(1);
-                int remaining = branchRooms - rooms.Count - 1;
+                int remaining = branchRooms - rooms.Count;
                 if (diversifyArms && staffed + remaining >= staffedMinimum)
                     choices = choices.Concat(CorridorTransits().Select(transit => transit.Module));
                 var free = Exits().ToArray();
-                var candidates = free.Where(end => rooms.Count >= 3 || end.Room == root)
+                var candidates = free.Where(end => rooms.Count >= 4 || end.Room == root)
                     .OrderBy(end => RootArmSize(end)).ThenBy(end => Next(int.MaxValue)).ToArray();
                 bool attached = false;
                 foreach (GrayModule module in choices.OrderBy(Instances))
                 {
                     int exits = module.ExternalDocks.Count(dock => dock.Id != "west" && dock.MaxCargo == Cargo.Cart);
                     if (diversifyArms && free.Length - 1 + exits + remaining < neededExits) continue;
-                    if (!TryAttach(candidates, module, "west", out _, longLink: useLongDescent && rooms.Count == span)) continue;
+                    if (!TryAttach(candidates, module, "west", out _, longLink: useLongDescent && rooms.Count - 1 == span)) continue;
                     if (IsStaffed(module)) staffed++;
                     attached = true;
                     break;
@@ -211,33 +216,12 @@ namespace Contour4.NativeRaid.Runtime
                 if (!attached)
                     throw new PlacementException($"Freight network exhausted at staffed room {rooms.Count} of {branchRooms} (seed {Seed}).");
             }
-            var quotas = new List<Room>();
-            for (int i = 0; i < quotaCount; i++)
-            {
-                var quota = RaidExtraction.Create();
-                // Native 0.5.2 uses maximin spacing from the truck and previously chosen extraction tiles.
-                // Physical freight distance and branch diversity keep that intent in the folded 3-D layout.
-                var usedArms = quotas.Select(Arm).ToHashSet();
-                var preferred = Exits().Where(end => end.Room != root)
-                    .Select(end => (End: end, Arm: Arm(end), Separation: QuotaSeparation(end, quotas), Tie: Next(int.MaxValue)))
-                    .OrderBy(entry => usedArms.Contains(entry.Arm)).ThenByDescending(entry => entry.Separation)
-                    .ThenBy(entry => entry.Tie).Select(entry => entry.End);
-                if (!TryAttach(preferred, quota, RaidExtraction.Entry, out Room placed))
-                    throw new PlacementException($"Freight network cannot fit quota {i + 1} (seed {Seed}).");
-                quotas.Add(placed);
-            }
+            bool quotasAttached = spreadQuotas ? TryAttachQuotas(quotaCount) :
+                TryAttachOriginalQuotas(quotaCount, new List<Room>(quotaCount));
+            if (!quotasAttached)
+                throw new PlacementException($"Freight network cannot fit {quotaCount} quotas across its starting arms (seed {Seed}).");
+            AttachResearchCluster(laboratories);
 
-            AttachShaftBranch();
-            Attach(CalibrationSector.Create(), "main-entry",
-                preferredExit: ShaftTransit.Module.Id == "junction-corridor" ? new End(ShaftTransit, ShaftTransit.Dock("spur")) : (End?)null);
-            Attach(SampleStorage.Create(completedLevels >= 2 && Next(2) == 1), "main-entry");
-            if (laboratories > 0)
-            {
-                bool broken = completedLevels >= 5 && Next(2) == 1;
-                Attach(ObservationLab.Create(broken), "freight-entry");
-                if (laboratories == 2)
-                    Attach(ObservationLab.Create(!broken && completedLevels >= 5), "freight-entry");
-            }
             if (maintenance != null && target >= 7) Attach(maintenance(), "west");
             if (useBranch)
             {
@@ -251,7 +235,7 @@ namespace Contour4.NativeRaid.Runtime
             if (!drafting) CompleteConnections();
         }
 
-        private RaidPlan(RaidPlan draft)
+        private RaidPlan(RaidPlan draft, bool requireEnemyStartRoom = false)
         {
             Seed = draft.Seed;
             CompletedLevels = draft.CompletedLevels;
@@ -261,6 +245,7 @@ namespace Contour4.NativeRaid.Runtime
             canPrepare = draft.canPrepare;
             random = draft.random;
             catalogBranchesPlaced = draft.catalogBranchesPlaced;
+            catalogBranchRoots.UnionWith(draft.catalogBranchRoots);
             planningSpace = draft.planningSpace;
             var root = new Room(draft.Entrance.Room.Module, planningSpace, planningSpace, 0);
             Entrance = new End(root, draft.Entrance.Dock);
@@ -281,13 +266,21 @@ namespace Contour4.NativeRaid.Runtime
                 rooms.Remove(ring);
             }
             CompleteConnections();
-            if (!RaidPlanarLayout.TryCreate(this, out var planar))
-                throw new PlacementException($"The freight tree cannot be laid out in the plane for seed {Seed}, attempt {Attempt}.");
-            Planar = planar;
+            if (requireEnemyStartRoom)
+            {
+                // Local floor contours and physical connections retain their keys and docks.
+                Planar = draft.Planar;
+            }
+            else
+            {
+                if (!RaidPlanarLayout.TryCreate(this, out var planar))
+                    throw new PlacementException($"The freight tree cannot be laid out in the plane for seed {Seed}, attempt {Attempt}.");
+                Planar = planar;
+            }
 
             bool Place(int index)
             {
-                if (index == destinations.Length) return true;
+                if (index == destinations.Length) return !requireEnemyStartRoom || HasEnemyStartRoom();
                 if (remaining <= 0) return false;
                 remaining--;
                 Room original = destinations[index];
@@ -321,13 +314,180 @@ namespace Contour4.NativeRaid.Runtime
                 bool ring = original == draft.RingRoom;
                 bool extended = edge.Fold?.Module.Id == RaidFreightFold.LongSpan;
                 bool needsFold = original.Module.Id == "shaft-plant";
-                foreach (var placement in Attachments(from, original.Module, target, ring, extended))
+                var options = Attachments(from, original.Module, target, ring, extended);
+                if (requireEnemyStartRoom)
+                    options = options.OrderBy(placement => (placement.Target.Frame.position - original.Frame.position).sqrMagnitude);
+                foreach (var placement in options)
                 {
                     if (remaining <= 0) break;
                     if (needsFold && placement.Fold == null) continue;
                     Room room = Commit(from, new End(placement.Target, target), placement.Fold);
                     if (Place(index + 1)) return true;
                     Undo(room);
+                }
+                return false;
+            }
+        }
+
+        private RaidPlan(RaidPlan layout, int reservedTransit, float originalSpacing)
+        {
+            Seed = layout.Seed;
+            CompletedLevels = layout.CompletedLevels;
+            Attempt = layout.Attempt;
+            diversity = layout.diversity;
+            this.canPrepare = layout.canPrepare;
+            sphereBranches = layout.sphereBranches;
+            random = layout.random;
+            catalogBranchesPlaced = layout.catalogBranchesPlaced;
+            catalogBranchRoots.UnionWith(layout.catalogBranchRoots);
+            planningSpace = layout.planningSpace;
+            var root = new Room(layout.Entrance.Room.Module, planningSpace, planningSpace, 0);
+            Entrance = new End(root, layout.Entrance.Dock);
+            root.OpenPlugs.Add(Entrance.Dock.PlugId);
+            rooms.Add(root);
+
+            // Retain the selected rooms and their authored connections while reserving station
+            // footprints before the last transit rooms and the optional branches are placed.
+            var originals = layout.rooms.Skip(1)
+                .Concat(layout.RingRoom == null ? Array.Empty<Room>() : new[] { layout.RingRoom })
+                .OrderBy(room => room.Index).ToArray();
+            var quotaSlots = originals.Where(room => room.Module.Landmarks.ContainsKey(RaidExtraction.Machine)).ToArray();
+            var destinations = originals.Except(quotaSlots).ToArray();
+            var occupiedDocks = destinations.Select(room => layout.inbound[room].From)
+                .Select(from => (from.Room.Index, from.Dock.Id)).ToHashSet();
+            var placed = new Room[originals.Length + 1];
+            placed[0] = root;
+            var reservations = new List<FreightLink>(quotaSlots.Length);
+            int reserveAt = quotaSlots[0].Index - reservedTransit;
+            const float spacingTolerance = .01f;
+            var extraction = quotaSlots[0].Module;
+            var entry = layout.Arrival(quotaSlots[0]).Dock;
+            var ramp = QuotaRamp(extraction);
+            var anchor = ramp.Knots.Last().Position;
+            float approach = RouteLength(ramp);
+            int reservationsLeft = 800;
+            int transitPlacementsLeft = 1800;
+            bool catalogRelocated = false;
+            if (!Place(0))
+                throw new PlacementException($"Freight frontier could not preserve a more widely spaced set of quotas in seed {Seed}.");
+
+            rooms.Sort((a, b) => a.Index.CompareTo(b.Index));
+            ShaftTransit = placed[layout.ShaftTransit.Index];
+            if (layout.Branch is { } authored)
+            {
+                Room ring = placed[layout.RingRoom.Index];
+                RingLink = inbound[ring];
+                Branch = (RingLink.From, ring.Frame, authored.Descriptor);
+                rooms.Remove(ring);
+            }
+            CompleteConnections();
+            if (layout.Planar != null)
+            {
+                if (!RaidPlanarLayout.TryCreate(this, out var planar))
+                    throw new PlacementException($"The reserved freight tree cannot be laid out in the plane in seed {Seed}.");
+                Planar = planar;
+            }
+
+            bool Place(int index)
+            {
+                if (index == destinations.Length) return reservations.Count == quotaSlots.Length;
+                if (transitPlacementsLeft-- <= 0 || reservationsLeft <= 0) return false;
+                Room original = destinations[index];
+                // Protect one pad on each arm before placing the last transit room(s).
+                if (original.Index == reserveAt && reservations.Count == 0)
+                    return Reserve(index, 2);
+                if (original.Index > quotaSlots[quotaSlots.Length - 1].Index && reservations.Count < quotaSlots.Length)
+                    return Reserve(index, quotaSlots.Length);
+
+                var edge = layout.inbound[original];
+                Room parent = placed[edge.From.Room.Index];
+                var from = new End(parent, parent.Dock(edge.From.Dock.Id));
+                Dock target = edge.To.Dock;
+                if (!layout.freight.Contains(edge))
+                {
+                    if (SamePlaneNeighbors(from) != 0) return false;
+                    Room room = Align(from, original.Module, target, original.Index);
+                    if (!Fits(room)) return false;
+                    CommitHand(from, new End(room, target));
+                    placed[room.Index] = room;
+                    if (Place(index + 1)) return true;
+                    handPassages.RemoveAt(handPassages.Count - 1);
+                    RemoveRoom(room);
+                    return false;
+                }
+
+                bool ring = original == layout.RingRoom;
+                bool extended = edge.Fold?.Module.Id == RaidFreightFold.LongSpan;
+                bool needsFold = original.Module.Id == "shaft-plant";
+                var options = Attachments(from, original.Module, target, ring, extended, original.Index)
+                    .Where(placement => !needsFold || placement.Fold != null)
+                    .OrderBy(placement => (placement.Target.Frame.position - original.Frame.position).sqrMagnitude)
+                    .ToArray();
+                foreach (var placement in options)
+                    if (PlaceFreight(from, placement)) return true;
+                if (options.Length > 0 || catalogRelocated || !catalogBranchRoots.Contains(original.Index) ||
+                    transitPlacementsLeft <= 0) return false;
+
+                // A reserved station may block the original approach to an optional branch. Give
+                // that entire branch one other dock while retaining its rooms and their connections.
+                catalogRelocated = true;
+                var alternatives = Exits().Where(end => end.Room != root &&
+                        !occupiedDocks.Contains((end.Room.Index, end.Dock.Id)))
+                    .OrderBy(end => Arm(end) != layout.Arm(edge.From)).ThenBy(end => (end.Sill - from.Sill).sqrMagnitude);
+                foreach (End alternative in alternatives.ToArray())
+                {
+                    if (transitPlacementsLeft <= 0) break;
+                    foreach (var placement in Attachments(alternative, original.Module, target, ring, extended, original.Index))
+                        if (PlaceFreight(alternative, placement)) return true;
+                }
+                catalogRelocated = false;
+                return false;
+
+                bool PlaceFreight(End source, (Room Target, Room Fold) placement)
+                {
+                    if (transitPlacementsLeft <= 0) return false;
+                    Room room = Commit(source, new End(placement.Target, target), placement.Fold);
+                    placed[room.Index] = room;
+                    if (Place(index + 1)) return true;
+                    Undo(room);
+                    return false;
+                }
+            }
+
+            bool Reserve(int index, int target)
+            {
+                if (reservations.Count == target) return Place(index);
+                if (reservationsLeft <= 0 || transitPlacementsLeft <= 0) return false;
+                string usedArm = reservations.Count == 1 ? Arm(reservations[0].From) : null;
+                var options = new List<(End From, Room Room, Room Fold, float World, float Cart)>();
+                foreach (End from in Exits())
+                {
+                    if (from.Room == root || (usedArm != null && Arm(from) == usedArm) ||
+                        occupiedDocks.Contains((from.Room.Index, from.Dock.Id))) continue;
+                    float toTruck = TreeDistance(from, Entrance, cartOnly: true) + approach;
+                    float toQuotas = reservations.Select(link => TreeDistance(from, link.To, cartOnly: true) + 2f * approach)
+                        .DefaultIfEmpty(float.PositiveInfinity).Min();
+                    if (!float.IsFinite(toTruck) || (reservations.Count > 0 && !float.IsFinite(toQuotas))) continue;
+                    foreach (var placement in Attachments(from, extraction, entry, initialUp: false, longLink: false,
+                        roomIndex: quotaSlots[reservations.Count].Index))
+                    {
+                        float foldLength = placement.Fold == null ? 0f : RouteLength(placement.Fold.Module.Routes[0]);
+                        Vector3 pad = placement.Target.Point(anchor);
+                        float worldDistance = reservations.Select(link => Vector3.Distance(pad, link.To.Room.Point(anchor)))
+                            .DefaultIfEmpty(Vector3.Distance(pad, Entrance.Sill)).Min();
+                        if (worldDistance <= originalSpacing + spacingTolerance) continue;
+                        options.Add((from, placement.Target, placement.Fold, worldDistance,
+                            Mathf.Min(toQuotas, toTruck) + foldLength));
+                    }
+                }
+                foreach (var option in options.OrderByDescending(option => option.World).ThenByDescending(option => option.Cart))
+                {
+                    if (reservationsLeft-- <= 0 || transitPlacementsLeft <= 0) return false;
+                    Room quota = Commit(option.From, new End(option.Room, entry), option.Fold);
+                    reservations.Add(inbound[quota]);
+                    if (Reserve(index, target)) return true;
+                    reservations.RemoveAt(reservations.Count - 1);
+                    Undo(quota);
                 }
                 return false;
             }
@@ -340,6 +500,114 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         internal static RaidPlan Generate(int seed, Pose start, int completedLevels = 0, RaidPrefabBranch branch = null,
+            Func<GrayModule> maintenance = null, Func<Room, bool> canPrepare = null)
+        {
+            var layout = GenerateLayoutWithReservedQuotas(seed, start, completedLevels, branch, maintenance, canPrepare);
+            if (layout.HasEnemyStartRoom()) return layout;
+            try
+            {
+                // Keep the selected modules and freight tree. Revisit only the physical folds
+                // when every deep room with a floor usable by stock enemies is turned away from world up.
+                var candidate = new RaidPlan(layout, requireEnemyStartRoom: true);
+                if (candidate.PortalPairCount < layout.PortalPairCount ||
+                    !candidate.rooms.Select(room => room.Module.Id).SequenceEqual(layout.rooms.Select(room => room.Module.Id)))
+                    return layout;
+                if (layout.QuotaCount >= 2)
+                {
+                    var spacing = layout.MeasureQuotaSpacing();
+                    var revised = candidate.MeasureQuotaSpacing();
+                    const float tolerance = .01f;
+                    if (revised.World + tolerance < Mathf.Min(spacing.World, RaidExtraction.Width) ||
+                        revised.Map + tolerance < Mathf.Min(spacing.Map, RaidExtraction.Width) ||
+                        revised.PairCart + tolerance < spacing.PairCart ||
+                        revised.StockCart + tolerance < spacing.StockCart)
+                        return layout;
+                }
+                return candidate;
+            }
+            catch (PlacementException) { return layout; }
+        }
+
+        private bool HasEnemyStartRoom() => rooms.Any(room => Vector3.Dot(room.Up, Vector3.up) > .9999f &&
+            IsEnemyStartInterior(room.Module) && inbound[room].From.Room != Entrance.Room);
+
+        private static bool IsEnemyStartInterior(GrayModule module) =>
+            module.Id is "calibration-sector" or "observation-lab" or "observation-lab-broken-floor" or
+                "shaft-plant" or "sample-storage" or "sample-storage-narrow" or
+                FreightServiceRoom.InstrumentService or FreightServiceRoom.SampleReceiving;
+
+        private static RaidPlan GenerateLayoutWithReservedQuotas(int seed, Pose start, int completedLevels,
+            RaidPrefabBranch branch, Func<GrayModule> maintenance, Func<Room, bool> canPrepare)
+        {
+            var baseline = GenerateLayoutWithQuotaSpacing(seed, start, completedLevels, branch, maintenance, canPrepare);
+            if (baseline.QuotaCount < 2) return baseline;
+
+            var spacing = baseline.MeasureQuotaSpacing();
+            if (spacing.World >= RaidExtraction.Width) return baseline;
+
+            RaidPlan best = baseline;
+            float bestWorld = spacing.World;
+            const float tolerance = .01f;
+            foreach (int reservedTransit in new[] { 1, 2 })
+            {
+                try
+                {
+                    var candidate = new RaidPlan(baseline, reservedTransit, spacing.World);
+                    var spread = candidate.MeasureQuotaSpacing();
+                    if (candidate.PortalPairCount < baseline.PortalPairCount ||
+                        !candidate.rooms.Select(room => room.Module.Id).SequenceEqual(baseline.rooms.Select(room => room.Module.Id)) ||
+                        spread.World <= bestWorld + tolerance || spread.Map + tolerance < Mathf.Min(spacing.Map, RaidExtraction.Width))
+                        continue;
+                    best = candidate;
+                    bestWorld = spread.World;
+                    if (bestWorld >= RaidExtraction.Width) break;
+                }
+                catch (PlacementException) { }
+            }
+            return best;
+        }
+
+        private static RaidPlan GenerateLayoutWithQuotaSpacing(int seed, Pose start, int completedLevels,
+            RaidPrefabBranch branch, Func<GrayModule> maintenance, Func<Room, bool> canPrepare)
+        {
+            var baseline = GenerateLayout(seed, start, completedLevels, branch, maintenance, canPrepare);
+            if (baseline.QuotaCount < 2) return baseline;
+
+            var spacing = baseline.MeasureQuotaSpacing();
+            float approach = RouteLength(QuotaRamp(RaidExtraction.Create()));
+            // Only revisit a layout when loading pads are crowded by the scale of their own chambers.
+            if (Mathf.Min(spacing.World, spacing.Map) >= RaidExtraction.Width &&
+                spacing.PairCart >= 2f * (RaidExtraction.Length + approach)) return baseline;
+
+            // Keep the existing attempt allowance. Probe this successful attempt with its room selection
+            // and, when different, the base room selection.
+            foreach (var diversity in new[] { baseline.diversity, DiversityScope.None }.Distinct())
+            {
+                try
+                {
+                    var candidate = baseline.Planar == null
+                        ? new RaidPlan(seed, start, completedLevels, baseline.Attempt, branch, maintenance,
+                            diversity, canPrepare, drafting: false, spreadQuotas: true)
+                        : GeneratePlanar(seed, start, completedLevels, baseline.Attempt, branch, maintenance,
+                            diversity, canPrepare, spreadQuotas: true);
+                    if (candidate.QuotaCount != baseline.QuotaCount || candidate.Rooms.Count < baseline.Rooms.Count ||
+                        candidate.catalogBranchesPlaced < baseline.catalogBranchesPlaced ||
+                        candidate.PortalPairCount < baseline.PortalPairCount ||
+                        candidate.RepeatedRooms() > baseline.RepeatedRooms()) continue;
+
+                    var spread = candidate.MeasureQuotaSpacing();
+                    const float tolerance = .01f;
+                    if (spread.PairCart + tolerance < spacing.PairCart || spread.StockCart + tolerance < spacing.StockCart ||
+                        spread.World + tolerance < spacing.World || spread.Map + tolerance < spacing.Map) continue;
+                    if (spread.PairCart > spacing.PairCart + tolerance || spread.World > spacing.World + tolerance ||
+                        spread.Map > spacing.Map + tolerance) return candidate;
+                }
+                catch (PlacementException) { }
+            }
+            return baseline;
+        }
+
+        private static RaidPlan GenerateLayout(int seed, Pose start, int completedLevels = 0, RaidPrefabBranch branch = null,
             Func<GrayModule> maintenance = null, Func<Room, bool> canPrepare = null)
         {
             var baseline = GenerateBaseline(seed, start, completedLevels, branch, maintenance, canPrepare);
@@ -378,9 +646,11 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         private static RaidPlan GeneratePlanar(int seed, Pose start, int completedLevels, int attempt,
-            RaidPrefabBranch branch, Func<GrayModule> maintenance, DiversityScope diversity, Func<Room, bool> canPrepare)
+            RaidPrefabBranch branch, Func<GrayModule> maintenance, DiversityScope diversity, Func<Room, bool> canPrepare,
+            bool spreadQuotas = false)
         {
-            var draft = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare, drafting: true);
+            var draft = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare,
+                drafting: true, spreadQuotas: spreadQuotas);
             try
             {
                 return new RaidPlan(draft);
@@ -394,7 +664,7 @@ namespace Contour4.NativeRaid.Runtime
                     try
                     {
                         var reduced = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity,
-                            canPrepare, drafting: true, sphereBranches: branches);
+                            canPrepare, drafting: true, spreadQuotas: spreadQuotas, sphereBranches: branches);
                         return new RaidPlan(reduced);
                     }
                     catch (PlacementException) { }
@@ -542,7 +812,9 @@ namespace Contour4.NativeRaid.Runtime
 
         // The portal can skip this many metres of the walkable freight tree. Measure each
         // room sill-to-sill, so neither closed approaches nor world proximity count.
-        internal float WalkingDistance(End a, End b)
+        internal float WalkingDistance(End a, End b) => TreeDistance(a, b, cartOnly: false);
+
+        private float TreeDistance(End a, End b, bool cartOnly)
         {
             var ancestor = a.Room;
             var parents = new HashSet<Room> { ancestor };
@@ -553,18 +825,25 @@ namespace Contour4.NativeRaid.Runtime
             }
             ancestor = b.Room;
             while (!parents.Contains(ancestor)) ancestor = inbound[ancestor].From.Room;
-            float first = DistanceToAncestor(a, ancestor, out End exitA);
-            float second = DistanceToAncestor(b, ancestor, out End exitB);
-            return first + second + DistanceWithin(exitA, exitB);
+            float first = DistanceToAncestor(a, ancestor, cartOnly, out End exitA);
+            float second = DistanceToAncestor(b, ancestor, cartOnly, out End exitB);
+            float middle = DistanceWithin(exitA, exitB, cartOnly);
+            if (cartOnly && float.IsPositiveInfinity(middle))
+            {
+                End arrival = Arrival(ancestor);
+                middle = DistanceWithin(exitA, arrival, cartOnly: true) +
+                    DistanceWithin(arrival, exitB, cartOnly: true);
+            }
+            return first + second + middle;
         }
 
-        private float DistanceToAncestor(End end, Room ancestor, out End reached)
+        private float DistanceToAncestor(End end, Room ancestor, bool cartOnly, out End reached)
         {
             float distance = 0f;
             while (end.Room != ancestor)
             {
                 var edge = inbound[end.Room];
-                distance += DistanceWithin(end, edge.To);
+                distance += DistanceWithin(end, edge.To, cartOnly);
                 if (edge.Fold != null) distance += RouteLength(edge.Fold.Module.Routes[0]);
                 end = edge.From;
             }
@@ -572,14 +851,20 @@ namespace Contour4.NativeRaid.Runtime
             return distance;
         }
 
-        private static float DistanceWithin(End a, End b)
+        private static float DistanceWithin(End a, End b, bool cartOnly)
         {
             if (a.Dock == b.Dock) return 0f;
+            if (cartOnly)
+            {
+                var route = FreightRoute(a.Room, a.Dock, b.Dock);
+                return route == null ? float.PositiveInfinity : LengthBetweenSills(route);
+            }
             return a.Room.Module.Routes.Where(route => route.Flight == null &&
                     ((route.From == a.Dock.Id && route.To == b.Dock.Id) || (route.From == b.Dock.Id && route.To == a.Dock.Id)))
-                .Select(route => route.Knots.Zip(route.Knots.Skip(1), (start, end) =>
-                    ClippedLength(start.Position, end.Position, a.Dock.Threshold, b.Dock.Threshold)).Sum())
-                .DefaultIfEmpty(float.PositiveInfinity).Min();
+                .Select(LengthBetweenSills).DefaultIfEmpty(float.PositiveInfinity).Min();
+
+            float LengthBetweenSills(HaulRoute route) => route.Knots.Zip(route.Knots.Skip(1), (start, end) =>
+                ClippedLength(start.Position, end.Position, a.Dock.Threshold, b.Dock.Threshold)).Sum();
         }
 
         private static float ClippedLength(Numerics.Vector3 from, Numerics.Vector3 to, ModulePose first, ModulePose second)
@@ -600,7 +885,26 @@ namespace Contour4.NativeRaid.Runtime
         private string Arm(Room room) => Arm(inbound[room].From);
         private int RootArmSize(End end) => rooms.Skip(1).Count(room => Arm(room) == Arm(end));
 
-        private float QuotaSeparation(End end, List<Room> quotas)
+        private bool TryAttachOriginalQuotas(int count, List<Room> quotas)
+        {
+            if (quotas.Count == count) return true;
+            // Keep the previous allocation available for layouts that already have adequate spacing.
+            // Reserve a fitting quota on each start arm before filling extra extraction slots.
+            string usedArm = quotas.Count == 1 ? Arm(quotas[0]) : null;
+            var candidates = Exits().Where(end => end.Room != Entrance.Room && Arm(end) != usedArm)
+                .Select(end => (End: end, Separation: OriginalQuotaSeparation(end, quotas), Tie: Next(int.MaxValue)))
+                .OrderByDescending(entry => entry.Separation).ThenBy(entry => entry.Tie)
+                .Select(entry => entry.End).ToArray();
+            return TryAttach(candidates, RaidExtraction.Create(), RaidExtraction.Entry, out _, placeNext: room =>
+            {
+                quotas.Add(room);
+                if (TryAttachOriginalQuotas(count, quotas)) return true;
+                quotas.RemoveAt(quotas.Count - 1);
+                return false;
+            });
+        }
+
+        private float OriginalQuotaSeparation(End end, List<Room> quotas)
         {
             // Measure a weighted route through the unique freight tree. The optional portal edges carry no carts.
             var origin = Ancestors(end.Room);
@@ -627,6 +931,132 @@ namespace Contour4.NativeRaid.Runtime
                 result.Add(room, distance);
             }
             return result;
+        }
+
+        private bool TryAttachQuotas(int count)
+        {
+            if (count == 0) return true;
+
+            const int improvementPlacements = 24;
+            var module = RaidExtraction.Create();
+            var entry = module.ExternalDocks.Single(dock => dock.Id == RaidExtraction.Entry);
+            var ramp = QuotaRamp(module);
+            float rampLength = RouteLength(ramp);
+            var localAnchor = ramp.Knots.Last().Position;
+            var chosen = new List<FreightLink>(count);
+            (float Cart, float Spatial) bestSpacing = (float.NegativeInfinity, float.NegativeInfinity);
+            FreightLink[] best = null;
+            uint bestRandom = random;
+            int improvementsLeft = improvementPlacements;
+
+            Search(float.PositiveInfinity, float.PositiveInfinity);
+            if (best == null) return false;
+            foreach (FreightLink link in best) Commit(link.From, link.To, link.Fold);
+            random = bestRandom;
+            return true;
+
+            void Search(float cart, float spatial)
+            {
+                if (chosen.Count == count)
+                {
+                    best = chosen.ToArray();
+                    bestSpacing = (cart, spatial);
+                    bestRandom = random;
+                    return;
+                }
+
+                // The first two extractions reserve one station on each starter arm.
+                string usedArm = chosen.Count == 1 ? Arm(chosen[0].To.Room) : null;
+                var candidates = Exits().Where(end => end.Room != Entrance.Room && Arm(end) != usedArm)
+                    .Select(end => (End: end, Cart: DistanceToStations(end), Tie: Next(int.MaxValue)))
+                    .OrderByDescending(candidate => candidate.Cart).ThenBy(candidate => candidate.Tie).ToArray();
+                uint nextRandom = random;
+                foreach (var candidate in candidates)
+                foreach (var placement in Attachments(candidate.End, module, entry, initialUp: false, longLink: false))
+                {
+                    if (best != null && improvementsLeft-- <= 0) return;
+                    float fold = placement.Fold == null ? 0f : RouteLength(placement.Fold.Module.Routes[0]);
+                    float nearestCart = Mathf.Min(cart, candidate.Cart + fold);
+                    float nearestSpatial = spatial;
+                    if (!drafting)
+                    {
+                        var anchor = placement.Target.Point(localAnchor);
+                        foreach (FreightLink link in chosen)
+                            nearestSpatial = Mathf.Min(nearestSpatial,
+                                Vector3.Distance(anchor, link.To.Room.Point(localAnchor)));
+                    }
+                    if (CompareQuotaSpacing((nearestCart, nearestSpatial), bestSpacing) <= 0) continue;
+
+                    random = nextRandom;
+                    Room room = Commit(candidate.End, new End(placement.Target, entry), placement.Fold);
+                    chosen.Add(inbound[room]);
+                    Search(nearestCart, nearestSpatial);
+                    chosen.RemoveAt(chosen.Count - 1);
+                    Undo(room);
+                    // The playable fold shapes are solved separately for the planar draft.
+                    if (drafting || improvementsLeft <= 0) break;
+                }
+            }
+
+            float DistanceToStations(End end)
+            {
+                // The native truck connects at Entrance. Its interior is beyond the planned route.
+                float nearest = TreeDistance(end, Entrance, cartOnly: true);
+                foreach (FreightLink link in chosen)
+                    nearest = Mathf.Min(nearest, TreeDistance(end, link.To, cartOnly: true) + rampLength);
+                return nearest + rampLength;
+            }
+        }
+
+        private (float PairCart, float StockCart, float World, float Map) MeasureQuotaSpacing()
+        {
+            var stations = rooms.Where(room => room.Module.Landmarks.ContainsKey(RaidExtraction.Machine))
+                .Select(room =>
+                {
+                    var entry = Arrival(room);
+                    var ramp = QuotaRamp(room.Module);
+                    var anchor = ramp.Knots.Last().Position;
+                    Vector2? map = null;
+                    if (Planar != null && Planar.TryGetPose(room.Index, entry.Dock.FloorId, out var floor))
+                    {
+                        float angle = floor.Angle * Mathf.Deg2Rad;
+                        float sine = Mathf.Sin(angle);
+                        float cosine = Mathf.Cos(angle);
+                        map = floor.Position + new Vector2(anchor.X * cosine - anchor.Z * sine,
+                            anchor.X * sine + anchor.Z * cosine);
+                    }
+                    return (Entry: entry, Approach: RouteLength(ramp), World: room.Point(anchor), Map: map);
+                }).ToArray();
+
+            float pairCart = float.PositiveInfinity;
+            float stockCart = float.PositiveInfinity;
+            float world = float.PositiveInfinity;
+            float mapDistance = float.PositiveInfinity;
+            for (int i = 0; i < stations.Length; i++)
+            {
+                var station = stations[i];
+                stockCart = Mathf.Min(stockCart, TreeDistance(station.Entry, Entrance, cartOnly: true) + station.Approach);
+                for (int j = 0; j < i; j++)
+                {
+                    var other = stations[j];
+                    pairCart = Mathf.Min(pairCart, TreeDistance(station.Entry, other.Entry, cartOnly: true) +
+                        station.Approach + other.Approach);
+                    world = Mathf.Min(world, Vector3.Distance(station.World, other.World));
+                    if (station.Map is Vector2 map && other.Map is Vector2 otherMap)
+                        mapDistance = Mathf.Min(mapDistance, Vector2.Distance(map, otherMap));
+                }
+            }
+            return (pairCart, stockCart, world, mapDistance);
+        }
+
+        private static HaulRoute QuotaRamp(GrayModule module) =>
+            module.Routes.Single(route => route.To == RaidExtraction.Machine);
+
+        private static int CompareQuotaSpacing((float Cart, float Spatial) candidate, (float Cart, float Spatial) current)
+        {
+            if (candidate.Cart != current.Cart && !Mathf.Approximately(candidate.Cart, current.Cart))
+                return candidate.Cart.CompareTo(current.Cart);
+            return candidate.Spatial.CompareTo(current.Spatial);
         }
 
         private static float RouteLength(HaulRoute route) => route.Knots.Zip(route.Knots.Skip(1),
@@ -675,40 +1105,84 @@ namespace Contour4.NativeRaid.Runtime
         private IEnumerable<End> Exits() =>
             rooms.SelectMany(room => room.Module.ExternalDocks.Select(dock => new End(room, dock))).Where(IsFreeCartExit);
 
-        private void AttachShaftBranch()
+        private void AttachFreightCluster(Room dispatch, bool receivingPortal)
         {
+            var receiving = FreightServiceRoom.Create(FreightServiceRoom.SampleReceiving, receivingPortal);
+            var storage = SampleStorage.Create(CompletedLevels >= 2 && Next(2) == 1);
+            var dispatchEast = new End(dispatch, dispatch.Dock("east"));
+            if (!TryAttach(new[] { dispatchEast }, receiving, "west", out _, placeNext: intake =>
+                TryAttach(Exits().Where(end => end.Room == intake).OrderBy(end => end.Dock.Id != "east"),
+                    storage, "main-entry", out _)))
+                throw new PlacementException($"Freight network cannot fit dispatch, receiving and sample storage (seed {Seed}).");
+        }
+
+        private void AttachResearchCluster(int laboratories)
+        {
+            // Early wings can rotate the two research connections across the three cart docks.
+            // Keep the observation spur available once the gallery unlocks.
+            int shaftDock = laboratories == 0 ? Next(ResearchDocks.Length) : 0;
+            int calibrationDock = (shaftDock + 1 + (laboratories == 0 ? Next(2) : 0)) % ResearchDocks.Length;
             var candidates = Exits().OrderBy(end => Next(int.MaxValue)).ToArray();
+            var service = FreightServiceRoom.Create(FreightServiceRoom.InstrumentService, portal: false);
             var shaft = ShaftPlant.Create();
-            var shaftEntry = shaft.ExternalDocks.Single(dock => dock.Id == "freight-entry");
             var cupboard = StorageCupboard.Create();
             var cupboardEntry = cupboard.ExternalDocks.Single();
+            var calibration = CalibrationSector.Create();
+            bool broken = laboratories > 0 && CompletedLevels >= 5 && Next(2) == 1;
+            var mainLab = laboratories > 0 ? ObservationLab.Create(broken) : null;
+            var secondaryLab = laboratories == 2 ? ObservationLab.Create(!broken) : null;
+
             foreach (var (transit, exit) in ShaftTransits())
             {
-                var entry = transit.ExternalDocks.Single(dock => dock.Id == "west");
-                foreach (var from in candidates)
-                foreach (var placement in Attachments(from, transit, entry, false, false))
+                if (transit.Id == service.Id)
                 {
-                    var corridor = Commit(from, new End(placement.Target, entry), placement.Fold);
-                    var onward = new End(corridor, corridor.Dock(exit));
-                    foreach (var landing in Attachments(onward, shaft, shaftEntry, false, false))
-                    {
-                        // The upper annex is hand-only. The lower path to the field core always uses freight docks.
-                        if (landing.Fold == null) continue;
-                        var plant = Commit(onward, new End(landing.Target, shaftEntry), landing.Fold);
-                        var upper = new End(plant, plant.Dock("upper-exit"));
-                        var annex = Align(upper, cupboard, cupboardEntry, NextRoomIndex);
-                        if (Fits(annex))
+                    foreach (End from in candidates)
+                        if (TryAttach(new[] { from }, service, "west", out Room hub,
+                            placeNext: room => PlaceShaft(room, from.Room)))
                         {
-                            CommitHand(upper, new End(annex, cupboardEntry));
+                            ShaftTransit = hub;
+                            return;
+                        }
+                }
+                else
+                {
+                    foreach (End from in candidates)
+                        if (TryAttach(new[] { from }, transit, "west", out Room corridor,
+                            placeNext: approach => TryAttach(new[] { new End(approach, approach.Dock(exit)) },
+                                service, "west", out _,
+                                placeNext: hub => PlaceShaft(hub, transit.Id == "junction-corridor" ? approach : from.Room))))
+                        {
                             ShaftTransit = corridor;
                             return;
                         }
-                        Undo(plant);
-                    }
-                    Undo(corridor);
                 }
             }
-            throw new PlacementException($"Freight network cannot fit the shaft and its upper cupboard (seed {Seed}).");
+            throw new PlacementException($"Freight network cannot fit the shaft research cluster (seed {Seed}).");
+
+            bool PlaceShaft(Room hub, Room observationApproach) =>
+                TryAttach(HubExits(hub, ResearchDocks[shaftDock]), shaft, "freight-entry", out _, requireFold: true,
+                    placeNext: plant =>
+                    {
+                        // Only hand cargo reaches the upper cupboard. The field core uses the freight entrance.
+                        var upper = new End(plant, plant.Dock("upper-exit"));
+                        var annex = Align(upper, cupboard, cupboardEntry, NextRoomIndex);
+                        if (!Fits(annex)) return false;
+                        CommitHand(upper, new End(annex, cupboardEntry));
+                        if (TryAttach(HubExits(hub, ResearchDocks[calibrationDock]), calibration, "main-entry", out _,
+                            placeNext: _ => PlaceObservation(hub, observationApproach)))
+                            return true;
+                        handPassages.RemoveAt(handPassages.Count - 1);
+                        RemoveRoom(annex);
+                        return false;
+                    });
+
+            bool PlaceObservation(Room hub, Room approach) => mainLab == null ||
+                TryAttach(HubExits(hub, "spur"), mainLab, "freight-entry", out _, placeNext: _ =>
+                    secondaryLab == null || TryAttach(Exits().Where(end => end.Room == approach),
+                        secondaryLab, "freight-entry", out _));
+
+            IEnumerable<End> HubExits(Room hub, string preferred) =>
+                Exits().Where(end => end.Room == hub).OrderBy(end => end.Dock.Id != preferred);
         }
 
         private int Instances(GrayModule module) => rooms.Count(room => room.Module.Id == module.Id);
@@ -737,8 +1211,8 @@ namespace Contour4.NativeRaid.Runtime
         {
             if (diversity is DiversityScope.ShaftAndBranches or DiversityScope.EntireLayout)
             {
-                var choices = CorridorTransits().Concat(StaffedRooms(portal: false, instrumentFirst: true)
-                    .Select(module => (Module: module, Exit: "east")));
+                var choices = CorridorTransits().Append((
+                    Module: FreightServiceRoom.Create(FreightServiceRoom.InstrumentService, portal: false), Exit: "east"));
                 var ranked = choices.OrderBy(choice => Instances(choice.Module));
                 if (CatalogBranchTarget(CompletedLevels) == 0)
                     ranked = ranked.ThenBy(_ => Next(int.MaxValue));
@@ -791,10 +1265,13 @@ namespace Contour4.NativeRaid.Runtime
                 Dock entry = module.ExternalDocks.Single(dock => dock.Id == descriptor.Entry);
                 // Recompute free docks after each placement, so new catalog exits can lead into another branch.
                 var candidates = Exits().Where(end => end.Room != Entrance.Room).OrderBy(end => Next(int.MaxValue)).ToArray();
+                int rootIndex = NextRoomIndex;
                 bool placed = SphericalChamber.IsVariant(module.Id) ? TryPlaceSphereTransit(candidates, module) : entry.MaxCargo == Cargo.Hand
                     ? TryPlaceHandTransit(candidates, module, entry, descriptor.Exits)
                     : TryPlaceCartBranch(candidates, module, entry, descriptor.Exits);
-                if (placed && ++catalogBranchesPlaced == target) break;
+                if (!placed) continue;
+                catalogBranchRoots.Add(rootIndex);
+                if (++catalogBranchesPlaced == target) break;
             }
         }
 
@@ -881,39 +1358,41 @@ namespace Contour4.NativeRaid.Runtime
             return false;
         }
 
-        private Room Attach(GrayModule module, string entry, bool initialUp = false, End? preferredExit = null)
+        private Room Attach(GrayModule module, string entry, bool initialUp = false)
         {
             // At full progression, keep staffed rooms on the way to destinations when their
             // remaining sill fits. This gives unopened branches a reason to explore.
             var candidates = Exits().OrderBy(end => CompletedLevels >= 14 && end.Room.OpenPlugs.Count == 1 ? 0 : 1)
                 .ThenBy(end => Next(int.MaxValue));
-            if (TryAttach(preferredExit is { } reserved ? new[] { reserved } : candidates, module, entry, out Room room, initialUp))
+            if (TryAttach(candidates, module, entry, out Room room, initialUp))
                 return room;
             throw new PlacementException($"Freight network cannot fit {module.Id} (seed {Seed}).");
         }
 
         private bool TryAttach(IEnumerable<End> candidates, GrayModule module, string entry, out Room result,
-            bool initialUp = false, bool longLink = false)
+            bool initialUp = false, bool longLink = false, bool requireFold = false, Func<Room, bool> placeNext = null)
         {
             Dock entrance = module.ExternalDocks.Single(candidate => candidate.Id == entry);
             foreach (End from in candidates)
             foreach (var placement in Attachments(from, module, entrance, initialUp, longLink))
             {
+                if (requireFold && placement.Fold == null) continue;
                 result = Commit(from, new End(placement.Target, entrance), placement.Fold);
-                return true;
+                if (placeNext == null || placeNext(result)) return true;
+                Undo(result);
             }
             result = null;
             return false;
         }
 
         private IEnumerable<(Room Target, Room Fold)> Attachments(End from, GrayModule module, Dock entrance,
-            bool initialUp, bool longLink)
+            bool initialUp, bool longLink, int? roomIndex = null)
         {
             if (!IsFreeCartExit(from) || from.Dock.Opening != entrance.Opening ||
                 (entrance.Use & DockUse.Physical) == 0 || entrance.MaxCargo != Cargo.Cart) yield break;
             if (!longLink && SamePlaneNeighbors(from) == 0)
             {
-                Room flat = Align(from, module, entrance, NextRoomIndex);
+                Room flat = Align(from, module, entrance, roomIndex ?? NextRoomIndex);
                 if (Fits(flat) && (!initialUp || Vector3.Dot(Entrance.Up, flat.Up) > .999f))
                     yield return (flat, null);
             }
@@ -924,7 +1403,7 @@ namespace Contour4.NativeRaid.Runtime
                 Room fold = Align(from, foldModule, foldEntry, -freight.Count - 1);
                 if (!Fits(fold)) continue;
                 var exit = new End(fold, foldModule.Docks[1]);
-                Room turned = Align(exit, module, entrance, NextRoomIndex);
+                Room turned = Align(exit, module, entrance, roomIndex ?? NextRoomIndex);
                 if (!Fits(turned) || Intersects(turned, fold) ||
                     (initialUp && Vector3.Dot(Entrance.Up, turned.Up) < .999f)) continue;
                 fold.OpenPlugs.Add(foldEntry.PlugId);

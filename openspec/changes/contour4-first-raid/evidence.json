@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "results": [
+    {
+      "criterion": "AC-001",
+      "status": "passed",
+      "subject": "80c057ea531c1665085910b0364f627c33534a42610a878552214663043495c8",
+      "recordedAt": "2026-11-20T18:24:43.3705496+03:00",
+      "recordedBy": "Codex",
+      "observed": "Нативная соло-игра зарегистрировала Контур-4, создала стартовую, лутовую и три предмета. Штатный NavMesh дал полный маршрут от игрока до лута.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-first-raid/run-08-final/stages.txt",
+          "sha256": "47bbad171d827e427347ae0bfff160cc61f64526698d07d7e8ff4b5cd9d03a6f"
+        },
+        {
+          "path": "local-evidence/contour4-first-raid/run-08-final/run.json",
+          "sha256": "11d30d84ef2647023af56f6c320ace35506ffd14334983e52a82113e86b73792"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-002",
+      "status": "pending",
+      "subject": "80c057ea531c1665085910b0364f627c33534a42610a878552214663043495c8",
+      "recordedAt": "2026-11-20T18:24:43.3705496+03:00",
+      "recordedBy": "Codex",
+      "observed": "Нативная точка засчитала квоту 2884 с диагностической подачей предметов и вызовом штатной кнопки. Самостоятельный перенос игроком ещё не проверен.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-first-raid/run-08-final/stages.txt",
+          "sha256": "47bbad171d827e427347ae0bfff160cc61f64526698d07d7e8ff4b5cd9d03a6f"
+        },
+        {
+          "path": "local-evidence/contour4-first-raid/run-08-final/success.txt",
+          "sha256": "9ecdcc2c6484355de8aede16db6b184e50bca0afe27c651d60a30c045d9b7f47"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-003",
+      "status": "passed",
+      "subject": "80c057ea531c1665085910b0364f627c33534a42610a878552214663043495c8",
+      "recordedAt": "2026-11-20T18:24:43.3705496+03:00",
+      "recordedBy": "Codex",
+      "observed": "ZIP содержит ровно пять файлов. SHA-256 DLL и бандла совпали с экземплярами из успешного прогона.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-first-raid/run-08-final/package.json",
+          "sha256": "99561edc48095eeeec8fde9e90ca812f23785f28c7fde559216dca9a9f4c89ad"
+        },
+        {
+          "path": "local-evidence/contour4-first-raid/run-08-final/run.json",
+          "sha256": "11d30d84ef2647023af56f6c320ace35506ffd14334983e52a82113e86b73792"
+        }
+      ]
+    }
+  ]
+}

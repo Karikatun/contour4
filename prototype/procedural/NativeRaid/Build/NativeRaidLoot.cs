@@ -21,7 +21,8 @@ internal static class NativeRaidLoot
         AccessTools.FieldRefAccess<ValuableDirector, int>("valuableTargetAmount");
     private static readonly AccessTools.FieldRef<ValuableDirector, float> SpawnValue =
         AccessTools.FieldRefAccess<ValuableDirector, float>("totalCurrentValue");
-    private static readonly Dictionary<ValuableDirector, (RaidLootBudget.Allocation Plan, List<PrefabRef>[] Pools)>
+    private static readonly Dictionary<ValuableDirector, (RaidLootBudget.Allocation Plan, List<PrefabRef>[] Pools,
+        Dictionary<ValuableVolume, ValuableVolume> EquipmentFallbacks)>
         Populating = new();
     private static readonly Dictionary<ValuableDirector, (ValuableVolume Volume, int[] Limits, int[] Original)> PendingFloor = new();
 
@@ -29,9 +30,13 @@ internal static class NativeRaidLoot
     {
         var volumes = new Dictionary<ValuableVolume, RaidLootSlot>();
         var bounds = raid.Rooms.ToDictionary(room => room, RaidLootPlacement.StructuralBounds);
-        foreach (var slot in RaidLootSites.Find(raid))
+        var pockets = raid.Rooms.Select(BrokenEquipmentLoot.Find).Where(slot => slot != null);
+        foreach (var slot in RaidLootSites.Find(raid).Concat(pockets))
         {
-            var node = RaidAssembly.Child(slot.Room.Root, $"loot:{slot.Kind}:{slot.Size}:{volumes.Count:D3}");
+            string name = slot.EquipmentRetrieval.HasValue
+                ? "loot:equipment:" + slot.Support.name
+                : $"loot:{slot.Kind}:{slot.Size}:{volumes.Count:D3}";
+            var node = RaidAssembly.Child(slot.Room.Root, name);
             node.SetLocalPositionAndRotation(slot.Pose.position, slot.Pose.rotation);
             var volume = AddVolume(node, slot.Size, slot.Placement(bounds[slot.Room]), slot.Kind, slot.Room.Plan.Index);
             volumes.Add(volume, slot);
@@ -96,7 +101,7 @@ internal static class NativeRaidLoot
             }
             else
             {
-                Populating.Add(director, (null, pools));
+                Populating.Add(director, (null, pools, null));
             }
 
             while (routine.MoveNext())
@@ -155,6 +160,7 @@ internal static class NativeRaidLoot
                 .ThenBy(volume => volume.transform.position.x).ThenBy(volume => volume.transform.position.y)
                 .ThenBy(volume => volume.transform.position.z))
             {
+                if (IsEquipmentPocket(volume)) continue;
                 var authoredSite = volume.GetComponent<RaidAuthoredLoot>();
                 if (authoredSite &&
                     (authoredSite.RingFloor && type > (int)RaidLootSize.Medium && !ringCartAccess ||
@@ -175,19 +181,21 @@ internal static class NativeRaidLoot
         var plan = RaidLootBudget.Select(candidates, maximums, MaximumCount(director),
             Mathf.RoundToInt(MaximumValue(director) * 1000), averageDollars, module.LootSeed, preparedCatalog);
         var chosen = plan.Picks.Select(index => all[index]).ToLookup(volume => (int)volume.VolumeType);
+        var equipmentFallbacks = new Dictionary<ValuableVolume, ValuableVolume>();
         for (int type = 0; type < volumes.Length; type++)
         {
-            var first = chosen[type].ToArray();
+            var ordinaryFirst = chosen[type].ToArray();
+            var first = ReplaceWithEquipmentPockets(ordinaryFirst, volumes[type], pools[type], equipmentFallbacks, module.LootSeed);
             maximums[type] = first.Length;
             // Native rare/cosmetic placement advances the same volume indices after this prefix slice.
-            var rest = volumes[type].Except(first).ToArray();
+            var rest = volumes[type].Except(ordinaryFirst).Where(volume => !IsEquipmentPocket(volume)).ToArray();
             volumes[type].Clear();
             volumes[type].AddRange(first);
             volumes[type].AddRange(rest);
         }
         MaximumCount(director) = plan.Count;
         MaximumValue(director) = plan.Dollars / 1000.0f;
-        Populating.Add(director, (plan, pools));
+        Populating.Add(director, (plan, pools, equipmentFallbacks));
         var firstFloor = plan.Picks.Select(index => all[index])
             .FirstOrDefault(volume => volume.TryGetComponent<RaidAuthoredLoot>(out var site) && site.Kind == LootSurfaceKind.Floor);
         if (firstFloor)
@@ -201,6 +209,31 @@ internal static class NativeRaidLoot
         Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, candidates={all.Count}, allocated={plan.Count}, " +
             $"capacity by size={string.Join("/", maximums)}, target=${plan.Dollars}.");
     }
+
+    private static ValuableVolume[] ReplaceWithEquipmentPockets(ValuableVolume[] ordinary,
+        List<ValuableVolume> volumes, List<PrefabRef> pool, Dictionary<ValuableVolume, ValuableVolume> fallbacks, int seed)
+    {
+        var equipment = volumes.Where(IsEquipmentPocket).ToArray();
+        if (equipment.Length == 0 || ordinary.Length == 0) return ordinary;
+        var result = (ValuableVolume[])ordinary.Clone();
+        foreach (var pocket in equipment)
+        {
+            var site = pocket.GetComponent<RaidAuthoredLoot>();
+            // An optional pocket takes a Tiny slot already allocated to a furnishing
+            // in the same room. It never competes with the main floor or raises the cap.
+            int index = Array.FindIndex(ordinary, volume =>
+                volume.TryGetComponent<RaidAuthoredLoot>(out var original) && !original.RingFloor &&
+                original.RoomIndex == site.RoomIndex && original.Kind != LootSurfaceKind.Floor);
+            if (index < 0 || !pool.Any(prefab => Fits(pocket, prefab))) continue;
+            result[index] = pocket;
+            fallbacks.Add(pocket, ordinary[index]);
+            Debug.Log($"[Contour4 Loot] seed={seed}, allocated equipment pocket {pocket.name}; replaces {ordinary[index].name}.");
+        }
+        return result;
+    }
+
+    private static bool IsEquipmentPocket(ValuableVolume volume) =>
+        volume.TryGetComponent<RaidAuthoredLoot>(out var site) && site.Placement?.EquipmentPocket == true;
 
     private static bool Fits(ValuableVolume volume, PrefabRef prefab)
     {
@@ -222,7 +255,7 @@ internal static class NativeRaidLoot
             if (index >= volumes.Count || !volumes[index].GetComponent<RaidAuthoredLoot>()) return true;
 
             Physics.SyncTransforms();
-            int chosen = volumes.FindIndex(index, volume => Fits(volume, setup.prefab));
+            int chosen = volumes.FindIndex(index, volume => !IsEquipmentPocket(volume) && Fits(volume, setup.prefab));
             if (chosen < 0) return false;
             if (chosen != index)
             {
@@ -237,7 +270,7 @@ internal static class NativeRaidLoot
     [HarmonyPatch(typeof(ValuableDirector), "SpawnValuable")]
     private static class SpawnValuablePatch
     {
-        private static bool Prefix(ValuableDirector __instance, ref PrefabRef __0, ValuableVolume __1)
+        private static bool Prefix(ValuableDirector __instance, ref PrefabRef __0, ref ValuableVolume __1)
         {
             if (!__1.GetComponent<RaidAuthoredLoot>()) return true;
 
@@ -245,16 +278,29 @@ internal static class NativeRaidLoot
             if (Fits(__1, __0)) return true;
             if (Populating.TryGetValue(__instance, out var population))
             {
-                var replacement = population.Pools[(int)__1.VolumeType].Find(prefab => Fits(__1, prefab));
-                if (replacement != null)
+                var pool = population.Pools[(int)__1.VolumeType];
+                if (ChooseFittingPrefab(__1, pool, ref __0)) return true;
+                if (population.EquipmentFallbacks != null &&
+                    population.EquipmentFallbacks.TryGetValue(__1, out var fallback) &&
+                    ChooseFittingPrefab(fallback, pool, ref __0))
                 {
-                    __0 = replacement;
+                    Debug.Log($"[Contour4 Loot] obstructed equipment pocket {__1.name}; using {fallback.name}.");
+                    __1 = fallback;
                     return true;
                 }
             }
             if (PendingFloor.TryGetValue(__instance, out var floor) && floor.Volume == __1)
                 RestoreFloorLimits(__instance);
             return false;
+        }
+
+        private static bool ChooseFittingPrefab(ValuableVolume volume, List<PrefabRef> pool, ref PrefabRef selected)
+        {
+            if (Fits(volume, selected)) return true;
+            var replacement = pool.Find(prefab => Fits(volume, prefab));
+            if (replacement == null) return false;
+            selected = replacement;
+            return true;
         }
         private static void Postfix(ValuableDirector __instance, ValuableVolume __1, ValuableObject __result)
         {
@@ -263,6 +309,8 @@ internal static class NativeRaidLoot
                 RestoreFloorLimits(__instance);
             if (!__result || !Populating.TryGetValue(__instance, out var population) || population.Plan == null)
                 return;
+            if (IsEquipmentPocket(__1))
+                Debug.Log($"[Contour4 Loot] equipment spawn {__1.name}; prefab={__result.name}; position={__result.transform.position:F3}.");
             NativeRaidGravity.TrackRibbonSpawn(__1, __result);
             ref int maximum = ref MaximumCount(__instance);
             maximum = population.Plan.ContinueUntil(SpawnCount(__instance), maximum);

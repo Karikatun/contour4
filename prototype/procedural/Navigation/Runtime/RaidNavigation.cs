@@ -6,11 +6,11 @@ using UnityEngine.SceneManagement;
 
 namespace Contour4.Procedural.Navigation
 {
-    public enum RaidRouteKind { Local, PhysicalPassage, Portal, OrientedDeck }
+    public enum RaidRouteKind { Local, PhysicalPassage, Portal, OrientedDeck, Stairs }
     public enum RaidSightKind { None, Direct, Portal }
 
     [DisallowMultipleComponent]
-    public sealed class RaidNavigation : MonoBehaviour
+    public sealed partial class RaidNavigation : MonoBehaviour
     {
         private readonly Dictionary<RaidFloor, RaidNavSurface> surfaces = new();
         private readonly Dictionary<RaidFloor, RaidNavSurface> referenceSurfaces = new();
@@ -188,7 +188,8 @@ namespace Contour4.Procedural.Navigation
             {
                 if (edge.To != player.Floor)
                     continue;
-                if (edge.Kind is RaidRouteKind.PhysicalPassage or RaidRouteKind.OrientedDeck &&
+                if ((edge.Kind is RaidRouteKind.PhysicalPassage or RaidRouteKind.OrientedDeck ||
+                    edge.Kind == RaidRouteKind.Stairs && profile.MaximumStepHeight > 0f) &&
                     InSight(target - eye, forward, profile) && RayIsClear(eye, target))
                     return RaidSightKind.Direct;
                 if ((edge.Use & RaidPortalUse.Vision) != 0 &&
@@ -351,12 +352,23 @@ namespace Contour4.Procedural.Navigation
         }
 
         internal bool TryTransition(Edge edge, RaidEnemyProfile profile, out Vector3 approach, out Vector3 landing,
-            Rigidbody portalTraveller = null)
+            Rigidbody portalTraveller = null) =>
+            TryTransition(edge, profile, out approach, out landing, out _, portalTraveller);
+
+        internal bool TryTransition(Edge edge, RaidEnemyProfile profile, out Vector3 approach, out Vector3 landing,
+            out Vector3[] stairCourse, Rigidbody portalTraveller = null)
         {
             approach = landing = default;
+            stairCourse = null;
             if (edge.Kind == RaidRouteKind.PhysicalPassage)
                 return TryStand(edge.From, edge.Approach, profile, out approach) &&
                     TryStand(edge.To, edge.Landing, profile, out landing) && PhysicalIsClear(edge, approach, landing, profile);
+
+            if (edge.Kind == RaidRouteKind.Stairs)
+                return profile.MaximumStepHeight > 0f &&
+                    TryStand(edge.From, edge.Approach, profile, out approach) &&
+                    TryStand(edge.To, edge.Landing, profile, out landing) &&
+                    TryStairPath(edge.Deck, approach, landing, profile, out stairCourse);
 
             if (edge.Kind == RaidRouteKind.OrientedDeck)
             {
@@ -498,7 +510,8 @@ namespace Contour4.Procedural.Navigation
 
             internal static Edge ForDeck(RaidDeckPassage deck) => new Edge
             {
-                From = deck.From, To = deck.To, Deck = deck, Kind = RaidRouteKind.OrientedDeck
+                From = deck.From, To = deck.To, Deck = deck,
+                Kind = deck.Stepped ? RaidRouteKind.Stairs : RaidRouteKind.OrientedDeck
             };
 
             internal Vector3 Map(Vector3 position) => Exit.Frame.position + Rotation * (position - Entry.Frame.position);

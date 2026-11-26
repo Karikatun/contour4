@@ -15,6 +15,7 @@ namespace Contour4.NativeRaid.Runtime
         private readonly List<(RaidFloor Floor, Vector2[] Outline)> surfaces = new();
         private readonly HashSet<Collider> decks;
         private readonly List<PreparedRaidTurn> turns = new();
+        private readonly List<PreparedRaidTurn> stairs = new();
         private readonly Transform root;
         private readonly Bounds occupied;
         internal IEnumerable<RaidFloor> Floors => surfaces.Select(item => item.Floor);
@@ -22,7 +23,7 @@ namespace Contour4.NativeRaid.Runtime
         internal IReadOnlyList<PreparedRaidTurn> Turns => turns;
 
         internal PreparedRaidSurfaces(RaidPlan.Room room, Transform root, Dictionary<string, Collider> parts,
-            Collider[] geometry)
+            Collider[] geometry, Collider cableSupport)
         {
             this.root = root;
             occupied = RaidPlan.BoundsOf(room.Module.Geometry.Where(block => block.Role != BlockRole.Free)
@@ -33,6 +34,7 @@ namespace Contour4.NativeRaid.Runtime
                     room.Module.Id == MobiusHall.Id && block.Id == "roof")
                 .ToDictionary(block => block, block => parts[block.Id]);
             decks = support.Values.ToHashSet();
+            if (cableSupport) decks.Add(cableSupport);
             // The Möbius ribbon is deliberately excluded from the planar floor
             // bake. It is nevertheless a genuine support for oriented traversal.
             if (room.Module.Id == MobiusHall.Id) decks.Add(parts[MobiusHall.Ribbon]);
@@ -42,7 +44,8 @@ namespace Contour4.NativeRaid.Runtime
                 bool turn = floor.Id is "helix" or "bridge" || floor.Id.EndsWith("-bridge", StringComparison.Ordinal);
                 if (turn) continue;
                 var outline = floor.MapContour.Select(point => new Vector2(-point.Y, point.X)).ToArray();
-                byId.Add(floor.Id, AddFloor(roomId, floor.Id, "floor", marker, outline, geometry, support));
+                byId.Add(floor.Id, AddFloor(roomId, floor.Id, "floor", marker, outline, geometry, support,
+                    floor.Id == "ground" ? cableSupport : null));
             }
 
             foreach (var dock in room.Module.Docks)
@@ -64,21 +67,43 @@ namespace Contour4.NativeRaid.Runtime
                 byDock.Add(dock.Id, local);
             }
 
-            foreach (var route in room.Module.Routes.Where(route => route.Knots.Any(knot =>
-                System.Numerics.Vector3.Dot(knot.Up, route.Knots[0].Up) < .9999f)))
+            foreach (var route in room.Module.Routes)
             {
+                bool changesUp = route.Knots.Any(knot =>
+                    System.Numerics.Vector3.Dot(knot.Up, route.Knots[0].Up) < .9999f);
+                bool stepped = !changesUp && route.StepClearance > .2f &&
+                    MathF.Abs(System.Numerics.Vector3.Dot(route.Knots[^1].Position - route.Knots[0].Position,
+                        route.Knots[0].Up)) > .3f;
+                if (!changesUp && !stepped) continue;
                 Transform track = root.Find("Haul routes/" + route.Id);
                 if (!track || track.childCount != route.Knots.Length)
                     throw new InvalidOperationException($"{roomId}/{route.Id}: missing authored route knots.");
                 var knots = route.Knots.Select((pose, index) => Required(root,
                     $"Haul routes/{route.Id}/{index + 1:D3}", pose)).ToArray();
-                turns.Add(new PreparedRaidTurn(route, root, knots, decks));
+                (stepped ? stairs : turns).Add(new PreparedRaidTurn(route, root, knots, decks));
             }
         }
 
         internal bool TryFloor(string id, out RaidFloor floor) => byId.TryGetValue(id, out floor);
         internal RaidFloor DockFloor(Dock dock) => byDock[dock.Id];
         internal bool Contains(Vector3 point) => occupied.Contains(root.InverseTransformPoint(point));
+
+        internal IEnumerable<RaidDeckPassage> StairPassages(int mask)
+        {
+            foreach (var stair in stairs)
+            {
+                var course = stair.DenseSamples(.06f).ToArray();
+                Pose start = stair.World(course[0]), finish = stair.World(course[^1]);
+                if (!TryNearFloor(start.position, .08f, mask, out var from, out _) ||
+                    !TryNearFloor(finish.position, .08f, mask, out var to, out _) ||
+                    from == to || Vector3.Dot(from.Up, to.Up) < .9998f)
+                    continue;
+                yield return new RaidDeckPassage(from, to, stair.Root, course, decks, stepped: true);
+                var reverse = course.Reverse().Select(pose => new Pose(pose.position,
+                    pose.rotation * Quaternion.AngleAxis(180f, Vector3.up))).ToArray();
+                yield return new RaidDeckPassage(to, from, stair.Root, reverse, decks, stepped: true);
+            }
+        }
 
         internal IEnumerable<RaidDeckPassage> DeckPassages(int mask)
         {
@@ -137,14 +162,15 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         private RaidFloor AddFloor(string room, string id, string island, Transform frame, Vector2[] outline,
-            Collider[] geometry, Dictionary<Block, Collider> candidates)
+            Collider[] geometry, Dictionary<Block, Collider> candidates, Collider cableSupport = null)
         {
             var root = frame.parent.parent;
             Bounds bounds = RaidPlan.BoundsOf(outline.Select(point => new Vector3(point.x, 0, point.y)));
             var crop = bounds;
             crop.Expand(new Vector3(.08f, 0, .08f));
-            var support = candidates.Where(item => Supports(item.Key, root, frame, crop)).Select(item => item.Value).ToArray();
-            if (support.Length == 0) throw new InvalidOperationException($"{room}/{id}/{island}: no authored support faces.");
+            var support = candidates.Where(item => Supports(item.Key, root, frame, crop)).Select(item => item.Value).ToList();
+            if (support.Count == 0) throw new InvalidOperationException($"{room}/{id}/{island}: no authored support faces.");
+            if (cableSupport) support.Add(cableSupport);
             bounds.center = new Vector3(bounds.center.x, 1.52f, bounds.center.z);
             bounds.size = new Vector3(bounds.size.x + .28f, 3.88f, bounds.size.z + .28f);
             var value = new RaidFloor(room, id, island, new Pose(frame.position, frame.rotation),
@@ -256,22 +282,7 @@ namespace Contour4.NativeRaid.Runtime
 
         internal Pose World(Pose local) => new(root.TransformPoint(local.position), root.rotation * local.rotation);
 
-        internal IEnumerable<Pose> DenseSamples()
-        {
-            yield return samples[0];
-            for (int i = 1; i < samples.Length; i++)
-            {
-                var a = samples[i - 1];
-                var b = samples[i];
-                int count = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(a.position, b.position) / .13f),
-                    Mathf.CeilToInt(Quaternion.Angle(a.rotation, b.rotation) / 4f));
-                for (int step = 1; step <= count; step++)
-                {
-                    float t = step / (float)count;
-                    yield return new Pose(Vector3.Lerp(a.position, b.position, t), Quaternion.Slerp(a.rotation, b.rotation, t));
-                }
-            }
-        }
+        internal IEnumerable<Pose> DenseSamples(float stepSize = .13f) => RaidDeckPassage.DenseSamples(samples, stepSize);
 
         internal bool TryUp(Vector3 point, int mask, bool allowsHandOnly, out Vector3 up, out float distance)
         {

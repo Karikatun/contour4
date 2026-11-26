@@ -22,7 +22,7 @@ namespace SpaceJourney
             Prefabs = prefabs;
         }
 
-        internal static RoomPrefabBundle Load(string path, string preparedPath = null)
+        internal static RoomPrefabBundle Load(string path, string preparedPath = null, bool requireWear = false)
         {
             AssetBundle bundle = Open(path);
             AssetBundle preparedBundle = null;
@@ -50,7 +50,14 @@ namespace SpaceJourney
                     if (!expected.SetEquals(preparedBundle.GetAllAssetNames()))
                         throw new InvalidOperationException("The prepared bundle entry list differs from the module catalog.");
                 }
-                return new RoomPrefabBundle(bundle, preparedBundle, new RaidRoomPrefabs(receiving, receivingWithoutResearch, prepared));
+                var prefabs = new RaidRoomPrefabs(receiving, receivingWithoutResearch, prepared);
+                var wear = bundle.LoadAsset<Shader>(RoomSurfaceWear.ShaderPath);
+                if (wear)
+                    RoomSurfaceWear.Configure(wear, Require<Texture2D>(bundle, RoomSurfaceWear.FloorPath),
+                        Require<Texture2D>(bundle, RoomSurfaceWear.PlasterPath), Require<Texture2D>(bundle, RoomSurfaceWear.EnamelPath));
+                else if (requireWear)
+                    throw new InvalidOperationException($"{bundle.name} is missing {RoomSurfaceWear.ShaderPath}.");
+                return new RoomPrefabBundle(bundle, preparedBundle, prefabs);
             }
             catch
             {
@@ -74,6 +81,7 @@ namespace SpaceJourney
 
         public void Dispose()
         {
+            RoomSurfaceWear.Configure(null, null, null, null);
             if (preparedBundle) preparedBundle.Unload(false);
             if (bundle) bundle.Unload(false);
         }

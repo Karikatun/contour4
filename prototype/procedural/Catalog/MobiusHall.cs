@@ -24,6 +24,9 @@ namespace Contour4.Procedural.Catalog
         public const float WallEquipmentSetback = 1.3f;
         public const float WorktableSetback = .45f;
         public const float MonitoringOffsetZ = 7.75f;
+        public const string EastStorage = "mobius-east-storage";
+        internal const float EastStorageFront = 11.05f * Scale - .325f;
+        internal const float EastStorageZ = (-5.05f - WallEquipmentSetback) * Scale;
         public static readonly Vector3[] NativeBypassPads = {
             new Vector3(-10.9f*Scale, 0, -4.1f*Scale), new Vector3(10.9f*Scale, 0, -4.1f*Scale)
         };
@@ -42,7 +45,6 @@ namespace Contour4.Procedural.Catalog
             ("mobius-west-worktable", new Vector3(-4.5f*Scale,.48f,(-7.65f-WorktableSetback)*Scale), new Vector3(3.2f,.96f,.85f)),
             ("mobius-east-worktable", new Vector3(4.5f*Scale,.48f,(-7.65f-WorktableSetback)*Scale), new Vector3(3.2f,.96f,.85f)),
             ("mobius-monitoring", new Vector3(0,1.04f,-7.75f+MonitoringOffsetZ), new Vector3(2.45f,2.08f,.72f)),
-            ("mobius-east-storage", new Vector3(11.05f*Scale,1.1f,(-5.05f-WallEquipmentSetback)*Scale), new Vector3(.65f,2.2f,1.5f)),
             ("mobius-west-diagnostics", new Vector3(-11.35f*Scale,1.15f,(-5.1f-WallEquipmentSetback)*Scale), new Vector3(.52f,2.3f,1.65f))
         };
         // Conservative registered collision envelopes for the freestanding lamp stands.
@@ -140,6 +142,7 @@ namespace Contour4.Procedural.Catalog
             foreach (var (id, center, size) in WorkstationHulls)
                 hall.Box(id, BlockRole.Fixture, center.X-size.X/2, center.X+size.X/2,
                     center.Y-size.Y/2, center.Y+size.Y/2, center.Z-size.Z/2, center.Z+size.Z/2);
+            BuildEastStorage(hall);
             foreach (var (id, center, size) in TripodHulls)
                 hall.Box(id, BlockRole.Fixture, center.X-size.X/2, center.X+size.X/2,
                     center.Y-size.Y/2, center.Y+size.Y/2, center.Z-size.Z/2, center.Z+size.Z/2);
@@ -163,6 +166,29 @@ namespace Contour4.Procedural.Catalog
                 Pose(8*Scale, 0, -1.85f*Scale), Pose(bypassX, 0, -1.85f*Scale),
                 Pose(bypassX, 0, 0, Vector3.UnitZ), Pose(outsideX + 1.5f, 0, 0));
             return hall.Module;
+        }
+
+        private static void BuildEastStorage(GrayBuilder hall)
+        {
+            const float depth = .73f, width = 1.50f, rear = .05f;
+            const float height = RoomDressing.RackShelterHeight;
+            const float halfBay = RoomDressing.RackShelterWidth / 2;
+            for (int shelf = 0; shelf < 4; shelf++)
+            {
+                float bottom = height + shelf * .47f;
+                Part($"shelf-{shelf}", bottom, bottom + .06f, -width / 2, width / 2);
+            }
+            Part("low-cheek-near", 0, height, -width / 2, -halfBay);
+            Part("low-cheek-far", 0, height, halfBay, width / 2);
+            Part("upright-near", height, 2.20f, -width / 2, -.65f);
+            Part("upright-far", height, 2.20f, .65f, width / 2);
+            hall.Box(EastStorage + "-shelter-back", BlockRole.Fixture,
+                EastStorageFront + depth - rear, EastStorageFront + depth, 0, height,
+                EastStorageZ - halfBay, EastStorageZ + halfBay);
+
+            void Part(string id, float bottom, float top, float start, float end) =>
+                hall.Box($"{EastStorage}-{id}", BlockRole.Fixture, EastStorageFront, EastStorageFront + depth,
+                    bottom, top, EastStorageZ + start, EastStorageZ + end);
         }
 
         public static ModulePose AccessPose(bool ceiling, float t)

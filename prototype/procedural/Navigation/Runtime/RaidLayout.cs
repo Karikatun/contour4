@@ -193,18 +193,45 @@ namespace Contour4.Procedural.Navigation
         internal readonly HashSet<Collider> Supports;
         private readonly Transform root;
         private readonly Pose[] poses;
+        internal bool Stepped { get; }
         internal int Count => poses.Length;
 
         internal RaidDeckPassage(RaidFloor from, RaidFloor to, Transform root, Pose[] poses, HashSet<Collider> supports)
+            : this(from, to, root, poses, supports, stepped: false)
+        {
+        }
+
+        internal RaidDeckPassage(RaidFloor from, RaidFloor to, Transform root, Pose[] poses,
+            HashSet<Collider> supports, bool stepped)
         {
             From = from;
             To = to;
             this.root = root;
             this.poses = poses;
             Supports = supports;
+            Stepped = stepped;
         }
 
-        internal Pose World(int index) => new(root.TransformPoint(poses[index].position), root.rotation * poses[index].rotation);
+        internal Pose World(int index) => new(World(poses[index].position), root.rotation * poses[index].rotation);
+        internal Vector3 World(Vector3 local) => root.TransformPoint(local);
+        internal Vector3 Local(Vector3 world) => root.InverseTransformPoint(world);
+
+        internal static IEnumerable<Pose> DenseSamples(IReadOnlyList<Pose> knots, float stepSize)
+        {
+            yield return knots[0];
+            for (int i = 1; i < knots.Count; i++)
+            {
+                var a = knots[i - 1];
+                var b = knots[i];
+                int count = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(a.position, b.position) / stepSize),
+                    Mathf.CeilToInt(Quaternion.Angle(a.rotation, b.rotation) / 4f));
+                for (int step = 1; step <= count; step++)
+                {
+                    float t = step / (float)count;
+                    yield return new Pose(Vector3.Lerp(a.position, b.position, t), Quaternion.Slerp(a.rotation, b.rotation, t));
+                }
+            }
+        }
     }
 
     public sealed class RaidEnemyProfile
@@ -218,11 +245,19 @@ namespace Contour4.Procedural.Navigation
         public float MemorySeconds { get; }
         public bool WalksPortals { get; }
         public bool Reorients { get; }
+        public float MaximumStepHeight { get; }
 
         public RaidEnemyProfile(float radius, float height, float eyeHeight, float speed, float sightRange,
             float sightAngle, float memorySeconds, bool walksPortals, bool reorients)
+            : this(radius, height, eyeHeight, speed, sightRange, sightAngle, memorySeconds, walksPortals, reorients, 0f)
         {
-            if (!RaidGeometry.Finite(new Vector3(radius, height, eyeHeight)) ||
+        }
+
+        public RaidEnemyProfile(float radius, float height, float eyeHeight, float speed, float sightRange,
+            float sightAngle, float memorySeconds, bool walksPortals, bool reorients, float maximumStepHeight)
+        {
+            if (!float.IsFinite(maximumStepHeight) || maximumStepHeight < 0f || maximumStepHeight > radius ||
+                !RaidGeometry.Finite(new Vector3(radius, height, eyeHeight)) ||
                 !RaidGeometry.Finite(new Vector3(speed, sightRange, sightAngle)) ||
                 !RaidGeometry.Finite(new Vector3(memorySeconds, 0, 0)) ||
                 radius <= 0 || height <= 2 * radius || eyeHeight <= 0 || eyeHeight > height ||
@@ -237,6 +272,7 @@ namespace Contour4.Procedural.Navigation
             MemorySeconds = memorySeconds;
             WalksPortals = walksPortals;
             Reorients = reorients;
+            MaximumStepHeight = maximumStepHeight;
         }
     }
 

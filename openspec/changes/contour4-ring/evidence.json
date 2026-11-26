@@ -1,0 +1,765 @@
+{
+  "results": [
+    {
+      "criterion": "AC-101",
+      "status": "pending",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "Игрок прошёл из фургона в квоту, зарегистрированы четыре комнаты и тележка. Штатная точка приняла квоту 4368 при диагностической раскладке лута. Ручной перенос ждёт проверки.",
+      "files": [
+        {
+          "sha256": "defdf01d362dbc5dd30e1f91e72422edd8c8a1d3a8487da53fd30af0017d8554",
+          "path": "local-evidence/contour4-ring/game-11-release/stages.txt"
+        },
+        {
+          "sha256": "99aa26ab8043c9cac364eae04bac2688d9cc8cd62a13242b4f4fafe476b89215",
+          "path": "local-evidence/contour4-ring/game-11-release/run.json"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-102",
+      "status": "pending",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "Игрок прошёл оба моста в обе стороны штатным управлением. Направление измерено в 68 позициях. Нагруженная тележка ждёт ручного прогона.",
+      "files": [
+        {
+          "sha256": "defdf01d362dbc5dd30e1f91e72422edd8c8a1d3a8487da53fd30af0017d8554",
+          "path": "local-evidence/contour4-ring/game-11-release/stages.txt"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-103",
+      "status": "pending",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "Груз сам пересёк каждый проём в обоих направлениях. Игрок прошёл дверной портал дважды и верхний переход из квоты. Документирован рабочий вид через дверь. Хват при ручной переноске ждёт проверки.",
+      "files": [
+        {
+          "sha256": "defdf01d362dbc5dd30e1f91e72422edd8c8a1d3a8487da53fd30af0017d8554",
+          "path": "local-evidence/contour4-ring/game-11-release/stages.txt"
+        },
+        {
+          "sha256": "4be1da7f5123ed7b8b3b78d9bf171be7a1110fea29d38279f9ddd4495f8f60c0",
+          "path": "local-evidence/contour4-ring/game-11-release/doorway-view.png"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-104",
+      "status": "pending",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "На штатном экране присвоена плоская карта. Развёртка отображает только два дверных порога. Визуальный контроль маркера после верхнего перехода ждёт проверки.",
+      "files": [
+        {
+          "sha256": "defdf01d362dbc5dd30e1f91e72422edd8c8a1d3a8487da53fd30af0017d8554",
+          "path": "local-evidence/contour4-ring/game-11-release/stages.txt"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-105",
+      "status": "passed",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "Игра подтвердила четыре активных точечных источника на стенах каждого отсека. Кадры показывают свет на полу и светящийся корпус над проходом.",
+      "files": [
+        {
+          "sha256": "defdf01d362dbc5dd30e1f91e72422edd8c8a1d3a8487da53fd30af0017d8554",
+          "path": "local-evidence/contour4-ring/game-11-release/stages.txt"
+        },
+        {
+          "sha256": "06d6f59cf5f2616f90c3135f36e86b49ee00480e3c67e835514646c5049c5f73",
+          "path": "local-evidence/contour4-ring/game-11-release/quota-view.png"
+        },
+        {
+          "sha256": "4be1da7f5123ed7b8b3b78d9bf171be7a1110fea29d38279f9ddd4495f8f60c0",
+          "path": "local-evidence/contour4-ring/game-11-release/doorway-view.png"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-106",
+      "status": "passed",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "Пять элементов в ZIP. SHA-256 DLL и бандла совпали с точным распакованным игровым кандидатом.",
+      "files": [
+        {
+          "sha256": "1eb3063bbc7c6d7355331d36db3ffcd15215d22a47c296b6c32f163a819d9557",
+          "path": "local-evidence/contour4-ring/game-11-release/package.json"
+        },
+        {
+          "sha256": "99aa26ab8043c9cac364eae04bac2688d9cc8cd62a13242b4f4fafe476b89215",
+          "path": "local-evidence/contour4-ring/game-11-release/run.json"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-107",
+      "status": "passed",
+      "subject": "35cd47b16bd23a03447f8cf1ed2032d5d359fe36590a54bf23ca0362f821ad05",
+      "recordedAt": "2026-11-20T19:04:51+03:00",
+      "recordedBy": "Codex",
+      "observed": "Самопроверка импорта, масштаба и пяти физических стыков. Игровая копия изолирована, SHA-256 86 основных сохранений совпал.",
+      "files": [
+        {
+          "sha256": "3679a084f88106c9dfec9526216bd8081defdd403c2481870e9a2ab07683a53c",
+          "path": "local-evidence/contour4-ring/unity-04.log"
+        },
+        {
+          "sha256": "99aa26ab8043c9cac364eae04bac2688d9cc8cd62a13242b4f4fafe476b89215",
+          "path": "local-evidence/contour4-ring/game-11-release/run.json"
+        }
+      ]
+    },
+    {
+      "observed": "Штатная квота находится под StartRoom. Девять мешей установки не пересекают коллизии лутовой 2. При диагностической раскладке штатно принята квота 5544. Ручная перевозка остаётся для приёмки.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "pending",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-101",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/stages.txt",
+          "sha256": "851c6ad1fa97d0bf8602f4fccb5f75dde91ddfba0768fe41eb1092dc7ba4ae20"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-02-zip/stages.txt",
+          "sha256": "faeb0ec4a2375406f28ecd11d882532201be6f5ab7ea8ade80286b6aac90f866"
+        }
+      ]
+    },
+    {
+      "observed": "Проверены позы на обоих настилах и обработка схода с каждого. Маршрут нагруженной тележки ждёт ручной проверки.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "pending",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-102",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/stages.txt",
+          "sha256": "851c6ad1fa97d0bf8602f4fccb5f75dde91ddfba0768fe41eb1092dc7ba4ae20"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-02-zip/stages.txt",
+          "sha256": "faeb0ec4a2375406f28ecd11d882532201be6f5ab7ea8ade80286b6aac90f866"
+        }
+      ]
+    },
+    {
+      "observed": "Проверены переходы игрока через обе двери и верх в обоих направлениях. Сценарий тяжёлого груза в хвате на верхнем проёме ждёт ручной проверки.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "pending",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-103",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/stages.txt",
+          "sha256": "851c6ad1fa97d0bf8602f4fccb5f75dde91ddfba0768fe41eb1092dc7ba4ae20"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-03-portals/stages.txt",
+          "sha256": "4dfc05821f7dc24eb2a42dbe7718c71a59339bc0039334fdf47448a174cfc684"
+        }
+      ]
+    },
+    {
+      "observed": "Плоская схема в бандле совпадает с проверенной 0.2.0. Контроль штатного индикатора после верхнего перехода ждёт ручного прогона.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "pending",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-104",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/package.json",
+          "sha256": "71ccc4a6c5a0b7f9e98e54e3bac19817b5cc993ad73600514a284874de4c665a"
+        }
+      ]
+    },
+    {
+      "observed": "В игре видны освещённые комнаты и действующие настенные источники света из прежнего бандла. Восемь кадров дверей и два кадра верхнего проёма.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "passed",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-105",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/stages.txt",
+          "sha256": "851c6ad1fa97d0bf8602f4fccb5f75dde91ddfba0768fe41eb1092dc7ba4ae20"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-03-portals/Loot2__South_Loot3-front.png",
+          "sha256": "7ecca2efc6cbeb3606c6c42074f9758909d86e907b404ecafef0f941d17a8692"
+        }
+      ]
+    },
+    {
+      "observed": "DLL и бандл совпадают с распакованным ZIP во всех трёх прогонах.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "passed",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-106",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/package.json",
+          "sha256": "71ccc4a6c5a0b7f9e98e54e3bac19817b5cc993ad73600514a284874de4c665a"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-02-zip/run.json",
+          "sha256": "691e2dd1cc860bcb3684f444cd524c62ee668c06da7738c8170ed3405881399f"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-03-portals/run.json",
+          "sha256": "e99f4c589909630b30ada164b8bc73999ecf6930a87b181330c79fb43aea17c7"
+        }
+      ]
+    },
+    {
+      "observed": "В изолированной игре совпали хеши исходных 86 файлов сохранений. Устройство квот проверено по иерархиям трёх локальных модов.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "passed",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-107",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/mod-extraction-hierarchy.txt",
+          "sha256": "807d231c9a6e9dd5fdc36f9831995a4a81c9dca9b63f22784d1b6c1c085cd239"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/run.json",
+          "sha256": "ccf9ac7e1f4f1ef827ff4040be7c511469d7df871493c665bd17b131b47c8175"
+        }
+      ]
+    },
+    {
+      "observed": "После схода с обоих настилов игрок оставался жив на высоте прыжка. Ниже настила игра зарегистрировала смерть и нативную голову на центральной части моста.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "passed",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-108",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/stages.txt",
+          "sha256": "851c6ad1fa97d0bf8602f4fccb5f75dde91ddfba0768fe41eb1092dc7ba4ae20"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-02-zip/stages.txt",
+          "sha256": "faeb0ec4a2375406f28ecd11d882532201be6f5ab7ea8ade80286b6aac90f866"
+        }
+      ]
+    },
+    {
+      "observed": "По одному пересечению верхнего проёма в каждую сторону. После каждого перехода гравитация стабильно совпадала с комнатой назначения.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "passed",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-109",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-01/stages.txt",
+          "sha256": "851c6ad1fa97d0bf8602f4fccb5f75dde91ddfba0768fe41eb1092dc7ba4ae20"
+        }
+      ]
+    },
+    {
+      "observed": "Проверены кадры прямо и сбоку с обеих сторон каждой двери, плюс кадры обоих верхних проёмов. Оба дверных прохода пройдены в обе стороны.",
+      "recordedBy": "Codex",
+      "recordedAt": "2026-11-20T19:39:48+03:00",
+      "status": "passed",
+      "subject": "525b0d20e9d5599bbf8a9ea5bd33459d27309f71e158e944cb30e39726bb0a3a",
+      "criterion": "AC-110",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-03-portals/stages.txt",
+          "sha256": "4dfc05821f7dc24eb2a42dbe7718c71a59339bc0039334fdf47448a174cfc684"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-03-portals/Loot1__South_Loot3-side.png",
+          "sha256": "779cf47fc0db485d47d644b731e302ae9bcb557e4a000bfc27878e5d70e2cdf2"
+        },
+        {
+          "path": "local-evidence/contour4-ring-repairs/game-03-portals/Quota__Upper_Loot3-front.png",
+          "sha256": "65deb3b404016f05b11a16ef1416ff658fe6b47111d9297e7d26867ba5b3f96c"
+        }
+      ]
+    },
+    {
+      "observed": "Хеши DLL и бандла из ZIP совпали с пройденным игровым прогоном.",
+      "files": [
+        {
+          "sha256": "1319aa025238432d05ac0cb9011038cabef96b7846161515dd6ed962457617be",
+          "path": "local-evidence/contour4-ring-seam/package.json"
+        },
+        {
+          "sha256": "75719c66053f4c49c6c8adddd130538e6e64f1c54e5c6a6fcc00cbe2921ee234",
+          "path": "local-evidence/contour4-ring-seam/game-06-native-upright/run.json"
+        }
+      ],
+      "recordedBy": "Codex",
+      "subject": "024c0c9dea6d02b4fe2584b56adb47884fa6d912e75f70364a81dda224c2c12c",
+      "criterion": "AC-106",
+      "status": "passed",
+      "recordedAt": "2026-11-20T20:02:22+03:00"
+    },
+    {
+      "observed": "Нативная тележка с двумя свободными телами прошла обе двери в обе стороны. Зафиксированы остановка, видимые части за порогом и возврат назад. Движение задавалось в игровом физическом цикле, ручной хват остаётся для владельца.",
+      "files": [
+        {
+          "sha256": "a83880bd7580f7994bff175aed6f4515a2cbe6da541eed30be97dd921f5d9105",
+          "path": "local-evidence/contour4-ring-seam/game-01-baseline/stages.txt"
+        },
+        {
+          "sha256": "e5b9bc504a9e4958a089d35a50ff0073cbc29961a15357fafde8b14ac1b09a58",
+          "path": "local-evidence/contour4-ring-seam/game-06-native-upright/stages.txt"
+        },
+        {
+          "sha256": "3fcab37b07ac8f3e182c131dbaf90e7fccf226da0d49f1884b603ec690bf798b",
+          "path": "local-evidence/contour4-ring-seam/game-06-native-upright/cart-straddling-screen.png"
+        }
+      ],
+      "recordedBy": "Codex",
+      "subject": "024c0c9dea6d02b4fe2584b56adb47884fa6d912e75f70364a81dda224c2c12c",
+      "criterion": "AC-111",
+      "status": "passed",
+      "recordedAt": "2026-11-20T20:02:22+03:00"
+    },
+    {
+      "observed": "Текстура основного кадра и готовое изображение с игровым интерфейсом показывают отсеки через оба порога в обоих направлениях.",
+      "files": [
+        {
+          "sha256": "e5b9bc504a9e4958a089d35a50ff0073cbc29961a15357fafde8b14ac1b09a58",
+          "path": "local-evidence/contour4-ring-seam/game-06-native-upright/stages.txt"
+        },
+        {
+          "sha256": "b9f75c5c05ecf3c8f34dc0000c15ac70da759166001a1f72151cf4fff0c59247",
+          "path": "local-evidence/contour4-ring-seam/game-06-native-upright/view-Loot3__South_Loot2-main.png"
+        },
+        {
+          "sha256": "8cb1c936c940e3fe4a19d46d51288a582c8fca131321ad1dec5c00d2a39ef638",
+          "path": "local-evidence/contour4-ring-seam/game-06-native-upright/view-Loot3__South_Loot2-screen.png"
+        }
+      ],
+      "recordedBy": "Codex",
+      "subject": "024c0c9dea6d02b4fe2584b56adb47884fa6d912e75f70364a81dda224c2c12c",
+      "criterion": "AC-112",
+      "status": "passed",
+      "recordedAt": "2026-11-20T20:02:22+03:00"
+    },
+    {
+      "criterion": "AC-111",
+      "status": "passed",
+      "subject": "be1396935277050481e10a11a33017c9200030160b0c2747141d0e1ad9a39101",
+      "recordedAt": "2026-11-20T17:30:23.067Z",
+      "recordedBy": "Codex",
+      "observed": "Тележка с двумя предметами прошла оба дверных порога в обе стороны. В отдельном прогоне движения скоростью проверены остановка на пороге, отображение груза и задний ход.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-grip/10-package-regression/stages.txt",
+          "sha256": "e8e81ad29e0625511f1c87a4a1910c941f94f23d1fad205de5a635d8a4c41b8a"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/10-package-regression/cart-straddling-screen.png",
+          "sha256": "d9b6473cf76a2ae26a61ba3eb4a7ace328b27986ac37d10890e7b117adf8b0a8"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/10-package-regression/run.json",
+          "sha256": "795c5e7ec48f4cd9045abfc8e40bab12f2baa01f12b21580efe6f5ec9095d46d"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-112",
+      "status": "passed",
+      "subject": "be1396935277050481e10a11a33017c9200030160b0c2747141d0e1ad9a39101",
+      "recordedAt": "2026-11-20T17:30:23.079Z",
+      "recordedBy": "Codex",
+      "observed": "В обоих направлениях каждой двери проверены текстура основного кадра и итоговый скриншот с интерфейсом. В кадре видна геометрия соседнего отсека.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-grip/10-package-regression/stages.txt",
+          "sha256": "e8e81ad29e0625511f1c87a4a1910c941f94f23d1fad205de5a635d8a4c41b8a"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/10-package-regression/view-Loot3__South_Loot2-main.png",
+          "sha256": "de81cf30dbaea407bf4e4d01b1b05ab714ddc30d111ae42141afd47a74b53a59"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/10-package-regression/view-Loot3__South_Loot2-screen.png",
+          "sha256": "d4a094179be27c94f5c08b7e0ea55eb25912b6d5d21376c47823ad6d1cca0f94"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-113",
+      "status": "passed",
+      "subject": "be1396935277050481e10a11a33017c9200030160b0c2747141d0e1ad9a39101",
+      "recordedAt": "2026-11-20T17:30:23.081Z",
+      "recordedBy": "Codex",
+      "observed": "На двух дверях автоматическая подача штатного ввода подтвердила хват после перехода игрока, остановку на пороге, задний ход и отпускание. Два предмета остались в корзине. Преобразованная точка совпала с ожидаемой по замерам прогона.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-grip/11-zip-grip-repeat/stages.txt",
+          "sha256": "23e30f39e08574a4ff8a300aa422db3f036dc9081e1aa1f5d70ef92d5be702c5"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/11-zip-grip-repeat/run.json",
+          "sha256": "250578ab6d2e03b5ed9cf99d82813b910d9ee7f26e3df5a1d8b19a110f9b08e6"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/11-zip-grip-repeat/Loot1__South_Loot3-released.png",
+          "sha256": "948e7c6d16dae4c8176f3279511c8433a151f3293952d5642b651967f9b0885e"
+        },
+        {
+          "path": "local-evidence/contour4-ring-grip/11-zip-grip-repeat/Loot2__South_Loot3-released.png",
+          "sha256": "4b42ef92a36ff9d06ff6b34164ab4c6288606b0260d9c9ddc68dec8ec7ab05ad"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-111",
+      "status": "passed",
+      "subject": "8ea8b7e3f88e39b831d97dea7c1a4466f56c760159246df60624c5b72cb4334f",
+      "recordedAt": "2026-11-20T17:47:29.524Z",
+      "recordedBy": "Codex",
+      "observed": "Нагруженная тележка прошла обе двери в обе стороны после прохождения задней части. На пороге прошли остановка, отображение груза и задний ход при управлении скоростью.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-view/05-through-regression/run.json",
+          "sha256": "0c00bf20903398150352268babfffecb0f1421d3902578be7822b96a6323928c"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/05-through-regression/stages.txt",
+          "sha256": "111b88d9ee7c9093b0a70c2c8b4578ed9b50545e117f3b218fa02984a1039045"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/05-through-regression/cart-straddling-screen.png",
+          "sha256": "95bbd2e6ca8575bf5bfa6e329abe21546ce836e6d35223f2f6969c5b2a00a663"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-112",
+      "status": "passed",
+      "subject": "8ea8b7e3f88e39b831d97dea7c1a4466f56c760159246df60624c5b72cb4334f",
+      "recordedAt": "2026-11-20T17:47:29.527Z",
+      "recordedBy": "Codex",
+      "observed": "В четырёх направлениях дверей видна комната назначения в текстуре основного кадра и на итоговом экране с HUD.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-view/05-through-regression/stages.txt",
+          "sha256": "111b88d9ee7c9093b0a70c2c8b4578ed9b50545e117f3b218fa02984a1039045"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/05-through-regression/view-Loot3__South_Loot2-main.png",
+          "sha256": "08ae55b163f75d0b34d970417972012e9d620dbcb085c8f4b74741b61772fa20"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/05-through-regression/view-Loot3__South_Loot2-screen.png",
+          "sha256": "52ecb7936210139849c693eb205826dff0dae39f345a9784496fd08c1c60aa08"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-113",
+      "status": "passed",
+      "subject": "8ea8b7e3f88e39b831d97dea7c1a4466f56c760159246df60624c5b72cb4334f",
+      "recordedAt": "2026-11-20T17:47:29.529Z",
+      "recordedBy": "Codex",
+      "observed": "На обеих дверях остановка, задний ход и отпускание штатным хватом прошли с двумя предметами в корзине.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-view/07-grip-regression/run.json",
+          "sha256": "745f38b9e07b5abdf33e31284db5186e94de0e2590dd207bdd13fd5aa67f2597"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/07-grip-regression/stages.txt",
+          "sha256": "0a5d41c2a4beda6400a8a7f87d4ef5ae12879b175b89688c160fe3f7f3e97f7e"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/07-grip-regression/Loot1__South_Loot3-released.png",
+          "sha256": "97962ffafaac8dc64a35328b79ebe88bdffc81f7599a4bb64ba8b222a6daacf2"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/07-grip-regression/Loot2__South_Loot3-released.png",
+          "sha256": "fc0254fac8b4cd35de12ae0c8accf141c2c32370cafda8a4db08f35841734f24"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-114",
+      "status": "passed",
+      "subject": "8ea8b7e3f88e39b831d97dea7c1a4466f56c760159246df60624c5b72cb4334f",
+      "recordedAt": "2026-11-20T17:47:29.533Z",
+      "recordedBy": "Codex",
+      "observed": "При 40 позах у дверей получен вид в каждом кадре и размер текстуры 752 × 423, равный игровому кадру. В четырёх проходах максимальный шаг камеры 0,015 м против 22,711 м у 0.2.3.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-view/02-baseline/stages.txt",
+          "sha256": "ba6a0f45d9a59901517ba166cd410eb99948803206506685df41e0c18e1b6e76"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/03-candidate/run.json",
+          "sha256": "127c31695584c6315ab52354fcaeef83892d1431cbbd9f4a8e1da0066386dd06"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/03-candidate/stages.txt",
+          "sha256": "362acbb80c686c2929dcb72178f36fe4e3340d75b653e9f1997d29bf1f7c5616"
+        },
+        {
+          "path": "local-evidence/contour4-ring-view/03-candidate/Loot3__South_Loot2-edge.png",
+          "sha256": "1bca5d5eca404928d8eb37dcb991a687dfb6e555633ed4a36bf2453cd291871c"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-106",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "Точный ZIP 0.2.5 содержит собственные DLL, Unity-бандл, манифест, документацию и иконку. В игре загружены DLL и бандл с контрольными суммами из отчёта.",
+      "files": [
+        {
+          "path": "prototype/ring/dist/SpaceJourney-Contour4-0.2.5.zip",
+          "sha256": "1df8f9079b820b49a5c05cf3180887d5a9ff04379a18086befacbe079f5ccb16"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/run.json",
+          "sha256": "fcb2440898187753fb0e550b62d8fe45f65b42ffce8eb31eff71981684244cb2"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-110",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "Сняты 40 ракурсов по центру и у края, ещё 40 ракурсов у обоих косяков. Отсек виден в дверном проёме в четырёх направлениях.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/stages.txt",
+          "sha256": "ad629367bed4843be56ce7dec849e49752605b3b93cb0446d667f678a9353364"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/Loot3__South_Loot2-grazing-17-1-main.png",
+          "sha256": "f7f8c97c8b10b2866a9d6368ccfcef291e564d02f7ab8554a2f469084a37f0c2"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-111",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "Тележка с двумя предметами остановилась на пороге, сдала назад и выполнила четыре полных перехода. На остановке отображались 17 частей кузова и груза с другой стороны.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-transition/16-final-loaded-through/stages.txt",
+          "sha256": "c94b44379a5e0a0218106b3cc4e6d57d8bfaae91d28fbf760a1f6d1edb01d027"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/16-final-loaded-through/cart-straddling-screen.png",
+          "sha256": "8a0bfaa9ea32aa321d443539a6ddea45c6b35b3c44a96a2952e843aa28eb4360"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/16-final-loaded-through/run.json",
+          "sha256": "7a65c62d59f19881744600454cff8a3704828d8cab945badca415ae15b091f0b"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-112",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "Сняты основной игровой кадр и итоговые кадры с HUD по всем четырём направлениям, а также при остановке тележки на пороге.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-transition/16-final-loaded-through/stages.txt",
+          "sha256": "c94b44379a5e0a0218106b3cc4e6d57d8bfaae91d28fbf760a1f6d1edb01d027"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/16-final-loaded-through/view-Loot1__South_Loot3-main.png",
+          "sha256": "b2beca5af80f62a81169f9e20a9e4bd38eebfce43ce75c327fe457bb77b3be6a"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/16-final-loaded-through/view-Loot1__South_Loot3-screen.png",
+          "sha256": "84f4c3f802f59f9405e840c7819142e2b1678b630908d34c8014533b1b691956"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-113",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "Штатный хват сохранился при остановке и заднем ходе на обеих дверях. Отпускание заняло 0,007–0,008 с, по два предмета остались в корзине.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-transition/17-final-stock-grip/stages.txt",
+          "sha256": "50b525773d45bf091229e5a9a26d9ff5270426004a27caae37d3c540a5a4ba98"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/17-final-stock-grip/run.json",
+          "sha256": "08138f407b22b171719a8774d2b2ea17a320572451b07dc4a8cde4ec9d8bc03c"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-114",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "40 основных ракурсов сохранили вид в родном размере 752 × 423. В четырёх переходах при повороте взгляда на 42° без чтения кадров максимальный шаг камеры составил 0,016 м.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/stages.txt",
+          "sha256": "ad629367bed4843be56ce7dec849e49752605b3b93cb0446d667f678a9353364"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/run.json",
+          "sha256": "fcb2440898187753fb0e550b62d8fe45f65b42ffce8eb31eff71981684244cb2"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-115",
+      "status": "passed",
+      "subject": "88178410d6f8d075a49a83a521544ca940f5b66c6dc21834638c0807896271b2",
+      "recordedAt": "2026-11-20T22:15:11.556Z",
+      "recordedBy": "Codex",
+      "observed": "Максимальная разница яркости соседних кадров 1,1 из 255. На проходе с тележкой контраст пола 9,8% и 10,0%. Вклад фонаря 12,6 через дверь, 12,4 напрямую. Средняя яркость полосы верхнего проёма 24,98 в каждом совпадающем ракурсе.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/stages.txt",
+          "sha256": "ad629367bed4843be56ce7dec849e49752605b3b93cb0446d667f678a9353364"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/Loot1__South_Loot3-walk-03-entry-main.png",
+          "sha256": "8dc8e7f824516dbbed873e36cdb969ad080c5cc1675506e3ce36fde5c0ff1ef8"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/Loot1__South_Loot3-walk-04-exit-main.png",
+          "sha256": "4fe83ba5062f62ddacf99acf9323a318babc547305ad7f517499a79d9a9bb331"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/upper-through-door-main.png",
+          "sha256": "af74d98d117985ad7dab84e165c3dfc6011fd1e4974b294917604adddc977d1d"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/upper-directly-main.png",
+          "sha256": "ae14e1fc96785eb099ba51a637f29edda2ea84787a9810cea9ce5c6649ae32c1"
+        },
+        {
+          "path": "local-evidence/contour4-ring-transition/15-final-visual/run.json",
+          "sha256": "fcb2440898187753fb0e550b62d8fe45f65b42ffce8eb31eff71981684244cb2"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-121",
+      "status": "passed",
+      "subject": "8445890418601df42bfa2ac0d7f02e1b0be7a37601ad5f45126cbb0691995018",
+      "recordedAt": "2026-11-21T18:03:47+03:00",
+      "recordedBy": "Codex",
+      "observed": "Точный ZIP 0.2.10. Все четыре пирамиды 15 × 15 × 7,663 м, 60 устойчивых проверок на границах. Штатный предмет ускорился к полу лутовой 1. Игрок повернулся на 180° за 1,52 с (2,70° максимум за физический такт), сел на пол своего отсека. На обоих мостах отдельно подтверждены штатная смерть при падении и появление головы на доступном настиле.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fields/run.json",
+          "sha256": "b4f4d3ba82508dc4445e47c64ff725c9cd75fdae30c67cd33bfe3269258f7853"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fields/stages.txt",
+          "sha256": "ce6b96c3840f63e63d9c1edfa6ea911b0fa66a9706ded4c36096807f68ba0506"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fields/opposite-airborne.csv",
+          "sha256": "5f284adec628beda60e87c308d1c86d4d29bbb95c60fd900d8bdfd328296bd84"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fall-bridge1/run.json",
+          "sha256": "90f53d52231e8f6d60585132b9c24539eae7cd4c6f11918a672307341f933203"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fall-bridge1/stages.txt",
+          "sha256": "df92a7a7e772d36d3a59330321e20d739f4df25d9f35254da29b78123520f984"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fall-bridge2/run.json",
+          "sha256": "cba9c6f540a1ea4663a5c97a5d111168d8100b4b4fae4425bf1816841d6cb683"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-fall-bridge2/stages.txt",
+          "sha256": "11c1545a91b70fc8e8b39c8a4e632af7caa619a8ec7bde721af756f80f83eedd"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-122",
+      "status": "passed",
+      "subject": "8445890418601df42bfa2ac0d7f02e1b0be7a37601ad5f45126cbb0691995018",
+      "recordedAt": "2026-11-21T18:03:47+03:00",
+      "recordedBy": "Codex",
+      "observed": "Точный ZIP 0.2.10. Все четыре направления и ракурсы штатного прохода проверены. Камера перемещалась на 0,0136–0,0141 м в кадре пересечения, вертикаль сменилась за 0,840–0,844 с, луч штатного хвата отклонялся от видимого направления не более чем на 0,36°. Пройдены центр и смещение на 0,65 м у обоих проёмов с опорой на рампу назначения.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/baseline-visual-01/run.json",
+          "sha256": "aac9b74269acd5e3cf5979a6edc62c29be5e29db54a834f21ffc5d28e5972230"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/baseline-visual-01/upper-frames.csv",
+          "sha256": "4f49d910a50a06ba3b368e9324a2046737070ac5f88887ba72586003f7daae43"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-upper/run.json",
+          "sha256": "1381c306c33ad7dc18cb82378962a58b189e198349a69b2188c7ef616b6ab112"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-upper/upper-frames.csv",
+          "sha256": "8c88681b73a655dcc9ade2d129dbb5f4c5bfe6615e7fa0e6a667c3f5d5565714"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-route/run.json",
+          "sha256": "1a29e9c5b2c17bdd357b2b924ee7af8cd8ad747a319adcdfa74ede6051a02b43"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/release-210-route/stages.txt",
+          "sha256": "1dd93cfb212cbbf66fb7c02f1bfa06e86414f30269b53d3c4929eeb616e6bf84"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/upper-Quota-to-Loot3-yaw-0.png",
+          "sha256": "470fcd0f0f0cc2567a9c997a9dd9a66924753d2ba12859bb0633edcb254468ba"
+        },
+        {
+          "path": "local-evidence/contour4-ring-gravity-210/upper-Loot3-to-Quota-yaw-28.png",
+          "sha256": "c7ee701947f64bb2f8a40e41171288c6cf7df34c162b98d63e55fd15b49c76a1"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 1
+}

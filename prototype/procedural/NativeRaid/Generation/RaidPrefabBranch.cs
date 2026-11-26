@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Contour4.Procedural;
 using Contour4.Procedural.Catalog;
+using Contour4.Procedural.Navigation;
 using UnityEngine;
 using CatalogVector = System.Numerics.Vector3;
 
@@ -17,15 +18,18 @@ namespace Contour4.NativeRaid.Runtime
         internal Bounds Reservation { get; }
         internal int PortalPairCount { get; }
         internal RaidPlanarLayout.BranchOutline Outline { get; }
+        internal Func<Transform, Collider, (RaidFloor Entrance, RaidFloor[] Floors, RaidDeckPassage[] Decks, RaidPortal[] Portals)> Navigation { get; }
 
         internal RaidPrefabBranch(string id, Bounds reservation, Pose entrance, Vector2 opening, int portalPairCount,
-            Action<Transform> mount, RaidPlanarLayout.BranchOutline outline = null)
+            Action<Transform> mount, RaidPlanarLayout.BranchOutline outline = null,
+            Func<Transform, Collider, (RaidFloor Entrance, RaidFloor[] Floors, RaidDeckPassage[] Decks, RaidPortal[] Portals)> navigation = null)
         {
             if (portalPairCount < 0) throw new ArgumentOutOfRangeException(nameof(portalPairCount));
             var gray = new GrayBuilder(id, reservation.size.x, reservation.size.z);
             Reservation = reservation;
             PortalPairCount = portalPairCount;
             Outline = outline;
+            Navigation = navigation;
             Vector3 outward = entrance.rotation * Vector3.forward;
             Vector3 up = entrance.rotation * Vector3.up;
             // Some authored frame trim protrudes past the sill. Reserve it and fill the gap with a short collar.

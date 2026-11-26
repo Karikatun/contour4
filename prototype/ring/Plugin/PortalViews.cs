@@ -22,8 +22,10 @@ internal sealed class PortalViews : MonoBehaviour
     private CommandBuffer panels;
     private Camera source;
     private RingRuntime ring;
+    private PortalCargoPresentation cargoPresentation;
     private System.Func<Vector3, float, NativeRaidPortal> proceduralCameraSide;
     private Light portalFlashlight;
+    private readonly PortalFlashlightAperture shiftedFlashlightAperture = new();
     private Light shiftedFlashlight;
     private Matrix4x4 originalMainView;
     private Vector3 originalEye;
@@ -66,6 +68,9 @@ internal sealed class PortalViews : MonoBehaviour
 
     private void OnEnable() => StartRendering();
 
+    internal void BindCargoPresentation(IReadOnlyList<NativeRaidPortal> portals) =>
+        cargoPresentation = new PortalCargoPresentation(gameObject.scene, portals);
+
     private void StartRendering()
     {
         if (listening || views.Count == 0 || !isActiveAndEnabled)
@@ -94,6 +99,7 @@ internal sealed class PortalViews : MonoBehaviour
             source.AddCommandBuffer(CameraEvent.BeforeForwardAlpha, panels);
         }
         panels.Clear();
+        cargoPresentation?.Refresh(main);
         if (ring)
             ring.RefreshPortalImages();
     }
@@ -147,31 +153,37 @@ internal sealed class PortalViews : MonoBehaviour
         else
             TryFindCameraSide(eye, nearCorner, out ringSide, out nativeSide);
 
-        if (ringSide.HasValue || nativeSide != null)
-        {
-            // The camera can enter the linked room before the player's center reorients the ring.
-            Quaternion turn = ringSide is Crossing eyeSide ? eyeSide.Rotation : nativeSide.Rotation;
-            Vector3 Map(Vector3 point) => ringSide is Crossing crossing ? crossing.TransformPoint(point) : nativeSide.MapPoint(point);
-            owner.originalEye = eye;
-            owner.originalMainView = main.worldToCameraMatrix;
-            owner.wasDefaultView = NearDefaultView(owner.originalMainView, main.transform);
-            owner.shiftedEye = true;
-            beam = owner.PrepareFlashlight(flashlight);
-            flashlightPrepared = true;
-            if (beam)
-            {
-                owner.shiftedFlashlight = flashlight;
-                flashlight.enabled = false;
-                Transform light = beam.transform;
-                light.SetPositionAndRotation(Map(light.position), turn * light.rotation);
-            }
-            eye = Map(eye);
-            viewRotation = turn * viewRotation;
-            main.worldToCameraMatrix = WorldToCamera(eye, viewRotation);
-        }
-
         try
         {
+            if (ringSide.HasValue || nativeSide != null)
+            {
+                // The camera can enter the linked room before the player's center reorients the ring.
+                Quaternion turn = ringSide is Crossing eyeSide ? eyeSide.Rotation : nativeSide.Rotation;
+                Vector3 Map(Vector3 point) => ringSide is Crossing crossing ? crossing.TransformPoint(point) : nativeSide.MapPoint(point);
+                owner.originalEye = eye;
+                owner.originalMainView = main.worldToCameraMatrix;
+                owner.wasDefaultView = NearDefaultView(owner.originalMainView, main.transform);
+                owner.shiftedEye = true;
+                beam = owner.PrepareFlashlight(flashlight);
+                flashlightPrepared = true;
+                if (beam)
+                {
+                    owner.shiftedFlashlight = flashlight;
+                    flashlight.enabled = false;
+                    Transform marker = ringSide is Crossing side ? side.Entry.Marker : nativeSide.Entrance;
+                    if (owner.ClipShiftedFlashlight(beam, marker))
+                    {
+                        Transform light = beam.transform;
+                        light.SetPositionAndRotation(Map(light.position), turn * light.rotation);
+                    }
+                    else
+                        beam = null;
+                }
+                eye = Map(eye);
+                viewRotation = turn * viewRotation;
+                main.worldToCameraMatrix = WorldToCamera(eye, viewRotation);
+            }
+
             GeometryUtility.CalculateFrustumPlanes(main, frustum);
             if (budgeted)
             {
@@ -211,6 +223,14 @@ internal sealed class PortalViews : MonoBehaviour
         }
     }
 
+    private bool ClipShiftedFlashlight(Light beam, Transform marker)
+    {
+        foreach (var view in views)
+            if (view.HasEntry(marker))
+                return view.ClipFlashlight(beam, shiftedFlashlightAperture);
+        return false;
+    }
+
     private bool TryFindCameraSide(Vector3 eye, float nearCorner, out Crossing? ringSide, out NativeRaidPortal nativeSide)
     {
         ringSide = ring ? ring.CameraSide(eye, nearCorner) : null;
@@ -248,6 +268,7 @@ internal sealed class PortalViews : MonoBehaviour
     {
         int frame = Time.frameCount;
         Matrix4x4 worldToClip = projection * main.worldToCameraMatrix;
+        var light = new FlashlightAppearance(shiftedEye ? shiftedBeam : flashlight, shiftedEye);
         View selected = null;
         BudgetPriority best = default;
         foreach (var host in active)
@@ -259,9 +280,10 @@ internal sealed class PortalViews : MonoBehaviour
                     continue;
                 float coverage = atDoor ? 1 : ScreenCoverage(worldToClip * surface);
                 int age = view.CacheAge(frame);
+                bool lightChanged = view.FlashlightChanged(light);
                 host.visible.Add(new VisibleSurface(view, surface, atDoor, coverage));
-                var priority = new BudgetPriority(atDoor && !view.HasCompatibleImage(eye, rotation, projection, age, true),
-                    age, coverage);
+                var priority = new BudgetPriority(atDoor && (lightChanged ||
+                    !view.HasCompatibleImage(eye, rotation, projection, age, true, light)), lightChanged, age, coverage);
                 if (selected != null && !priority.Beats(best))
                     continue;
                 selected = view;
@@ -286,10 +308,10 @@ internal sealed class PortalViews : MonoBehaviour
                 {
                     lastBudgetRender = frame;
                     item.View.RefreshBudgeted(main, projection, eye, rotation, nearCorner,
-                        item.Coverage >= .08f, beam, fog, host.budgetCap, frame);
+                        item.Coverage >= .08f, beam, fog, host.budgetCap, frame, light);
                 }
                 item.View.DrawBudgetedPanel(main, eye, rotation, projection, item.Surface, item.AtDoor,
-                    host.panels, host.budgetCap, frame);
+                    host.panels, host.budgetCap, frame, light);
             }
         }
     }
@@ -330,12 +352,14 @@ internal sealed class PortalViews : MonoBehaviour
     private readonly struct BudgetPriority
     {
         private readonly bool urgent;
+        private readonly bool lightChanged;
         private readonly int age;
         private readonly float coverage;
 
-        internal BudgetPriority(bool urgent, int age, float coverage)
+        internal BudgetPriority(bool urgent, bool lightChanged, int age, float coverage)
         {
             this.urgent = urgent;
+            this.lightChanged = lightChanged;
             this.age = age;
             this.coverage = coverage;
         }
@@ -350,8 +374,43 @@ internal sealed class PortalViews : MonoBehaviour
                 return due;
             if (due && age != best.age)
                 return age > best.age;
+            if (lightChanged != best.lightChanged)
+                return lightChanged;
             return coverage > best.coverage;
         }
+    }
+
+    private readonly struct FlashlightAppearance
+    {
+        internal readonly bool On;
+        private readonly Vector3 position;
+        private readonly Quaternion rotation;
+        private readonly Color color;
+        private readonly Texture cookie;
+        private readonly float intensity, range, angle;
+
+        internal FlashlightAppearance(Light light, bool shifted)
+        {
+            this = default;
+            On = light && (shifted || light.isActiveAndEnabled);
+            if (!On)
+                return;
+            Transform pose = light.transform;
+            position = pose.position;
+            rotation = pose.rotation;
+            color = light.color;
+            cookie = light.cookie;
+            intensity = light.intensity;
+            range = light.range;
+            angle = light.spotAngle;
+        }
+
+        internal bool Changed(FlashlightAppearance previous) => On != previous.On || On &&
+            ((position - previous.position).sqrMagnitude > .01f ||
+             Mathf.Abs(Quaternion.Dot(rotation, previous.rotation)) < .9997f ||
+             color != previous.color || cookie != previous.cookie ||
+             Mathf.Abs(intensity - previous.intensity) > .01f ||
+             Mathf.Abs(range - previous.range) > .05f || Mathf.Abs(angle - previous.angle) > .2f);
     }
 
     private void RestoreMainView(Camera main)
@@ -444,6 +503,7 @@ internal sealed class PortalViews : MonoBehaviour
 
     private void OnDisable()
     {
+        cargoPresentation?.Clear();
         if (!listening)
             return;
         listening = false;
@@ -470,6 +530,7 @@ internal sealed class PortalViews : MonoBehaviour
             Destroy(budgetCap);
         if (portalFlashlight)
             Destroy(portalFlashlight.gameObject);
+        shiftedFlashlightAperture.Dispose();
     }
 
     internal sealed class Aperture
@@ -595,6 +656,7 @@ internal sealed class PortalViews : MonoBehaviour
         private readonly List<View> nestedViews = new();
         private readonly List<View> renderedNested = new();
         private readonly MaterialPropertyBlock nearSurface = new();
+        private readonly PortalFlashlightAperture flashlightAperture = new();
         private readonly Plane[] nestedFrustum = new Plane[6];
         private readonly CommandBuffer overlays = new() { name = "Contour-4 portal effects and surfaces" };
         private static readonly int FogCopy = Shader.PropertyToID("_Contour4PortalFogCopy");
@@ -607,6 +669,7 @@ internal sealed class PortalViews : MonoBehaviour
         private Quaternion cachedRotation;
         private int cachedFrame;
         private Vector2 cachedProjectionScale;
+        private FlashlightAppearance cachedFlashlight;
         private readonly Material fogMaterial;
 
         internal View(Transform cameraParent, Mesh mesh, Aperture entry, Aperture exit)
@@ -652,13 +715,21 @@ internal sealed class PortalViews : MonoBehaviour
 
         internal int CacheAge(int frame) => cachedBudget != null ? frame - cachedFrame : int.MaxValue;
 
-        internal bool HasCompatibleImage(Vector3 eye, Quaternion rotation, Matrix4x4 projection, int age, bool atDoor) =>
-            age <= 8 && cachedBudget.Color.IsCreated() && (eye - cachedEye).sqrMagnitude <= (atDoor ? .0225f : .2025f) &&
+        internal bool HasEntry(Transform marker) => entry.Marker == marker;
+
+        internal bool ClipFlashlight(Light light, PortalFlashlightAperture aperture) => aperture.Apply(light, entry, exit);
+
+        internal bool FlashlightChanged(FlashlightAppearance light) => light.Changed(cachedFlashlight);
+
+        internal bool HasCompatibleImage(Vector3 eye, Quaternion rotation, Matrix4x4 projection, int age, bool atDoor,
+            FlashlightAppearance light) =>
+            age <= 8 && light.On == cachedFlashlight.On && cachedBudget.Color.IsCreated() &&
+            (eye - cachedEye).sqrMagnitude <= (atDoor ? .0225f : .2025f) &&
             Mathf.Abs(Quaternion.Dot(rotation, cachedRotation)) >= (atDoor ? .99905f : .9945f) &&
             (new Vector2(projection.m00, projection.m11) - cachedProjectionScale).sqrMagnitude <= .0025f;
 
         internal void RefreshBudgeted(Camera source, Matrix4x4 projection, Vector3 eye, Quaternion rotation,
-            float nearCorner, bool large, Light flashlight, Fog fog, Texture cap, int frame)
+            float nearCorner, bool large, Light flashlight, Fog fog, Texture cap, int frame, FlashlightAppearance light)
         {
             target = large ? budgetNear : budgetFar;
             cachedBudget = null;
@@ -669,6 +740,7 @@ internal sealed class PortalViews : MonoBehaviour
                 cachedEye = eye;
                 cachedRotation = rotation;
                 cachedFrame = frame;
+                cachedFlashlight = light;
                 cachedProjectionScale = new Vector2(projection.m00, projection.m11);
             }
             finally
@@ -679,9 +751,9 @@ internal sealed class PortalViews : MonoBehaviour
         }
 
         internal void DrawBudgetedPanel(Camera source, Vector3 eye, Quaternion rotation, Matrix4x4 projection,
-            Matrix4x4 surface, bool atDoor, CommandBuffer panels, Texture cap, int frame) =>
+            Matrix4x4 surface, bool atDoor, CommandBuffer panels, Texture cap, int frame, FlashlightAppearance light) =>
             DrawPanel(source, eye, surface, atDoor, panels,
-                HasCompatibleImage(eye, rotation, projection, CacheAge(frame), atDoor) ? cachedBudget.Color : cap);
+                HasCompatibleImage(eye, rotation, projection, CacheAge(frame), atDoor, light) ? cachedBudget.Color : cap);
 
         private void RenderView(Camera source, Matrix4x4 projection, Vector3 eye, Quaternion viewRotation,
             float nearCorner, Light flashlight, Fog fog, TargetPool targets, Texture cap)
@@ -757,16 +829,20 @@ internal sealed class PortalViews : MonoBehaviour
             bool lightWasEnabled = flashlight && flashlight.enabled;
             Vector3 oldPosition = lightPose ? lightPose.position : default;
             Quaternion oldRotation = lightPose ? lightPose.rotation : default;
+            Texture oldCookie = flashlight ? flashlight.cookie : null;
+            LightRenderMode oldRenderMode = flashlight ? flashlight.renderMode : default;
             bool fogWasEnabled = RenderSettings.fog;
             try
             {
+                bool lightPasses = flashlight && ClipFlashlight(flashlight, flashlightAperture);
                 if (lightPose)
                 {
-                    lightPose.SetPositionAndRotation(exitCenter + rotation * (oldPosition - entryCenter), rotation * oldRotation);
-                    flashlight.enabled = true;
+                    if (lightPasses)
+                        lightPose.SetPositionAndRotation(exitCenter + rotation * (oldPosition - entryCenter), rotation * oldRotation);
+                    flashlight.enabled = lightPasses;
                 }
                 if (nestedViews.Count > 0)
-                    DrawNested(projection, nearCorner, flashlight, fog, targets, cap);
+                    DrawNested(projection, nearCorner, lightPasses ? flashlight : null, fog, targets, cap);
                 if (fog != null)
                     RenderSettings.fog = false;
                 camera.Render();
@@ -779,6 +855,8 @@ internal sealed class PortalViews : MonoBehaviour
                 if (lightPose)
                 {
                     lightPose.SetPositionAndRotation(oldPosition, oldRotation);
+                    flashlight.cookie = oldCookie;
+                    flashlight.renderMode = oldRenderMode;
                     flashlight.enabled = lightWasEnabled;
                 }
                 if (fog != null)
@@ -861,6 +939,7 @@ internal sealed class PortalViews : MonoBehaviour
                 target.Dispose();
             budgetNear?.Dispose();
             budgetFar?.Dispose();
+            flashlightAperture.Dispose();
             if (camera)
             {
                 camera.RemoveCommandBuffer(CameraEvent.BeforeForwardAlpha, overlays);

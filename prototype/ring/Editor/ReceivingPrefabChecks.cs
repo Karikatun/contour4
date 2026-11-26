@@ -383,6 +383,8 @@ namespace SpaceJourney
         internal Transform Room => null;
         internal Transform Marker => null;
         internal Quaternion Orientation => Quaternion.identity;
+        internal Vector3 Center => Vector3.zero;
+        internal float Height => 0f;
         internal float Width => 0f;
         internal bool Upper => false;
     }

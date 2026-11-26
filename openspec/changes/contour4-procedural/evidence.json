@@ -1,0 +1,341 @@
+{
+  "schemaVersion": 1,
+  "results": [
+    {
+      "criterion": "AC-2012",
+      "status": "passed",
+      "subject": "342b0d11eacb2b087e00f1224dc4efbee90ce41fc2482daab83a389b7013597a",
+      "recordedAt": "2026-11-24T08:22:05.505Z",
+      "recordedBy": "Codex, локальная сборка и проверка Unity",
+      "observed": "Сравнили повторные планы для 14/-16 и 5/-32 с одинаковым набором префабов, позиции и ориентации этажей Tab в размещённой сцене, а также реакцию снимка плана на исключение и перестановку концов портальной пары. Unity разместила 23 префаба в 27 раскладках и проверила дополнительные варианты.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-prepared/unity-prepared-package.log",
+          "sha256": "e897fa6917403ca76699085f2ce83a92a5c498aaa517c6d48257df81e11c35ff"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-candidate/Contour4-0.2.36-source.zip.delta.json",
+          "sha256": "8df36493bc13d3bbbf8fb419550eba3b519c396f8b77648d37da1b0bd1dd4c4a"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2022",
+      "status": "passed",
+      "subject": "342b0d11eacb2b087e00f1224dc4efbee90ce41fc2482daab83a389b7013597a",
+      "recordedAt": "2026-11-24T08:22:05.505Z",
+      "recordedBy": "Codex, локальная сборка и проверка Unity",
+      "observed": "В точных бандлах Unity проверила обход грузовых стыков от штатного старта, квоты, ручные ответвления и пригодность точек крупного лута на собственных этажах. В контрольной раскладке 14/-16 все 29 комнат физически доступны, а грузовые маршруты проверены отдельно по грузовому профилю.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-prepared/unity-prepared-package.log",
+          "sha256": "e897fa6917403ca76699085f2ce83a92a5c498aaa517c6d48257df81e11c35ff"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-candidate/Contour4-0.2.36-source.zip.delta.json",
+          "sha256": "8df36493bc13d3bbbf8fb419550eba3b519c396f8b77648d37da1b0bd1dd4c4a"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2032",
+      "status": "passed",
+      "subject": "342b0d11eacb2b087e00f1224dc4efbee90ce41fc2482daab83a389b7013597a",
+      "recordedAt": "2026-11-24T08:22:05.505Z",
+      "recordedBy": "Codex, локальная сборка и проверка Unity",
+      "observed": "44 успешных проверки в Unity с компонентами R.E.P.O. Обе пары дверей и оба направления прошли проверки положения камеры, состояния тела, хвата и заблокированного выхода. На исходных сборках 0.2.35 воспроизвелось четыре расхождения для перпендикулярного проёма.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/portal/composed-green/result.txt",
+          "sha256": "cc85f622e9e4c775117e12242a9f1b554491baee694695ec1127672590d35cfc"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/portal/composed-green/run.json",
+          "sha256": "0b95a624e3eabe72ab13ab3ed73415edeb5b0cf72d86cb68cf257ebc02bd0ef0"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/portal/exact-035-red-stock/result.txt",
+          "sha256": "447a6fab14f9d3f3aec03c76d62028a21048c048893594e1ea664bfb34a76930"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-replay/verification.json",
+          "sha256": "9af8ee11a71bd9114c2ecba307dc2d82a6e27ba55efaf8cc9254abb9376aad2d"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2107",
+      "status": "passed",
+      "subject": "342b0d11eacb2b087e00f1224dc4efbee90ce41fc2482daab83a389b7013597a",
+      "recordedAt": "2026-11-24T08:22:05.505Z",
+      "recordedBy": "Codex, локальная сборка и проверка Unity",
+      "observed": "Пара 0.2.36 и 0.2.4 прошла проверку состава, метаданных и привязок. Сверены 1 209 записей исходного ZIP. Пересборка воспроизвела SHA-256 всех девяти записей игрового ZIP.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/composed-build/package-pair.json",
+          "sha256": "171a1a14545ca8740d737e7faeb8e413759f4f0a69c20350ac3bcce695364665"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-candidate/Contour4-0.2.36-source.zip.delta.json",
+          "sha256": "8df36493bc13d3bbbf8fb419550eba3b519c396f8b77648d37da1b0bd1dd4c4a"
+        },
+        {
+          "path": "local-evidence/contour4-audit-fixes-0236/final-replay/verification.json",
+          "sha256": "9af8ee11a71bd9114c2ecba307dc2d82a6e27ba55efaf8cc9254abb9376aad2d"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2103",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T16:52:47.8805944+03:00",
+      "recordedBy": "Codex, нативный игровой стенд R.E.P.O.",
+      "observed": "В одиночном рейсе seed 0 штатная средняя тележка прошла 4,105 м к первой квоте. Штатный хват и свободно лежащие часы удерживались во всех 191 проверенных тиках. После отпускания квота и RoundDirector засчитали $600. Часы были заранее помещены в корзину. Для критерия остаются перевозка через угловую пару в обе стороны и проверка отсутствия дубликатов пары при повторном входе.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/cart-delivery-release/cart-journey.ndjson",
+          "sha256": "c09691f083904bf93f6da444936be8146ddabd72b2d8b967c6949433b7ee9a86"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/cart-delivery-release/run.json",
+          "sha256": "ee5afb9f62a045fd87d36bdc2f3fea38e3112e8634ef0d8d321e473a72ea2319"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/cart-delivery-release/native-cart-at-active-quota.png",
+          "sha256": "ef3f99ade90672230a091b18aeeeedc555bde3debcc2b6f97dd5fc9c56c1f370"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/release/receipt.json",
+          "sha256": "f7c4d4955ca10b70b1d645fec11ec26f9a3d2c7ef1fcdd126d7eec9117c4f026"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2031",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T16:52:47.8805944+03:00",
+      "recordedBy": "Codex, проверка гравитации в R.E.P.O.",
+      "observed": "В рейсе seed 0 на уровне 1 игрок прошёл дверной портал калибровка–хранилище между перпендикулярными полами в обе стороны. Скалярное произведение верха игрока и направления верха пола после обоих переходов составило 1,0. При дополнительном переходе штатный прибор перенесён в руках через тот же проём. Сняты игровые кадры через оба проёма. Остаются проезд тележки с тем же грузом в обе стороны и подача несовместимых концов генератору.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/gravity.ndjson",
+          "sha256": "6fe94ebf32d9c67635cdc95d4dd3370da1b4fa9677d0c47a03be4f97054058d7"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/run.json",
+          "sha256": "132ca2a5d3da916abf63621e7591d53ff748894158cd67d3171bdb20782fc32a"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/01-forward-portal-view.png",
+          "sha256": "6cfa2c03a50b4d8dbdcf13e80c027f3f64ceb359f8cbb4eb06fc2cf03d5a87b2"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/02-return-portal-view.png",
+          "sha256": "56bd5d79520b4797bbdb2075d5a42a952a2452df86d1814e5496d828cf5844a4"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2051",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T16:52:47.8805944+03:00",
+      "recordedBy": "Codex, проверка гравитации в R.E.P.O.",
+      "observed": "В рейсе seed 0 на уровне 1 на штатном Tab для пары между перпендикулярными комнатами видны знак вопроса, совпадающие штрихи пары и маркер игрока у выхода после перехода. В отдельном рейсе seed 0 на уровне 15 пройдён восточный портал полной сферы в обе стороны. В кадрах цветового буфера 752 × 423 различимы нижний этаж обзорной лаборатории и сфера, а Tab после каждого перехода показывает этаж назначения. В том же рейсе штатный Small-прибор пронесён через западный стык сферы и отпущен целым. Остаются последовательность обновления Tab от фургона до первой посещённой комнаты, сверка физической развилки и связей, одноэтажная пара, пара в кольце и открытие каждого проёма по отдельности.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/gravity.ndjson",
+          "sha256": "6fe94ebf32d9c67635cdc95d4dd3370da1b4fa9677d0c47a03be4f97054058d7"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/00-portal-before-fixture-tab.png",
+          "sha256": "dfc31c1e5b4f9dccdba30d2e67a05f19073b5a7800aa84390a72f3273c5f34bc"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/01-forward-after-tab.png",
+          "sha256": "12f373a178fc6bae57900d41e57c78db9df3acdd827b50d6232cd5392a79fc02"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-portal-stable/02-return-after-tab.png",
+          "sha256": "17d57b939c9703960a6df2381e6b8f4649b9ac193136cf60a2eff9c4f06e0a2d"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/gravity.ndjson",
+          "sha256": "6d7b5a49b8ed40770c66588b9ea87590563663539a2e18fa69d4bd571eaec014"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/run.json",
+          "sha256": "f25f83e39f5d52bc7b980afaed2b86dc3847c63e76e806c1d92569c355b661d4"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/01-forward-portal-target.png",
+          "sha256": "eeb40a03f58bcdce1a336615fbe4e9ebff54e47c0ab9bcd03b06cd3fb3dee7b2"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/02-return-portal-target.png",
+          "sha256": "04ff8ce51461df8d0bf295fb89d6fdc87842305f417f1c4112c4a4382b54415c"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/01-forward-after-tab.png",
+          "sha256": "ff34b340dcfc6dc161201d02a6224c53b86524821169a829194f3c2d43fb930c"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/02-return-after-tab.png",
+          "sha256": "21a52861f4cbaac8df77ccca43e3ba4e477656feebd3e143c8083d415d89fecb"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-sphere-followup/sphere-west-stock-small-arrival.png",
+          "sha256": "3e892f1bbe28a2b6a58e45cf4c8517bbed6e168176be749275605e3a7617c6bd"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2071",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T16:52:47.8805944+03:00",
+      "recordedBy": "Codex, проверка гравитации в R.E.P.O.",
+      "observed": "В рейсе seed 13 на уровне 6 игрок прошёл спираль в обе стороны, остановился и развернулся посередине. Минимальное выравнивание верха с настилом составило 0,9947. Снят Tab у перевёрнутого выхода. В отдельном прогоне штатный Small-глобус, переставленный к началу маршрута, удерживался штатным хватом на всех 152 узлах прямого маршрута и отпущен целым в подсобной комнате. В двусторонней попытке с чайником предмет исчез до проверки отпускания, причина неизвестна. Обратный проход спирали с удержанным грузом остаётся открытым.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-spiral-native/gravity.ndjson",
+          "sha256": "14f8393f80040d4e8003ca0ec68f2af6cce46ca95250b347ddc08c4a2febe475"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-spiral-native/gravity-failure.txt",
+          "sha256": "002d61dc13e01468ea5ba979b91150e12481137fc00ef39369890e60814be51d"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-spiral-native/spiral-end-tab.png",
+          "sha256": "4674237ede20c6a685f3ea416b77447c7de1762eeba3f936ebec13e5552d20c5"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-spiral-carry/gravity.ndjson",
+          "sha256": "876d1e6ec68caefef830cda053b063ec8520a28982860bd164228ad8b5fedd78"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-spiral-carry/run.json",
+          "sha256": "959ae346a188ca1482ccc81ffe1af667e21360f10e62a45fd73e6d854570c040"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/gravity-spiral-carry/spiral-stock-small-arrival.png",
+          "sha256": "066ef4373a930d1ceea300b13ef99770cd8bd77f719a3ba39f296da6866e4562"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2081",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T16:52:47.8805944+03:00",
+      "recordedBy": "Codex, нативный игровой стенд R.E.P.O.",
+      "observed": "Штатная станция фургона и три добавленные станции на стадии 5 дошли до Complete с заранее размещёнными физическими ценностями и явной активацией. В отдельных проездах штатная тележка привезла $600 к первой квоте. После прохождения первой квоты и контролируемой постановки у дополнительной станции тележка прошла 6,161 м, удерживая свободный груз во всех 177 тиках; на рампе и платформе записано по 25 тиков, после отпускания засчитано $500. Остаётся связать реальную доставку к дополнительной квоте с полным движением платформы и проверкой зазора до соседних модулей.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/cart-delivery-release/cart-journey.ndjson",
+          "sha256": "c09691f083904bf93f6da444936be8146ddabd72b2d8b967c6949433b7ee9a86"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/quota-native-credit/quota-mechanics.ndjson",
+          "sha256": "256409639010b53797d4298be96f583ca5b5bb9cdad59ed87b10ca039e9c4eae"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/quota-native-credit/quota-stations.ndjson",
+          "sha256": "1456cdcbd2ae40d0db38a3d386589888a3e4743a0adc6c059e92265dbb9151c5"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/supplemental-stock-cart-unlocked/cart-journey.ndjson",
+          "sha256": "6c6fede7977c2e2ed72cf5a0884f3b92befc53d7a4b6d807ac2cfe0ee51d071c"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/supplemental-stock-cart-unlocked/run.json",
+          "sha256": "2ce84bbae40d72874ef6185baff742177fefe774d4f1f945c4dd66e291c7c551"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/supplemental-stock-cart-unlocked/native-cart-at-active-quota.png",
+          "sha256": "cb405bab2506a027ca0be21f8b1a17154153fdfc48929281c4476a209151c5f4"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2132",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T16:52:47.8805944+03:00",
+      "recordedBy": "Codex, нативный игровой стенд R.E.P.O.",
+      "observed": "При естественном выборе противников появились Birthday Boy и Huntsman в состоянии Roaming. В отдельном рейсе со штатно выбранным Headman среди 28 ближайших вариантов не нашлось позиции с тем же верхом, прямой видимостью и полным путём NavMesh. Проба завершилась до постановки и погони. Обнаружение через портал, погоня и отрицательные случаи остаются открытыми.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/stock-headman-chase/native-chase.ndjson",
+          "sha256": "98b425f10ab6703afc7f283b4281038aef8b4f8694dbe6e149c06fe2e9a03b01"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/stock-headman-controlled/controlled-headman-setup.ndjson",
+          "sha256": "b91da0a82b56cd19c78c540078cf57403ffeee51947b58c7bac2dade534b020b"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native/stock-headman-controlled/failure.txt",
+          "sha256": "95a689c60ee8a053644e7bf31f777d1c3fc022771cc42843d51348d837bd097d"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2104",
+      "status": "pending",
+      "subject": "4640e3777d2b69fa7f108fb6fb2bd84f15bde28bedc93c5185a25ff460138352",
+      "recordedAt": "2026-11-26T13:53:54.200Z",
+      "recordedBy": "Codex, проверка пакета и выделенной копии R.E.P.O.",
+      "observed": "Сверены манифесты, комплектность и зависимости точных архивов 0.2.37 и 0.2.4. В выделенной копии подтверждены хеши всех шести файлов карты и её загрузка в R.E.P.O. После игрового прогона все шесть файлов удалены; компаньон остался цел, отпечатки защищённых профиля, реестра, кэша Steam Cloud и файлов запуска совпали. Остаётся подтвердить права на распространение всех включённых ресурсов. В README компаньона для исходника сердечника указаны условия учётной записи Meshy владельца, а отдельное подтверждение права на распространение отсутствует.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native-install-removal.json",
+          "sha256": "584c7bcb850fcfa5223f061dca410c4973367a5255875af32a96b92afea5c821"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/release/receipt.json",
+          "sha256": "f7c4d4955ca10b70b1d645fec11ec26f9a3d2c7ef1fcdd126d7eec9117c4f026"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/release/package-pair.json",
+          "sha256": "2c1f14a0587a2092ef9b560f53d14291ea8121c801e69bcc96dd1b8259f461c9"
+        },
+        {
+          "path": "contour4-valuables/README.md",
+          "sha256": "af8e641ef86495f1c840c7ab609c1f4a9d03cabbeb9574479f473fb54e37b3e0"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2104",
+      "status": "pending",
+      "subject": "a6a9238ffb0b02f8e32f7781e87534d9654eac03c2e9c1d35c9efb321af48cab",
+      "recordedAt": "2026-11-26T16:54:24.628Z",
+      "recordedBy": "Codex, проверка переименованных архивов",
+      "observed": "Сверены манифесты, комплектность и зависимости точных архивов 0.2.37 и 0.2.4. В выделенной копии подтверждены хеши всех шести файлов карты и её загрузка в R.E.P.O. После игрового прогона все шесть файлов удалены; компаньон остался цел, отпечатки защищённых профиля, реестра, кэша Steam Cloud и файлов запуска совпали. Остаётся подтвердить права на распространение всех включённых ресурсов. В README компаньона для исходника сердечника указаны условия учётной записи Meshy владельца, а отдельное подтверждение права на распространение отсутствует. Оба игровых ZIP переименованы без изменения SHA-256. Повторно сверены манифесты, версии зависимостей и содержимое архивов. Установка и удаление относятся к прежним именам тех же байтов.",
+      "files": [
+        {
+          "path": "local-evidence/contour4-native-acceptance/verification/native-install-removal.json",
+          "sha256": "584c7bcb850fcfa5223f061dca410c4973367a5255875af32a96b92afea5c821"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/release/receipt.json",
+          "sha256": "f7c4d4955ca10b70b1d645fec11ec26f9a3d2c7ef1fcdd126d7eec9117c4f026"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/release/package-pair.json",
+          "sha256": "2c1f14a0587a2092ef9b560f53d14291ea8121c801e69bcc96dd1b8259f461c9"
+        },
+        {
+          "path": "contour4-valuables/README.md",
+          "sha256": "af8e641ef86495f1c840c7ab609c1f4a9d03cabbeb9574479f473fb54e37b3e0"
+        },
+        {
+          "path": "local-evidence/contour4-native-acceptance/release/package-pair-unprefixed.json",
+          "sha256": "22C4E4531E02321165D5BA9342A15DB0449933FAC646FB8B4397222F9D3F7DA5"
+        }
+      ]
+    }
+  ]
+}

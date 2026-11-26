@@ -18,9 +18,10 @@ namespace Contour4.NativeRaid.Runtime
         internal readonly Pose Pose;
         internal readonly Bounds LocalBounds;
         internal readonly string FloorId;
+        internal readonly RaidLootPlacement.Retrieval? EquipmentRetrieval;
 
         internal RaidLootSlot(BakedRoom room, Collider support, LootSurfaceKind kind, RaidLootSize size,
-            Pose pose, Bounds localBounds, string floorId = null)
+            Pose pose, Bounds localBounds, string floorId = null, RaidLootPlacement.Retrieval? equipmentRetrieval = null)
         {
             Room = room;
             Support = support;
@@ -29,13 +30,15 @@ namespace Contour4.NativeRaid.Runtime
             Pose = pose;
             LocalBounds = localBounds;
             FloorId = floorId;
+            EquipmentRetrieval = equipmentRetrieval;
         }
 
         internal Vector3 WorldCenter => Room.Root.TransformPoint(LocalBounds.center);
         internal Pose WorldPose => new(Room.Root.TransformPoint(Pose.position), Room.Root.rotation * Pose.rotation);
         internal RaidLootPlacement Placement(Bounds interior) =>
             Room.TryFloor(FloorId, out var floor) && floor != null
-                ? new RaidLootPlacement(Room.Root, interior, Support, floor.FloorId)
+                ? new RaidLootPlacement(Room.Root, EquipmentRetrieval.HasValue ? LocalBounds : interior,
+                    Support, floor.FloorId, EquipmentRetrieval)
                 : null;
     }
 
@@ -116,7 +119,7 @@ namespace Contour4.NativeRaid.Runtime
                 }
                 if (room.Plan.Module.Id.StartsWith("sample-storage", StringComparison.Ordinal))
                     AddSurface(room, supports["large-containers"].Single(), LootSurfaceKind.Raised, -1, random, routes, roomSlots);
-                AddFreightBays(room, routes, roomSlots);
+                AddFloorBays(room, routes, roomSlots);
                 result.AddRange(roomSlots.Where(Valid));
             }
             return result;
@@ -167,7 +170,7 @@ namespace Contour4.NativeRaid.Runtime
             }
         }
 
-        private static void AddFreightBays(BakedRoom room, Bounds[] routes, List<RaidLootSlot> result)
+        private static void AddFloorBays(BakedRoom room, Bounds[] routes, List<RaidLootSlot> result)
         {
             string id = room.Plan.Module.Id;
             var bays = id switch
@@ -183,13 +186,16 @@ namespace Contour4.NativeRaid.Runtime
                 MaintenanceTrench.Id => new[] {
                     (2.0f, 5.70f, RaidLootSize.Wide), (6.48f, 5.78f, RaidLootSize.Tall),
                     (13.45f, 5.68f, RaidLootSize.VeryTall) },
+                "shaft-plant" => new[] { (17.65f, -.37f, RaidLootSize.Small) },
                 _ => Array.Empty<(float, float, RaidLootSize)>(),
             };
+            float elevation = id == "shaft-plant" ? room.Plan.Module.Landmarks["gallery-spares"].Y : 0;
             foreach (var (x, z, category) in bays)
             {
                 Vector3 size = Envelope(category);
-                Vector3 bottom = new(x, .008f, z);
-                var rotation = Quaternion.LookRotation(Vector3.forward * Mathf.Sign(z), Vector3.up);
+                Vector3 bottom = new(x, elevation + .008f, z);
+                float wallSide = id == "shaft-plant" ? 1 : Mathf.Sign(z);
+                var rotation = Quaternion.LookRotation(Vector3.forward * wallSide, Vector3.up);
                 var bounds = new Bounds(bottom + Vector3.up * (size.y * .5f), size);
                 if (!HasClearance(room, bounds.center, size, rotation) ||
                     result.Any(slot => slot.LocalBounds.Intersects(bounds)) || routes.Any(bounds.Intersects))

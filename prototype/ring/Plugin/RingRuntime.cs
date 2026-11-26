@@ -13,6 +13,7 @@ namespace SpaceJourney;
 internal sealed partial class RingRuntime : MonoBehaviour
 {
     internal static readonly string[] RoomNames = { "Quota", "Loot1", "Loot2", "Loot3" };
+    internal static readonly string[] BridgeNames = { "BridgeQuotaLoot1", "BridgeLoot1Loot2" };
     private static readonly (string A, string B, bool Upper)[] AuthoredPortalPairs =
     {
         ("Loot1", "Loot3", false),
@@ -28,6 +29,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
     private readonly List<Portal> portals = new();
     private readonly PortalDoorDebris portalDoorDebris = new();
     private readonly RingFurnitureMounts furniture = new();
+    private readonly RaidInteriorDetails interiorDetails = new();
     private readonly List<Crossing> doors = new();
     private readonly Dictionary<Rigidbody, Vector3> lastCenters = new();
     private readonly Dictionary<Rigidbody, PortalEnd> exitThresholds = new();
@@ -106,13 +108,18 @@ internal sealed partial class RingRuntime : MonoBehaviour
     private void PrepareRing()
     {
         rooms = RoomNames.Select(room => ring.Find(room)).ToArray();
-        foreach (Transform room in rooms)
-            RaidLighting.Brighten(room.Find("Wall lights"));
+        ApplyWalkwayFinish(ring);
+        foreach (Transform room in rooms) interiorDetails.RingRoom(room);
         Vector3 shaftCenter = (rooms[0].position + rooms[2].position) * .5f;
         roomGravity = rooms.Select(room => new RoomGravity(room, ring, shaftCenter)).ToArray();
         gravityTurnAxis = Vector3.Cross(roomGravity[0].Up, roomGravity[1].Up).normalized;
-        bridges.Add(new Bridge(ring.Find("BridgeQuotaLoot1")));
-        bridges.Add(new Bridge(ring.Find("BridgeLoot1Loot2")));
+        foreach (string name in BridgeNames)
+        {
+            var bridge = ring.Find(name);
+            interiorDetails.RingBridge(bridge);
+            bridges.Add(new Bridge(bridge));
+        }
+        interiorDetails.RingRemainder(ring);
         foreach (var (a, b, upper) in AuthoredPortalPairs)
             portals.Add(Portal.Pair(ring.Find(a), b, ring.Find(b), a, upper));
         foreach (var portal in portals.Where(portal => !portal.A.Upper))
@@ -122,6 +129,19 @@ internal sealed partial class RingRuntime : MonoBehaviour
         }
         cartSeams = new CartSeams(portals);
         connected = true;
+    }
+
+    internal static void ApplyWalkwayFinish(Transform authoredRing)
+    {
+        var finish = authoredRing.Find("Quota/Model/Quota/Quota__Geometry/Quota__Floor")
+            .GetComponent<MeshRenderer>().sharedMaterial;
+        foreach (string bridge in BridgeNames)
+        {
+            string deck = $"{bridge}/Model/{bridge}/{bridge}__Geometry/{bridge}__Walkable_Deck";
+            authoredRing.Find(deck).GetComponent<MeshRenderer>().sharedMaterial = finish;
+        }
+        authoredRing.Find("Loot2/Catalog sites/Upper gallery deck")
+            .GetComponent<MeshRenderer>().sharedMaterial = finish;
     }
 
     internal void TrackLoot(ValuableObject loot, Transform marker)
@@ -400,6 +420,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
             Destroy(jumpContacts);
         cartSeams?.Dispose();
         looseSeams.Dispose();
+        interiorDetails.Release();
     }
 
     internal void RefreshPortalImages()
@@ -495,6 +516,7 @@ internal sealed partial class RingRuntime : MonoBehaviour
     private static readonly System.Reflection.FieldInfo PullingCart =
         AccessTools.Field(typeof(PhysGrabCart), "cartBeingPulled");
     private readonly PortalGrab.MappedHold mappedHold = new();
+    internal PortalGrab.MappedHold MappedGrab => mappedHold;
     private Vector3? mappedPullInRing;
 
     internal void BeginMappedHold(PhysGrabber grabber, PhysGrabObject held, Crossing crossing)
@@ -949,41 +971,35 @@ internal sealed partial class RingRuntime : MonoBehaviour
         }
     }
 
-    internal Vector2 MapPoint(Vector3 worldPosition, Func<int, Vector3, Vector2> project)
+    internal bool TryMapPoint(Vector3 worldPosition, Func<int, Vector3, Vector2> project,
+        out Vector2 point, out int room, out int bridgeIndex)
     {
-        for (int index = 0; index < bridges.Count; index++)
+        room = -1;
+        for (bridgeIndex = 0; bridgeIndex < bridges.Count; bridgeIndex++)
         {
-            var bridge = bridges[index];
+            var bridge = bridges[bridgeIndex];
             Vector3 local = bridge.Root.InverseTransformPoint(worldPosition);
             if (!bridge.TryGetUp(local, out var up))
                 continue;
             float t = Vector3.Angle(up, Vector3.up) / 90f;
-            return Vector2.Lerp(project(index, new Vector3(6, 0, 0)),
-                project(index + 1, new Vector3(-6, 0, 0)), t);
+            point = Vector2.Lerp(project(bridgeIndex, new Vector3(6, 0, 0)),
+                project(bridgeIndex + 1, new Vector3(-6, 0, 0)), t);
+            return true;
         }
 
-        Vector3 quota = rooms[0].InverseTransformPoint(worldPosition);
-        if (quota.z < -6 && Mathf.Abs(quota.x) < 6 && quota.y < 5)
-        {
-            float depth = Mathf.Clamp01((-quota.z - 6f) / 19f);
-            return project(0, new Vector3(Mathf.Lerp(-6f, -13.5f, depth), 0, Mathf.Clamp(quota.x, -2f, 2f)));
-        }
-
-        int best = 0;
-        float score = float.PositiveInfinity;
-        Vector3 projected = Vector3.zero;
+        bridgeIndex = -1;
         for (int i = 0; i < rooms.Length; i++)
         {
-            Vector3 p = rooms[i].InverseTransformPoint(worldPosition);
-            Vector3 floor = new(Mathf.Clamp(p.x, -6, 6), 0, Mathf.Clamp(p.z, -6, 6));
-            float distance = (p - floor).sqrMagnitude;
-            if (distance >= score)
+            if (!roomGravity[i].ContainsRoom(worldPosition, edgeMargin: .02f, floorMargin: .02f))
                 continue;
-            score = distance;
-            projected = floor;
-            best = i;
+            Vector3 local = rooms[i].InverseTransformPoint(worldPosition);
+            point = project(i, new Vector3(Mathf.Clamp(local.x, -6, 6), 0, Mathf.Clamp(local.z, -6, 6)));
+            room = i;
+            return true;
         }
-        return project(best, projected);
+
+        point = default;
+        return false;
     }
 
     internal static Transform Marker(Transform room, string name) => room.Find("Markers/" + name);
@@ -1013,11 +1029,11 @@ internal sealed partial class RingRuntime : MonoBehaviour
 
         internal bool IsLandingSurface(Collider candidate) => candidate && (candidate == floor || candidate == ramp);
 
-        internal bool ContainsRoom(Vector3 point)
+        internal bool ContainsRoom(Vector3 point, float edgeMargin = .06f, float floorMargin = .75f)
         {
             Vector3 local = room.InverseTransformPoint(point) - baseCenter;
-            return local.y <= 0 && local.y >= -2f * halfSize.y - .75f &&
-                Mathf.Abs(local.x) <= halfSize.x + .06f && Mathf.Abs(local.z) <= halfSize.z + .06f;
+            return local.y <= 0 && local.y >= -2f * halfSize.y - floorMargin &&
+                Mathf.Abs(local.x) <= halfSize.x + edgeMargin && Mathf.Abs(local.z) <= halfSize.z + edgeMargin;
         }
 
         internal bool ContainsPyramid(Vector3 point, float margin)

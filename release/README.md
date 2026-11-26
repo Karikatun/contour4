@@ -1,4 +1,4 @@
-# «Контур‑4» 0.2.36 из исходников
+# «Контур‑4» 0.2.53 из исходников
 
 Для сборки распакуйте архив исходников и откройте PowerShell 7 в его корне. Используйте .NET SDK 10.0.404 и локальные зависимости из R.E.P.O. 0.5.2, BepInExPack 5.4.2305, REPOLib 4.5.1 и Contour4Valuables 0.2.4. Контрольные суммы зависимостей и ресурсов перечислены в release/input-lock.json.
 
@@ -15,8 +15,8 @@ $valuables = '<Contour4Valuables.dll из Contour4Valuables 0.2.4>'
 $assembly = './build/Contour4.dll'
 $bundles = './release/bundles'
 $project = './prototype/ring/Plugin/Contour4.csproj'
-dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4"
-./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/SpaceJourney-Contour4-0.2.36.zip
+dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4" "-p:DebugType=None"
+./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.2.53.zip
 ~~~
 
 Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей.
@@ -25,9 +25,26 @@ dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInE
 
 Проекты Unity используются в редакторе 6000.3.17f1 (cf0352b38e81). Работайте с отдельной распакованной копией каждого проекта.
 
-Проект release/room-authoring содержит оформленные префабы и исходники процедурного декора, включая восемь вариантов сферической камеры. Для пересборки двух бандлов выполните по очереди BuildRoomPrefabs.Build и BuildRoomPrefabs.BuildPrepared. Чтобы заново сгенерировать сферические префабы из каталога, запустите `prototype/procedural/NativeRaid/Build-PreparedModules.ps1` с параметром `-Module spherical-chamber-variants` и отдельным каталогом вывода. Для зала Мёбиуса используйте `-Module mobius-hall`; его перила входят в каталог коллизий. Переносите сгенерированные ассеты вместе с их `.meta`.
+Проект release/room-authoring содержит оформленные префабы и исходники процедурного декора, включая восемь вариантов сферической камеры. Для пересборки двух бандлов выполните по очереди BuildRoomPrefabs.Build и BuildRoomPrefabs.BuildPrepared. Первый метод добавляет шейдер износа и три карты Poly Haven из папки Materials/SurfaceTextures. Их лицензии, авторы и контрольные суммы перечислены в [surface-textures.json](surface-textures.json). Чтобы заново сгенерировать сферические префабы из каталога, запустите `prototype/procedural/NativeRaid/Build-PreparedModules.ps1` с параметром `-Module spherical-chamber-variants` и отдельным каталогом вывода. Для зала Мёбиуса используйте `-Module mobius-hall`. Его перила входят в каталог коллизий. Переносите сгенерированные ассеты вместе с их `.meta`.
 
 См. release/ring-authoring/README.md для сборки кольца V10. Оригинальные данные установленной игры и зависимости используются только через локальные ссылки. В этом архиве сохранены исходники проекта, ресурсы уровня и бандлы для точной повторной упаковки.
 
 Для узкой проверки точной размещённой сцены в изолированном Unity-проекте используйте SpaceJourney.PreparedModulePackageChecks.RunMobiusSmoke (пять пройденных уровней, seed -32). RunMobiusOutletWitnesses проверяет естественную раскладку с парным потолочным выходом и отдельную ограниченную проверку недоступного партнёра штатным подбором пары и размещением заглушки; Run выполняет полный набор раскладок. Переменные CONTOUR4_ROOMS_BUNDLE и CONTOUR4_PREPARED_BUNDLE должны указывать на бандлы из проверяемого игрового ZIP.
 
+Скрипт `release/tests/Verify-RoomSurfaceWear.ps1 -Baseline <Contour4-0.2.37.zip> -Candidate <Contour4-0.2.38.zip> -Output <каталог>` загружает ассеты из обоих архивов в отдельный графический проект Unity. Он сохраняет парные кадры и сравнивает коллайдеры, свет и маркеры. В проверке стартовых зон собирается авторская геометрия дока и гаража с тестовыми заглушками игровых типов.
+
+Скрипт `release/tests/Verify-RoomBloodTraces.ps1 -Baseline <Contour4-0.2.38.zip> -Candidate <Contour4-0.2.40.zip> -Output <каталог>` проверяет следы в двух естественных раскладках. Он сравнивает опоры, коллайдеры, свет и маркеры и сохраняет парные кадры с одинаковым проверочным фонарём. Маски следов генерируются кодом `RoomBloodTraces.cs` при загрузке сцены.
+
+Скрипт `release/tests/Verify-BrokenEquipment.ps1 -Baseline <Contour4-0.2.40.zip> -BaselineSource <распакованные исходники 0.2.40> -Candidate <Contour4-0.2.41.zip> -Output <каталог>` сравнивает две версии сцены. Он проверяет глубину отверстий, прежние габариты и положение деталей после сдвига координат. Обе сцены сняты с одинаковым проверочным фонарём.
+
+Скрипт `release/tests/Verify-ReadableMaterials.ps1 -Baseline <Contour4-0.2.42.zip> -BaselineSource <распакованные исходники 0.2.42> -Candidate <Contour4-0.2.43.zip> -Output <каталог>` сверяет два набора материалов и снимает шесть пар кадров с одинаковым авторским освещением. Проверка включает сферическую камеру. Фактура дерева и крупного заполнителя бетона создаётся шейдером. Три исходные карты Poly Haven перечислены в `surface-textures.json`.
+
+Для сравнения 0.2.46 и 0.2.47 используйте этот же скрипт с ключом `-BothHaveMaterialFamilies` и архивами соответствующих версий. Он сравнит назначение материалов и снимет шесть пар кадров в одинаковом свете. В 0.2.47 снижена пятнистость материалов, а на бетоне используются более мелкие неровные зёрна.
+
+В 0.2.48 добавлена проверка каждого слота материала в собранном каталоге и его запасном варианте. Запустите `release/tests/Verify-MaterialCoverage.ps1 -Package <архив карты> -Output <каталог> -EditionSource <распакованные исходники того же архива>` для обеих версий. `compare-coverage.py <база> <кандидат> <вывод>` сверит состав сцен, материалы и контрольные сигнатуры геометрии и света. Для проверки авторского стартового модуля Unity использует ту же фабрику моделей, отделённую от вызова, который ищет штатный фургон в запущенной игре.
+
+Скрипт `release/tests/Verify-EquipmentLoot.ps1 -Baseline <Contour4-0.2.43.zip> -BaselineSource <распакованные исходники 0.2.43> -Candidate <Contour4-0.2.44.zip> -Output <каталог>` проверяет опору, габарит и свободный ход предмета в обеих нишах, отклонение неподходящих предметов и совпадение обычных точек, света и проверенных проходов. Геометрические пробники используют размеры штатных часов и кубка. Фактические предметы и штатный захват дополнительно проверяются в игре.
+
+Для независимой проверки стен выполните release/tests/Invoke-WallCatalogAudit.ps1 для архивов .51 и .52, передав -Package, -EditionSource и -Output для каждой версии. Затем запустите compare-wall-catalog.py <вывод .51> <вывод .52> <сводка>; для кадров требуются Python Pillow и Segoe UI в Windows.
+
+Для проверки парных укрытий используйте `release/tests/Verify-PairRacks.ps1 -SourceArchive <ZIP исходников> -Package <игровой ZIP> -Output <новый каталог>`. Скрипт проверяет подготовленные комнаты и запасную геометрию в изолированном Unity Editor; отчёт и входные хеши сохраняются в каталоге вывода. Для регрессий ранее проверенной мебели доступен `Verify-PreviousRegressions.ps1`.

@@ -174,7 +174,8 @@ internal static class PortalCargoDoor
 
     internal static CargoTraversalResult Traverse(CargoMouth entry, CargoMouth exit, Quaternion turn, Rigidbody lead,
         PhysGrabCart cart, HashSet<Rigidbody> bodies, Vector3 crossingPoint, bool permitsCart,
-        Func<Vector3, bool> entrySupport = null, Func<Vector3, bool> exitSupport = null)
+        Func<Vector3, bool> entrySupport = null, Func<Vector3, bool> exitSupport = null,
+        Rigidbody holder = null, Transform avatar = null)
     {
         if (!HasClosedJoints(bodies))
         {
@@ -209,17 +210,19 @@ internal static class PortalCargoDoor
 
         Vector3 toCrossing = entry.Local(crossingPoint) - entry.Local(lead.worldCenterOfMass);
         float downToExitSill = cart ? entry.HalfHeight - exit.HalfHeight : 0f;
-        float advance = Mathf.Max(0f, -exit.Depth + Clearance - rear);
+        // Held bodies continue along the mapped spring. Their air gap is provided by
+        // crossing outside the visual plane in either direction.
+        float advance = holder ? 0f : Mathf.Max(0f, -exit.Depth + Clearance - rear);
         bool fits = !cart || permitsCart;
         foreach (var (collider, hull) in hulls)
         {
             if (!fits) break;
             Bounds atCrossing = new(hull.center + toCrossing, hull.size);
             Bounds arrival = Across(hull, advance, downToExitSill);
-            Bounds exitCrossing = Across(atCrossing, -entry.Depth - exit.Depth, downToExitSill);
+            Bounds exitCrossing = Across(atCrossing, holder ? 0f : -entry.Depth - exit.Depth, downToExitSill);
             fits = Fits(atCrossing, entry) && Fits(hull, entry) && Fits(exitCrossing, exit) && Fits(arrival, exit) &&
-                RunwayClear(entry, Sweep(atCrossing, hull), collider, bodies) &&
-                RunwayClear(exit, Sweep(exitCrossing, arrival), collider, bodies);
+                RunwayClear(entry, Sweep(atCrossing, hull), collider, bodies, holder, avatar) &&
+                RunwayClear(exit, Sweep(exitCrossing, arrival), collider, bodies, holder, avatar);
         }
 
         if (fits && cart)
@@ -236,7 +239,7 @@ internal static class PortalCargoDoor
             foreach (var (collider, hull) in hulls)
             {
                 var retreat = new Bounds(hull.center + offset, hull.size);
-                if (RunwayClear(entry, Sweep(hull, retreat), collider, bodies)) continue;
+                if (RunwayClear(entry, Sweep(hull, retreat), collider, bodies, holder, avatar)) continue;
                 clear = false;
                 break;
             }

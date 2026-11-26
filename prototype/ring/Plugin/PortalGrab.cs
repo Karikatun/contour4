@@ -17,6 +17,17 @@ internal static class PortalGrab
     private static Rigidbody rayBody;
     private static Vector3 rayOrigin;
     private static GrabContext rayRaid;
+    private static readonly AccessTools.FieldRef<PhysGrabber, Vector3> CameraForward =
+        AccessTools.FieldRefAccess<PhysGrabber, Vector3>("cameraRelativeGrabbedForward");
+    private static readonly AccessTools.FieldRef<PhysGrabber, Vector3> CameraUp =
+        AccessTools.FieldRefAccess<PhysGrabber, Vector3>("cameraRelativeGrabbedUp");
+    private static readonly AccessTools.FieldRef<PhysGrabber, Vector3> CameraRight =
+        AccessTools.FieldRefAccess<PhysGrabber, Vector3>("cameraRelativeGrabbedRight");
+    private static readonly AccessTools.FieldRef<PhysGrabber, Quaternion> PhysicsRotation =
+        AccessTools.FieldRefAccess<PhysGrabber, Quaternion>("physRotation");
+    private static readonly Func<PhysGrabber, Quaternion> GamepadRotation =
+        AccessTools.MethodDelegate<Func<PhysGrabber, Quaternion>>(
+            AccessTools.Method(typeof(PhysGrabber), "GamepadMeleeRotationGet"));
 
     [HarmonyPatch(typeof(PhysGrabber), "RayCheck")]
     private static class NativeRay
@@ -83,11 +94,58 @@ internal static class PortalGrab
 
             if (crossing.Raid != null && rayRaid != null && rayRaid == ProceduralPortalPresentation.Grab && IsCurrentRaid(rayRaid))
             {
+                PreserveFarSideOrientation(__instance, ___grabbedPhysGrabObject, crossing);
                 rayRaid.Hold.Begin(__instance, ___grabbedPhysGrabObject, crossing);
                 rayRaid.Hold.Remap(__instance, retainExpiredRoute: true);
             }
             else if (crossing.Ring is Crossing ringCrossing && RingRuntime.Active)
                 RingRuntime.Active.BeginMappedHold(__instance, ___grabbedPhysGrabObject, ringCrossing);
+        }
+    }
+
+    private static void PreserveFarSideOrientation(PhysGrabber grabber, PhysGrabObject item, GrabCrossing crossing)
+    {
+        Transform camera = grabber.playerAvatar && grabber.playerAvatar.localCamera ?
+            grabber.playerAvatar.localCamera.GetOverrideTransform() : null;
+        if (!camera)
+            return;
+        Quaternion relative = Quaternion.Inverse(crossing.Rotation * camera.rotation *
+            GamepadRotation(grabber) * PhysicsRotation(grabber)) * item.rb.rotation;
+        CameraForward(grabber) = relative * Vector3.forward;
+        CameraUp(grabber) = relative * Vector3.up;
+        CameraRight(grabber) = relative * Vector3.right;
+    }
+
+    [HarmonyPatch(typeof(PhysGrabObject), "PhysicsGrabbingManipulation")]
+    private static class MappedHandForce
+    {
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var direction = AccessTools.Method(typeof(Transform), nameof(Transform.TransformDirection), new[] { typeof(Vector3) });
+            var up = AccessTools.PropertyGetter(typeof(Transform), nameof(Transform.up));
+            var right = AccessTools.PropertyGetter(typeof(Transform), nameof(Transform.right));
+            var map = AccessTools.Method(typeof(MappedHandForce), nameof(MapCameraDirection));
+            int replaced = 0;
+            foreach (var instruction in instructions)
+            {
+                yield return instruction;
+                if (!instruction.Calls(direction) && !instruction.Calls(up) && !instruction.Calls(right))
+                    continue;
+                // These are the stock spring's two camera offsets and its target orientation.
+                yield return new CodeInstruction(OpCodes.Ldarg_0);
+                yield return new CodeInstruction(OpCodes.Call, map);
+                replaced++;
+            }
+            if (replaced != 4)
+                throw new InvalidOperationException("Contour-4 could not locate the four native grab directions.");
+        }
+
+        private static Vector3 MapCameraDirection(Vector3 direction, PhysGrabObject item)
+        {
+            var hold = ProceduralPortalPresentation.Grab?.Hold;
+            return hold != null && hold.Held == item && !hold.Expired &&
+                hold.Door is GrabCrossing crossing && crossing.Entry && crossing.Exit &&
+                hold.IsHeldBy(PhysGrabber.instance) ? crossing.Rotation * direction : direction;
         }
     }
 
@@ -122,7 +180,7 @@ internal static class PortalGrab
         return true;
     }
 
-    private static bool IsHandCargo(Rigidbody body) =>
+    internal static bool IsHandCargo(Rigidbody body) =>
         body && !body.isKinematic && body.detectCollisions && body.TryGetComponent(out PhysGrabObject item) &&
         !item.dead && !item.GetComponentInChildren<PhysGrabCart>() && !item.GetComponent<Joint>();
 

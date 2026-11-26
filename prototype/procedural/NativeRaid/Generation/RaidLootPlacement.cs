@@ -12,14 +12,30 @@ namespace Contour4.NativeRaid.Runtime
         private readonly Transform frame;
         private readonly Bounds interior;
         private readonly Collider support;
+        private readonly Retrieval? retrieval;
 
         internal string FloorId { get; }
+        internal bool EquipmentPocket => retrieval.HasValue;
 
-        internal RaidLootPlacement(Transform frame, Bounds interior, Collider support, string floorId)
+        internal readonly struct Retrieval
+        {
+            internal readonly Vector3 Eye;
+            internal readonly float Opening;
+
+            internal Retrieval(Vector3 eye, float opening)
+            {
+                Eye = eye;
+                Opening = opening;
+            }
+        }
+
+        internal RaidLootPlacement(Transform frame, Bounds interior, Collider support, string floorId,
+            Retrieval? retrieval = null)
         {
             this.frame = frame;
             this.interior = interior;
             this.support = support;
+            this.retrieval = retrieval;
             FloorId = floorId;
         }
 
@@ -39,7 +55,32 @@ namespace Contour4.NativeRaid.Runtime
         internal bool Supports(Vector3 bottom, Vector3 up) =>
             support && support.enabled && support.gameObject.activeInHierarchy &&
             support.Raycast(new Ray(bottom + up * .025f, -up), out var hit, SupportReach) &&
-            Vector3.Dot(hit.normal, up) >= .6f;
+            Vector3.Dot(hit.normal, up) >= .6f &&
+            (!EquipmentPocket || Vector3.Distance(hit.point, bottom) <= .012f);
+
+        internal bool AllowsRetrieval(Vector3 center, Quaternion rotation, Vector3 half)
+        {
+            if (retrieval is not { } route) return true;
+            Vector3 eye = frame.TransformPoint(route.Eye);
+            Vector3 lead = eye - center;
+            float distance = lead.magnitude;
+            float localZ = frame.InverseTransformPoint(center).z;
+            float depth = route.Eye.z - localZ;
+            if (distance < .01f || depth < .01f) return false;
+            Vector3 towardEye = lead / distance;
+            if (Physics.Raycast(eye, -towardEye, distance, ~0, QueryTriggerInteraction.Ignore)) return false;
+
+            // Sweep the full footprint past the face far enough to clear the back edge of
+            // the item, not just to bring its pivot to the opening. The skin ignores shelf contact.
+            float remainder = route.Opening - localZ + half.z + .08f;
+            float pull = remainder / depth * distance;
+            Vector3 extent = Vector3.Max(Vector3.one * .001f, half - Vector3.one * Skin);
+            Vector3 extracted = center + towardEye * pull;
+            return pull <= distance &&
+                !Physics.CheckBox(extracted, extent, rotation, ~0, QueryTriggerInteraction.Ignore) &&
+                !Physics.BoxCast(center, extent, towardEye, rotation, pull, ~0, QueryTriggerInteraction.Ignore) &&
+                !Physics.BoxCast(extracted, extent, -towardEye, rotation, pull, ~0, QueryTriggerInteraction.Ignore);
+        }
 
         internal bool Contains(Vector3 center, Quaternion rotation, Vector3 half)
         {

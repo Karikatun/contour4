@@ -8,6 +8,7 @@ namespace Contour4.NativeRaid.Runtime
         internal const string Prefix = "receiving";
         internal const float AssayZ = -1.77f;
         internal const float ReturnRackX = 6.56f;
+        internal const float ReturnRackZ = -1.92f;
 
         internal static RoomDressing Create()
         {
@@ -24,11 +25,24 @@ namespace Contour4.NativeRaid.Runtime
             fixtures.Box("assay-console", 3.48f, 1.65f, AssayZ, 1.02f, .10f, 1.02f, DressingSurface.Worktop);
             fixtures.Box("assay-display", 3.48f, 1.44f, AssayZ + .50f, .53f, .22f, .025f, DressingSurface.ActiveLens);
 
-            Rack(fixtures, "return-rack", ReturnRackX, -1.82f, .76f, .62f, 1.90f, .35f, .93f, 1.53f);
-            fixtures.Box("return-rack-back", ReturnRackX, .93f, -2.12f, .68f, 1.77f, .05f);
-            fixtures.Box("return-rack-head", ReturnRackX, 1.79f, -2.07f, .77f, .14f, .09f, DressingSurface.Conduit);
+            const float board = .07f;
+            // Both lower slots take the full 0.50 m Small loot envelope.
+            const float low = RoomDressing.RackShelterHeight + board / 2;
+            const float tierPitch = board + .54f;
+            Rack(fixtures, "return-rack", ReturnRackX, ReturnRackZ, 1.24f, .78f, 2.20f,
+                low, low + tierPitch, low + 2 * tierPitch);
+            fixtures.Box("return-rack-back", ReturnRackX, 1.065f, -2.245f, 1.10f, 2.13f, .05f);
+            foreach (int side in new[] { -1, 1 })
+                fixtures.Box($"return-rack-cheek-{side}", ReturnRackX + side * .585f, RoomDressing.RackShelterHeight / 2,
+                    ReturnRackZ, .07f, RoomDressing.RackShelterHeight, .68f, DressingSurface.Conduit);
+            fixtures.Box("return-rack-head", ReturnRackX, 2.11f, -2.19f, 1.24f, .14f, .09f, DressingSurface.Conduit);
             Rack(fixtures, "sorting-rack", 7.88f, 3.63f, 1.84f, .81f, 2.22f, null, 1.16f, 1.74f);
             fixtures.Box("sorting-rack-side-cover", 7.00f, .5625f, 3.63f, .065f, 1.125f, .71f);
+            // The inner bay keeps the original crawl approach. Its low tray deck
+            // and end casings leave room for two across while the upper sorting shelves stay in use.
+            fixtures.Box("sorting-rack-shelter-roof", 7.88f, .875f, 3.63f, 1.71f, board, .71f, DressingSurface.Worktop);
+            fixtures.Box("sorting-rack-left-casing", 7.16625f, .42f, 3.63f, .2675f, .84f, .71f, DressingSurface.Conduit);
+            fixtures.Box("sorting-rack-right-casing", 8.64f, .42f, 3.63f, .36f, .84f, .71f, DressingSurface.Conduit);
             fixtures.Box("sorting-rack-back", 7.88f, 1.13f, 4.01f, 1.72f, 2.16f, .05f);
             fixtures.Box("sorting-rack-fascia", 7.88f, 2.13f, 3.26f, 1.84f, .18f, .065f, DressingSurface.Conduit);
             fixtures.Box("sorting-rack-crate", 8.44f, 1.33f, 3.75f, .56f, .27f, .43f);

@@ -25,6 +25,7 @@ namespace Contour4.Procedural.Navigation
         private RaidNavigation.Edge passage;
         private Vector3 passageLanding;
         private int deckSample;
+        private Vector3[] stairCourse;
 
         public RaidFloor Floor { get; private set; }
         public RaidTarget Target { get; private set; }
@@ -63,6 +64,7 @@ namespace Contour4.Procedural.Navigation
             writePose = null;
             Floor = null;
             passage = null;
+            stairCourse = null;
             blockedReturn = null;
             returnsIn = 0;
             thinkIn = 0;
@@ -235,13 +237,14 @@ namespace Contour4.Procedural.Navigation
                 raid.TryPlan(Floor, transform.position, lastSeenFloor, lastSeenGoal, profile, blockedReturn, out var check) &&
                 check.Edge == edge;
             plan = default;
-            if (!canCross || !raid.TryTransition(edge, profile, out var approach, out var landing) ||
+            if (!canCross || !raid.TryTransition(edge, profile, out var approach, out var landing, out var stairs) ||
                 Vector3.Distance(transform.position, approach) > ArrivalDistance ||
                 !raid.BodyTravel(transform.position, approach, Floor.Up, profile))
                 return;
 
-            if (edge.Kind is RaidRouteKind.PhysicalPassage or RaidRouteKind.OrientedDeck)
+            if (edge.Kind is RaidRouteKind.PhysicalPassage or RaidRouteKind.OrientedDeck or RaidRouteKind.Stairs)
             {
+                stairCourse = stairs;
                 passage = edge;
                 passageLanding = landing;
                 deckSample = 0;
@@ -261,7 +264,8 @@ namespace Contour4.Procedural.Navigation
         {
             if (passage.Deck is { } deck)
             {
-                FollowDeck(deck, distance);
+                if (stairCourse != null) FollowStairs(deck, distance);
+                else FollowDeck(deck, distance);
                 return;
             }
             var position = transform.position;
@@ -294,6 +298,28 @@ namespace Contour4.Procedural.Navigation
             if (deckSample != deck.Count) return;
             Floor = passage.To;
             passage = null;
+            thinkIn = 0;
+        }
+
+        private void FollowStairs(RaidDeckPassage deck, float distance)
+        {
+            Physics.SyncTransforms();
+            Vector3 up = deck.From.Up;
+            while (deckSample < stairCourse.Length && distance > MotionEpsilon)
+            {
+                var target = deck.World(stairCourse[deckSample]);
+                var position = transform.position;
+                var next = Vector3.MoveTowards(position, target, Mathf.Min(distance, .125f));
+                if (!raid.StairTravel(deck, position, next, up, profile) ||
+                    !TryWrite(new Pose(next, Heading(next - position, up))))
+                    return;
+                distance -= Vector3.Distance(position, next);
+                if ((next - target).sqrMagnitude < .00000001f) deckSample++;
+            }
+            if (deckSample < stairCourse.Length) return;
+            Floor = passage.To;
+            passage = null;
+            stairCourse = null;
             thinkIn = 0;
         }
 

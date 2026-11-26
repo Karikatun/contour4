@@ -29,6 +29,7 @@ internal static class ProceduralPortalPresentation
         views.Initialize(crossings, module ? module.CameraSide : null);
         if (module)
         {
+            views.BindCargoPresentation(portals);
             Grab?.Hold.Clear();
             Grab = new GrabContext(module, views, portals);
         }
@@ -42,6 +43,7 @@ internal static class ProceduralPortalPresentation
     {
         internal NativeRaidModule Module { get; }
         internal PortalViews Views { get; }
+        internal IReadOnlyList<NativeRaidPortal> Portals { get; }
         internal IReadOnlyList<NativeRaidPortal> Doors { get; }
         internal PortalGrab.MappedHold Hold { get; } = new();
 
@@ -49,9 +51,11 @@ internal static class ProceduralPortalPresentation
         {
             Module = module;
             Views = views;
+            Portals = portals;
             Doors = portals.Where(door => door.Door && portals.Any(reverse => reverse.Door &&
                 reverse.Entrance == door.Exit && reverse.Exit == door.Entrance)).ToArray();
             module.MappedHandFor = MappedHandFor;
+            module.StepHeldHand = new PortalHeldCargo(Doors, Hold).Step;
             module.ClearMappedHand = Hold.Clear;
             module.UnbindMappedHand = Unbind;
         }

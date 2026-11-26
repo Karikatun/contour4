@@ -82,14 +82,6 @@ namespace Contour4.Procedural.Catalog
             Finish();
             group.localPosition = Vector3.forward * MobiusHall.MonitoringOffsetZ;
         }
-        static void Rack()
-        {
-            Start("Open east reference storage");
-            foreach(float z in new[]{-5.75f,-4.35f}) Box(0,new Vector3(11.05f,1.1f,z),new Vector3(.65f,2.2f,.10f));
-            foreach(float y in new[]{.16f,.76f,1.36f,1.96f}) Box(1,new Vector3(11.05f,y,-5.05f),new Vector3(.65f,.06f,1.5f));
-            Finish();
-            group.localPosition = new Vector3((group.name.StartsWith("Open")?11.05f:-11.35f)*(MobiusHall.Scale-1),0,((group.name.StartsWith("Open")?-5.05f:-5.1f)-MobiusHall.WallEquipmentSetback)*MobiusHall.Scale+(group.name.StartsWith("Open")?5.05f:5.1f));
-        }
         static void Diagnostics()
         {
             Start("West field diagnostics");
@@ -99,7 +91,8 @@ namespace Contour4.Procedural.Catalog
             Box(3,new Vector3(-11.63f,2.7f,-5.1f),new Vector3(.08f,1.0f,.08f));
             Box(3,new Vector3(-11.45f,3.2f,-5.1f),new Vector3(.40f,.08f,.08f));
             Finish();
-            group.localPosition = new Vector3((group.name.StartsWith("Open")?11.05f:-11.35f)*(MobiusHall.Scale-1),0,((group.name.StartsWith("Open")?-5.05f:-5.1f)-MobiusHall.WallEquipmentSetback)*MobiusHall.Scale+(group.name.StartsWith("Open")?5.05f:5.1f));
+            group.localPosition = new Vector3(-11.35f * (MobiusHall.Scale - 1), 0,
+                (-5.1f - MobiusHall.WallEquipmentSetback) * MobiusHall.Scale + 5.1f);
         }
         static void Part(Transform parent, string name, Vector3 position, Vector3 scale, Material material, Quaternion rotation)
         {
@@ -133,13 +126,18 @@ namespace Contour4.Procedural.Catalog
             foreach(var r in root.GetComponentsInChildren<MeshRenderer>(true))
             {
                 if (MobiusHall.WorkstationHulls.Any(h => h.id == r.name) || MobiusHall.TripodHulls.Any(h => h.id == r.name)) { r.enabled=false; continue; }
+                if (r.name.StartsWith(MobiusHall.EastStorage + "-", StringComparison.Ordinal))
+                {
+                    r.sharedMaterial = r.name.Contains("-shelf-", StringComparison.Ordinal) ? mats[1] : mats[0];
+                    continue;
+                }
                 var n=r.name; var m = n==MobiusHall.Ribbon || n==MobiusHall.RailInner || n==MobiusHall.RailOuter ? mats[0] : n==MobiusHall.Ramp || n==MobiusHall.Landing ? mats[5] : r.transform.parent.name=="Shell" || r.transform.parent.name=="Conditional plugs" ? mats[4] : r.transform.parent.name=="Floors" ? mats[5] : null;
                 if(m) r.sharedMaterial=m;
             }
             parent=new GameObject("Mobius dressing").transform; parent.SetParent(root,false);
             string path=Dir+"/mobius-dressing-geometry.asset"; foreach(var mesh in AssetDatabase.LoadAllAssetsAtPath(path).OfType<Mesh>()) old[mesh.name]=mesh; initialized=old.Count>0;
             var temp=GameObject.CreatePrimitive(PrimitiveType.Cube); cube=temp.GetComponent<MeshFilter>().sharedMesh; Object.DestroyImmediate(temp);
-            Bench("Worktable west",-4.5f); Bench("Worktable east",4.5f); Instrument(); Rack(); Diagnostics();
+            Bench("Worktable west",-4.5f); Bench("Worktable east",4.5f); Instrument(); Diagnostics();
             // Existing four emitters become warm ceiling-mounted practical fixtures.
             var lights=root.Find("Ribbon work lights").GetComponentsInChildren<Light>();
             for(int i=0;i<lights.Length;i++) { var l=lights[i]; l.transform.localPosition=i<2 ? new Vector3(i==0?-6.75f:6.75f,2.16f,(-7.85f-MobiusHall.WorktableSetback)*MobiusHall.Scale) : new Vector3(i==2?-6:6,11.65f,6.45f); l.color=new Color(1f,.91f,.76f); l.intensity=i<2?3.5f:4f; l.range=i<2?14f:18f; l.shadows=LightShadows.None; l.renderMode=LightRenderMode.ForcePixel; }

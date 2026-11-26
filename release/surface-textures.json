@@ -1,0 +1,33 @@
+[
+  {
+    "asset": "room-authoring/Assets/Contour4/Rooms/Materials/SurfaceTextures/painted_plaster_wall_diff_1k.jpg",
+    "original": "painted_plaster_wall",
+    "source": "https://polyhaven.com/a/painted_plaster_wall",
+    "license": "CC0 1.0",
+    "authors": {
+      "Amal Kumar": "All"
+    },
+    "sha256": "440310F05AF089F2C93353167573403CBC3F805948203237B5D26431EEB9E19C"
+  },
+  {
+    "asset": "room-authoring/Assets/Contour4/Rooms/Materials/SurfaceTextures/concrete_floor_worn_001_diff_1k.jpg",
+    "original": "concrete_floor_worn_001",
+    "source": "https://polyhaven.com/a/concrete_floor_worn_001",
+    "license": "CC0 1.0",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "sha256": "6E40C0FC908F4D66431836F5ABE203F3A4EB064E88824378A91A46A26E2F464C"
+  },
+  {
+    "asset": "room-authoring/Assets/Contour4/Rooms/Materials/SurfaceTextures/green_metal_rust_diff_1k.jpg",
+    "original": "green_metal_rust",
+    "source": "https://polyhaven.com/a/green_metal_rust",
+    "license": "CC0 1.0",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "sha256": "4509AB0CB1CF6BF9B9F970450A41F83EBD9BFF178006DEAE568FF34B404856FC"
+  }
+]

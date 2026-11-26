@@ -16,11 +16,21 @@ namespace SpaceJourney
         private static readonly int EmissionColorProperty = Shader.PropertyToID("_EmissionColor");
         private static readonly FieldInfo MapFloorObject = AccessTools.Field(typeof(DirtFinderMapFloor), "MapObject");
         private readonly Dictionary<RaidMapPlan.FloorView, GameObject> roomGraphics = new();
+        private readonly Dictionary<RaidMapPlan.FloorView, GameObject> fogGraphics = new();
+        private readonly List<Mesh> ownedMapMeshes = new();
+        private readonly Dictionary<Renderer, bool> coveredValuables = new();
         private readonly Dictionary<RaidMapPlan.Link, GameObject> corridorGraphics = new();
+        private readonly Dictionary<RaidMapPlan.Link, MutedPassage> linkFogGraphics = new();
+        private readonly Dictionary<RaidMapPlan.Link, (Approach A, Approach B)> approachGraphics = new();
+        private readonly Dictionary<RaidMapPlan.Door, GameObject> portalGraphics = new();
+        private readonly Dictionary<RaidMapPlan.FloorView, BoxCollider[]> roomVolumes = new();
         private readonly List<(RaidMapPlan.FloorView Floor, Renderer Renderer, bool Enabled)> stockRoomGraphics = new();
         private RaidAssembly raid;
         private RaidMapPlan plan;
         private Transform raidRoot;
+        private LevelGenerator generator;
+        private GameObject levelParent;
+        private Level level;
         private Matrix4x4 originalRootToWorld;
         private Bounds? stockBounds;
         private Map native;
@@ -28,6 +38,7 @@ namespace SpaceJourney
         private Transform markerSource;
         private bool ready;
         private bool setupFailed;
+        private bool havePlayerPose;
 
         // The map stays in its original coordinates while physical gravity can rebase the raid.
         private Matrix4x4 WorldToPlan => originalRootToWorld * raidRoot.worldToLocalMatrix;
@@ -38,13 +49,19 @@ namespace SpaceJourney
             map.raid = raid;
             map.raidRoot = raid.transform.root;
             map.originalRootToWorld = map.raidRoot.localToWorldMatrix;
-            Transform start = LevelGenerator.Instance.LevelParent.GetComponentInChildren<StartRoom>()?.transform;
+            map.generator = LevelGenerator.Instance;
+            map.levelParent = map.generator.LevelParent;
+            map.level = map.generator.Level;
+            Transform start = map.levelParent.GetComponentInChildren<StartRoom>()?.transform;
             map.stockBounds = StartBounds(start);
             map.plan = RaidMapPlan.Create(raid.Plan, map.stockBounds,
                 preparedRooms: raid.Rooms.Where(room => room.Prepared).Select(room => room.Plan));
+            map.BindRoomVolumes();
+            map.BindHatchApproaches();
             map.native = Map.Instance;
             map.playerSource = RaidAssembly.Child(map.transform, "Stock map player source");
             map.markerSource = RaidAssembly.Child(map.transform, "Stock map marker source");
+            if (active && active != map) active.ReleaseGraphics();
             active = map;
         }
 
@@ -53,6 +70,64 @@ namespace SpaceJourney
             var map = raid.GetComponent<ProceduralRaidMap>();
             map.plan = RaidMapPlan.Create(raid.Plan, map.stockBounds, ring, parentDock, map.WorldToPlan,
                 raid.Rooms.Where(room => room.Prepared).Select(room => room.Plan));
+            map.BindRoomVolumes(ring);
+            map.BindHatchApproaches();
+        }
+
+        private void BindRoomVolumes(RingRuntime ring = null)
+        {
+            roomVolumes.Clear();
+            foreach (var floor in plan.Floors)
+            {
+                if (floor == plan.Stock) continue;
+                if (floor.Owner != null)
+                {
+                    var room = raid.Room(floor.Owner);
+                    Transform volumes = room.Root.Find("Room volume");
+                    if (!volumes) continue;
+                    if (!room.Prepared)
+                        roomVolumes.Add(floor, volumes.GetComponents<BoxCollider>());
+                    else
+                        roomVolumes.Add(floor, room.Floors.Where(surface => surface.FloorId == floor.Floor.Id)
+                            .Select(surface => volumes.Find(surface.FloorId + " " + surface.IslandId))
+                            .Where(node => node && node.GetComponent<RoomVolume>())
+                            .SelectMany(node => node.GetComponents<BoxCollider>()).ToArray());
+                }
+                else if (ring)
+                {
+                    var room = ring.Rooms.Single(node => node.name == floor.Floor.Id);
+                    var volume = RingRuntime.Marker(room, room.name + "__RoomVolume");
+                    roomVolumes.Add(floor, volume.GetComponents<BoxCollider>());
+                }
+            }
+        }
+
+        private void BindHatchApproaches()
+        {
+            Matrix4x4 frame = WorldToPlan;
+            foreach (var door in plan.Doors)
+            {
+                var end = door.End;
+                if (!door.Portal || !end.Interior || end.Floor.Owner == null) continue;
+                // The placed pad is already validated against the hatch's owning deck.
+                Transform pad = raid.Room(end.Floor.Owner).Root.Find(end.DockId + " portal landing pad");
+                if (pad)
+                    door.HatchApproach = new Pose(frame.MultiplyPoint3x4(pad.position), frame.rotation * pad.rotation);
+            }
+        }
+
+        private bool RoomOwns(RaidMapPlan.FloorView floor, Vector3 position)
+        {
+            if (!roomVolumes.TryGetValue(floor, out var volumes)) return false;
+            foreach (var volume in volumes)
+            {
+                if (!volume || !volume.enabled || !volume.isTrigger || !volume.gameObject.activeInHierarchy) continue;
+                Vector3 local = volume.transform.InverseTransformPoint(position) - volume.center;
+                Vector3 half = volume.size / 2;
+                if (Mathf.Abs(local.x) <= half.x && Mathf.Abs(local.y) <= half.y && Mathf.Abs(local.z) <= half.z)
+                    return true;
+            }
+            return false;
         }
 
         private static Bounds? StartBounds(Transform start)
@@ -67,15 +142,24 @@ namespace SpaceJourney
             return bounds;
         }
 
+        private bool CurrentRaid => raid && generator && generator == LevelGenerator.Instance &&
+            levelParent && generator.LevelParent == levelParent && generator.Level == level &&
+            raid.transform.IsChildOf(levelParent.transform);
+
         private static ProceduralRaidMap For(Map map)
         {
-            if (!map || !active || !active.isActiveAndEnabled || map != Map.Instance) return null;
+            if (!map || !active || !active.isActiveAndEnabled || !active.CurrentRaid || map != Map.Instance) return null;
             if (!active.native) active.native = map;
             return active.native == map ? active : null;
         }
 
         private void LateUpdate()
         {
+            if (!CurrentRaid || active != this || native && native != Map.Instance)
+            {
+                ReleaseGraphics();
+                return;
+            }
             if (setupFailed) return;
             if (!native) native = Map.Instance;
             if (!native || !native.OverLayerParent || !native.LayerPrefab) return;
@@ -96,29 +180,57 @@ namespace SpaceJourney
             }
 
             var player = PlayerController.instance;
-            if (!player || !player.rb) return;
-            UpdatePlayer(player.transform);
+            if (player) UpdatePlayer(player.transform);
         }
 
         private bool UpdatePlayer(Transform player)
         {
-            if (!Project(player, true, playerSource, out _)) return false;
+            var controller = NativeMapPlayer.PlayingController(generator);
+            if (!controller || player != controller.transform) return false;
+            if (Project(player, true, playerSource, out _)) havePlayerPose = true;
+            RefreshVisibility();
+            return havePlayerPose;
+        }
+
+        private void RefreshVisibility()
+        {
+            bool open = native.Active;
             foreach (var room in roomGraphics)
-                Reveal(room.Value, room.Key.Revealed);
+                Reveal(room.Value, open && room.Key.Revealed);
+            foreach (var fog in fogGraphics)
+                Reveal(fog.Value, open && !fog.Key.Revealed);
+            foreach (var portal in portalGraphics)
+                Reveal(portal.Value, open && portal.Key.Revealed);
             foreach (var corridor in corridorGraphics)
-                Reveal(corridor.Value, corridor.Key.Visited || corridor.Key.A.Floor.Revealed && corridor.Key.B.Floor.Revealed);
+            {
+                var link = corridor.Key;
+                bool full = link.Visited || link.A.Floor.Revealed && link.B.Floor.Revealed;
+                Reveal(corridor.Value, open && full);
+                var ends = approachGraphics[link];
+                bool showA = open && !full && link.A.Floor.Revealed;
+                bool showB = open && !full && link.B.Floor.Revealed;
+                ends.A.Show(showA, link.ExploredFromA);
+                ends.B.Show(showB, link.ExploredFromB);
+                // The muted overlay sits above the native floor layers. Remove the part
+                // covered by bright geometry only when that layer is visible to the player.
+                linkFogGraphics[link].Show(open && !(full && InDisplayedLayer(corridor.Value)),
+                    showA && InDisplayedLayer(ends.A.Root) ? ends.A.VisibleLength(link.ExploredFromA) : 0f,
+                    showB && InDisplayedLayer(ends.B.Root) ? ends.B.VisibleLength(link.ExploredFromB) : 0f);
+            }
             foreach (var graphic in stockRoomGraphics)
             {
-                bool revealed = graphic.Enabled && graphic.Floor.Revealed;
+                bool revealed = open && graphic.Enabled && graphic.Floor.Revealed;
                 if (graphic.Renderer && graphic.Renderer.enabled != revealed)
                     graphic.Renderer.enabled = revealed;
             }
-            return true;
         }
+
+        private bool InDisplayedLayer(GameObject group) =>
+            Mathf.Abs(group.transform.parent.GetComponent<MapLayer>().layer - native.PlayerLayer) <= 1;
 
         private static void Reveal(GameObject group, bool revealed)
         {
-            if (group.activeSelf != revealed) group.SetActive(revealed);
+            if (group && group.activeSelf != revealed) group.SetActive(revealed);
         }
 
         private bool Project(Transform source, bool visit, Transform proxy, out RaidMapPlan.FloorView floor)
@@ -126,7 +238,11 @@ namespace SpaceJourney
             var frame = WorldToPlan;
             Vector3 world = frame.MultiplyPoint3x4(source.position);
             Vector3 forward = frame.MultiplyVector(source.forward);
-            if (!plan.Project(world, forward, visit, out floor, out var flat, out var heading)) return false;
+            Vector2 flat, heading;
+            bool projected = visit
+                ? plan.ProjectPlayer(world, forward, candidate => RoomOwns(candidate, source.position), out floor, out flat, out heading)
+                : plan.Project(world, forward, false, out floor, out flat, out heading);
+            if (!projected) return false;
 
             var direction = plan.NativeVector(heading);
             if (direction.sqrMagnitude < .0001f)
@@ -158,6 +274,7 @@ namespace SpaceJourney
             foreach (var floor in plan.Floors)
             {
                 if (floor == plan.Stock) continue;
+                BuildFog(floor);
                 Transform group = Group("Contour-4 " + floor.Floor.Id, floor);
                 roomGraphics.Add(floor, group.gameObject);
                 foreach (Rect tile in floor.Slabs.Length == 0 ? new[] { BoundsOf(floor.Local) } : floor.Slabs)
@@ -176,7 +293,7 @@ namespace SpaceJourney
                 for (int i = 0; i < floor.Local.Length; i++)
                     Wall(group, floor, floor.Local[i], floor.Local[(i + 1) % floor.Local.Length], openings);
                 foreach (var door in openings.Where(door => door.Portal))
-                    DrawPortalMouth(group, door);
+                    portalGraphics.Add(door, DrawPortalMouth(group, door));
             }
 
             foreach (var link in plan.Links)
@@ -184,6 +301,9 @@ namespace SpaceJourney
                 Transform group = Group("Contour-4 " + (link.Stairs ? "stairs" : "passage"), link.A.Floor);
                 corridorGraphics.Add(link, group.gameObject);
                 Vector2[] path = plan.Corridor(link).ToArray();
+                linkFogGraphics.Add(link, BuildMutedPassage(link, path));
+                approachGraphics.Add(link, (BuildApproach(link.A.Floor, path),
+                    BuildApproach(link.B.Floor, path.Reverse().ToArray())));
                 const float width = RaidMapPlan.CorridorWidth;
                 for (int i = 1; i < path.Length; i++)
                 {
@@ -203,6 +323,227 @@ namespace SpaceJourney
 
         }
 
+        private void BuildFog(RaidMapPlan.FloorView floor)
+        {
+            int[] triangles = floor.CoverTriangles(out Vector2 center);
+            Transform group = RaidAssembly.Child(native.OverLayerParent, "Contour-4 unexplored " + floor.Floor.Id);
+            group.gameObject.SetActive(false);
+            fogGraphics.Add(floor, group.gameObject);
+            Vector3 mapCenter = plan.NativePoint(center) * native.Scale;
+            group.localPosition = new Vector3(mapCenter.x, 0, mapCenter.z);
+
+            // Native cover and outline have top faces at these depths on OverLayerParent.
+            // A native outline starts .025 map units outside each rectangular side.
+            const float width = .025f;
+            var points = floor.Outline.Select(p => plan.NativeVector(p - center) * native.Scale).ToArray();
+            DrawFogMesh(native.RoomVolume, group, "Unexplored fill", points, triangles, .11f);
+            var outline = new Vector3[points.Length * 2];
+            var strip = new int[points.Length * 6];
+            bool upward = Vector3.Cross(points[triangles[1]] - points[triangles[0]],
+                points[triangles[2]] - points[triangles[0]]).y > 0;
+            for (int i = 0; i < points.Length; i++)
+            {
+                int previous = (i + points.Length - 1) % points.Length;
+                int next = (i + 1) % points.Length;
+                Vector3 before = Vector3.Cross(Vector3.up, (points[i] - points[previous]).normalized);
+                Vector3 after = Vector3.Cross(Vector3.up, (points[next] - points[i]).normalized);
+                Vector3 corner = Vector3.ClampMagnitude((before + after) /
+                    Mathf.Max(.25f, 1f + Vector3.Dot(before, after)), 2.5f);
+                if (upward) corner = -corner;
+                outline[i * 2] = points[i];
+                outline[i * 2 + 1] = points[i] + corner * width;
+                int index = i * 6;
+                strip[index] = i * 2;
+                strip[index + 1] = next * 2;
+                strip[index + 2] = i * 2 + 1;
+                strip[index + 3] = i * 2 + 1;
+                strip[index + 4] = next * 2;
+                strip[index + 5] = next * 2 + 1;
+            }
+            DrawFogMesh(native.RoomVolumeOutline, group, "Unexplored outline", outline, strip, .105f);
+            var question = Instantiate(native.ModulePrefab, group);
+            question.name = "Unexplored question";
+            question.transform.localPosition = Vector3.zero;
+        }
+
+        private void DrawFogMesh(GameObject prefab, Transform group, string name, Vector3[] vertices,
+            int[] triangles, float height)
+        {
+            CreateMapMesh(prefab, group, name, height, out var mesh);
+            // The stock map camera views these planes from above; discard dependent plan winding.
+            var indices = (int[])triangles.Clone();
+            for (int i = 0; i < indices.Length; i += 3)
+                if (Vector3.Cross(vertices[indices[i + 1]] - vertices[indices[i]],
+                    vertices[indices[i + 2]] - vertices[indices[i]]).y < 0)
+                    (indices[i + 1], indices[i + 2]) = (indices[i + 2], indices[i + 1]);
+            mesh.vertices = vertices;
+            mesh.triangles = indices;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+        }
+
+        private MeshRenderer CreateMapMesh(GameObject prefab, Transform group, string name, float height, out Mesh mesh)
+        {
+            var template = prefab.GetComponentInChildren<MeshRenderer>(true);
+            Transform node = RaidAssembly.Child(group, name);
+            node.gameObject.layer = template.gameObject.layer;
+            node.localPosition = Vector3.up * height;
+            mesh = new Mesh { name = name };
+            ownedMapMeshes.Add(mesh);
+            node.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = node.gameObject.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = template.sharedMaterial;
+            renderer.shadowCastingMode = template.shadowCastingMode;
+            renderer.receiveShadows = template.receiveShadows;
+            renderer.sortingLayerID = template.sortingLayerID;
+            renderer.sortingOrder = template.sortingOrder;
+            return renderer;
+        }
+
+        private MutedPassage BuildMutedPassage(RaidMapPlan.Link link, Vector2[] path)
+        {
+            var group = RaidAssembly.Child(native.OverLayerParent,
+                link.Stairs ? "Contour-4 unexplored stairs" : "Contour-4 unexplored passage");
+            group.gameObject.SetActive(false);
+            var renderer = CreateMapMesh(native.FloorObject1x1, group, "Unexplored connector", .10f, out var mesh);
+            var dim = new MaterialPropertyBlock();
+            dim.SetColor(ColorProperty, Muted(renderer.sharedMaterial.GetColor(ColorProperty)));
+            dim.SetColor(EmissionColorProperty, Muted(renderer.sharedMaterial.GetColor(EmissionColorProperty)));
+            renderer.SetPropertyBlock(dim);
+            mesh.MarkDynamic();
+            return new MutedPassage(group.gameObject, mesh, plan, path, native.Scale);
+
+            static Color Muted(Color color) => new Color(color.r * .62f, color.g * .62f, color.b * .62f, color.a);
+        }
+
+        private sealed class MutedPassage
+        {
+            internal readonly GameObject Root;
+            private readonly Mesh mesh;
+            private readonly (Vector3 Left, Vector3 Right, float Distance)[] stations;
+            private readonly List<Vector3> vertices = new();
+            private readonly List<int> triangles = new();
+            private float begin = -1f, finish = -1f;
+
+            internal MutedPassage(GameObject root, Mesh mesh, RaidMapPlan plan, Vector2[] path, float scale)
+            {
+                Root = root;
+                this.mesh = mesh;
+                var route = new List<Vector2>();
+                foreach (Vector2 point in path)
+                    if (route.Count == 0 || Vector2.Distance(route[route.Count - 1], point) >= .01f)
+                        route.Add(point);
+                stations = new (Vector3, Vector3, float)[route.Count];
+                if (route.Count < 2) return;
+                var points = route.Select(point =>
+                {
+                    Vector3 projected = plan.NativePoint(point) * scale;
+                    return new Vector3(projected.x, 0, projected.z);
+                }).ToArray();
+                float distance = 0f;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    Vector3 before = points[i] - points[Mathf.Max(0, i - 1)];
+                    Vector3 after = points[Mathf.Min(points.Length - 1, i + 1)] - points[i];
+                    Vector3 a = Vector3.Cross(Vector3.up, (i == 0 ? after : before).normalized);
+                    Vector3 b = Vector3.Cross(Vector3.up, (i == points.Length - 1 ? before : after).normalized);
+                    // The 1 m stroke stays within the route's existing 1.45 m clearance at bends.
+                    Vector3 side = Vector3.ClampMagnitude((a + b) / Mathf.Max(.25f, 1f + Vector3.Dot(a, b)), 1.4f) *
+                        (.5f * scale);
+                    if (i > 0) distance += Vector2.Distance(route[i - 1], route[i]);
+                    stations[i] = (points[i] - side, points[i] + side, distance);
+                }
+            }
+
+            internal void Show(bool visible, float trimA, float trimB)
+            {
+                float end = stations.Length < 2 ? 0 : stations[stations.Length - 1].Distance - trimB;
+                bool show = visible && end - trimA > .001f;
+                Reveal(Root, show);
+                if (!show || Mathf.Abs(begin - trimA) < .001f && Mathf.Abs(finish - end) < .001f) return;
+                begin = trimA;
+                finish = end;
+                vertices.Clear();
+                triangles.Clear();
+                for (int i = 1; i < stations.Length; i++)
+                {
+                    var from = stations[i - 1];
+                    var to = stations[i];
+                    if (to.Distance <= begin || from.Distance >= finish) continue;
+                    float span = to.Distance - from.Distance;
+                    if (vertices.Count == 0)
+                        AddPair(Mathf.Clamp01((begin - from.Distance) / span));
+                    int first = vertices.Count - 2;
+                    AddPair(Mathf.Clamp01((finish - from.Distance) / span));
+                    triangles.Add(first);
+                    triangles.Add(first + 2);
+                    triangles.Add(first + 1);
+                    triangles.Add(first + 1);
+                    triangles.Add(first + 2);
+                    triangles.Add(first + 3);
+
+                    void AddPair(float t)
+                    {
+                        vertices.Add(Vector3.Lerp(from.Left, to.Left, t));
+                        vertices.Add(Vector3.Lerp(from.Right, to.Right, t));
+                    }
+                }
+                mesh.Clear();
+                mesh.SetVertices(vertices);
+                mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateNormals();
+                mesh.RecalculateBounds();
+            }
+        }
+
+        private sealed class Approach
+        {
+            internal readonly GameObject Root;
+            internal readonly List<(GameObject Tile, GameObject Joint, float Start, float Length, Vector3 Scale)> Strips = new();
+            internal float Length;
+
+            internal Approach(GameObject root) => Root = root;
+
+            internal float VisibleLength(float explored) =>
+                Mathf.Min(Length * .9f, Mathf.Max(1.3f, explored * Length));
+
+            internal void Show(bool visible, float explored)
+            {
+                Reveal(Root, visible);
+                if (!visible) return;
+                float distance = VisibleLength(explored);
+                foreach (var strip in Strips)
+                {
+                    float portion = Mathf.Clamp01((distance - strip.Start) / strip.Length);
+                    Reveal(strip.Tile, portion > 0f);
+                    Reveal(strip.Joint, portion == 1f);
+                    if (portion > 0f)
+                        strip.Tile.transform.localScale = new Vector3(strip.Scale.x, strip.Scale.y, strip.Scale.z * portion);
+                }
+            }
+        }
+
+        private Approach BuildApproach(RaidMapPlan.FloorView floor, Vector2[] path)
+        {
+            Transform group = Group("Contour-4 approach", floor);
+            var approach = new Approach(group.gameObject);
+            const float width = RaidMapPlan.CorridorWidth;
+            for (int i = 1; i < path.Length; i++)
+            {
+                Vector2 from = path[i - 1];
+                Vector2 direction = path[i] - from;
+                float length = direction.magnitude;
+                if (length < .01f) continue;
+                Vector2 side = new Vector2(direction.y, -direction.x) / length;
+                var tile = Tile(group, from - side * (width / 2), direction, width, length);
+                GameObject joint = i < path.Length - 1
+                    ? Tile(group, path[i] - Vector2.one * (width / 2), Vector2.up, width, width) : null;
+                approach.Strips.Add((tile, joint, approach.Length, length, tile.transform.localScale));
+                approach.Length += length;
+            }
+            return approach;
+        }
+
         private static Rect BoundsOf(IReadOnlyList<Vector2> polygon)
         {
             var min = polygon[0];
@@ -215,11 +556,11 @@ namespace SpaceJourney
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
-        private void Tile(Transform group, Vector2 corner, Vector2 along, float width, float length)
+        private GameObject Tile(Transform group, Vector2 corner, Vector2 along, float width, float length)
         {
             // The native 1×1 tile has its corner at the root and is .50 units wide.
             float toTile = native.Scale / .50f;
-            Glyph(native.FloorObject1x1, group, corner, along, new Vector3(width * toTile, 1, length * toTile));
+            return Glyph(native.FloorObject1x1, group, corner, along, new Vector3(width * toTile, 1, length * toTile));
         }
 
         private void Wall(Transform group, RaidMapPlan.FloorView floor, Vector2 a, Vector2 b, RaidMapPlan.Door[] openings)
@@ -249,7 +590,7 @@ namespace SpaceJourney
             }
         }
 
-        private void DrawPortalMouth(Transform group, RaidMapPlan.Door door)
+        private GameObject DrawPortalMouth(Transform group, RaidMapPlan.Door door)
         {
             var (from, to) = door.PortalStroke();
             // The native door model has two marks. Use a single native wall strip across the aperture.
@@ -260,6 +601,8 @@ namespace SpaceJourney
             color.SetColor(EmissionColorProperty, door.Color);
             foreach (var mesh in glyph.GetComponentsInChildren<Renderer>(true))
                 mesh.SetPropertyBlock(color);
+            glyph.SetActive(false);
+            return glyph;
         }
 
         private GameObject WallStrip(Transform group, Vector2 from, Vector2 to)
@@ -287,13 +630,33 @@ namespace SpaceJourney
         {
             foreach (var room in roomGraphics.Values)
                 Release(room);
+            foreach (var fog in fogGraphics.Values)
+                Release(fog);
+            foreach (var mesh in ownedMapMeshes)
+                if (Application.isPlaying) Destroy(mesh); else DestroyImmediate(mesh);
+            foreach (var graphic in coveredValuables)
+                if (graphic.Key) graphic.Key.forceRenderingOff = graphic.Value;
+            fogGraphics.Clear();
+            ownedMapMeshes.Clear();
+            coveredValuables.Clear();
             foreach (var corridor in corridorGraphics.Values)
                 Release(corridor);
+            foreach (var corridor in linkFogGraphics.Values)
+                Release(corridor.Root);
+            linkFogGraphics.Clear();
+            foreach (var ends in approachGraphics.Values)
+            {
+                Release(ends.A.Root);
+                Release(ends.B.Root);
+            }
             foreach (var graphic in stockRoomGraphics)
                 if (graphic.Renderer) graphic.Renderer.enabled = graphic.Enabled;
             roomGraphics.Clear();
             corridorGraphics.Clear();
+            approachGraphics.Clear();
+            portalGraphics.Clear();
             stockRoomGraphics.Clear();
+            havePlayerPose = ready = false;
 
             static void Release(GameObject group)
             {
@@ -303,15 +666,7 @@ namespace SpaceJourney
             }
         }
 
-        private void OnDisable()
-        {
-            foreach (var room in roomGraphics.Values)
-                if (room) room.SetActive(false);
-            foreach (var corridor in corridorGraphics.Values)
-                if (corridor) corridor.SetActive(false);
-            foreach (var graphic in stockRoomGraphics)
-                if (graphic.Renderer) graphic.Renderer.enabled = false;
-        }
+        private void OnDisable() => ReleaseGraphics();
 
         private void OnDestroy()
         {
@@ -335,14 +690,36 @@ namespace SpaceJourney
         private static Vector3 NativeRoomPosition(Transform original) => NativeRoomSource(original).position;
         private static Quaternion NativeRoomRotation(Transform original) => NativeRoomSource(original).rotation;
 
-        private static Transform NativeMarkerSource(Transform original)
+        private Transform ProjectMarker(Transform graphic, Transform original)
         {
-            var map = For(Map.Instance);
-            return map && original && map.Project(original, false, map.markerSource, out var floor) &&
-                (floor != map.plan.Stock || map.WorldToPlan != Matrix4x4.identity) ? map.markerSource : original;
+            RaidMapPlan.FloorView floor = null;
+            bool projected = original && Project(original, false, markerSource, out floor);
+            if (graphic && graphic.TryGetComponent<MapValuable>(out var valuable))
+                HideCoveredValuable(valuable.spriteRenderer, projected && floor != plan.Stock && !floor.Revealed);
+            return projected && (floor != plan.Stock || WorldToPlan != Matrix4x4.identity) ? markerSource : original;
         }
 
-        private static Vector3 NativeMarkerPosition(Transform original) => NativeMarkerSource(original).position;
+        private void HideCoveredValuable(Renderer renderer, bool hidden)
+        {
+            if (!renderer) return;
+            if (hidden)
+            {
+                if (!coveredValuables.ContainsKey(renderer))
+                    coveredValuables.Add(renderer, renderer.forceRenderingOff);
+                renderer.forceRenderingOff = true;
+            }
+            else if (coveredValuables.TryGetValue(renderer, out bool wasHidden))
+            {
+                coveredValuables.Remove(renderer);
+                renderer.forceRenderingOff = wasHidden;
+            }
+        }
+
+        private static Vector3 NativeMarkerPosition(Transform original)
+        {
+            var map = For(Map.Instance);
+            return (map ? map.ProjectMarker(null, original) : original).position;
+        }
 
         [HarmonyPatch]
         private static class NativePlayerPatch
@@ -362,12 +739,34 @@ namespace SpaceJourney
             }
         }
 
+        [HarmonyPatch(typeof(Map), nameof(Map.ActiveSet))]
+        private static class NativeActivePatch
+        {
+            private static void Postfix(Map __instance)
+            {
+                var map = For(__instance);
+                if (map && map.ready) map.RefreshVisibility();
+            }
+        }
+
         [HarmonyPatch(typeof(Map), nameof(Map.CustomPositionSet))]
         private static class NativeMarkerPatch
         {
-            private static void Prefix(Map __instance, ref Transform __1)
+            private static void Prefix(Map __instance, Transform __0, ref Transform __1)
             {
-                if (For(__instance)) __1 = NativeMarkerSource(__1);
+                var map = For(__instance);
+                if (map) __1 = map.ProjectMarker(__0, __1);
+            }
+        }
+
+        [HarmonyPatch(typeof(MapValuable), "Start")]
+        private static class NativeValuableStartPatch
+        {
+            private static void Postfix(MapValuable __instance)
+            {
+                var map = For(Map.Instance);
+                if (map && __instance.target)
+                    map.ProjectMarker(__instance.transform, __instance.target.transform);
             }
         }
 
@@ -399,7 +798,9 @@ namespace SpaceJourney
             private static bool Prefix(Map __instance, GameObject __0)
             {
                 var map = For(__instance);
-                return !map || !__0 || !__0.transform.IsChildOf(map.raid.transform);
+                // Native fog masks use horizontal world boxes. Generated rooms own their
+                // unfolded visibility, while stock volumes still run stock discovery.
+                return !map || map.setupFailed || !__0 || !__0.transform.IsChildOf(map.raid.transform);
             }
         }
 
@@ -427,7 +828,7 @@ namespace SpaceJourney
                 foreach (var renderer in glyph.GetComponentsInChildren<Renderer>(true))
                 {
                     map.stockRoomGraphics.Add((floor, renderer, renderer.enabled));
-                    renderer.enabled = renderer.enabled && floor.Revealed;
+                    renderer.enabled = renderer.enabled && __instance.Active && floor.Revealed;
                 }
             }
         }
@@ -459,5 +860,24 @@ namespace SpaceJourney
             return code;
         }
     }
-}
 
+    internal static class NativeMapPlayer
+    {
+        private static readonly AccessTools.FieldRef<PlayerAvatar, bool> Spawned =
+            AccessTools.FieldRefAccess<PlayerAvatar, bool>("spawned");
+
+        internal static PlayerController PlayingController(LevelGenerator generator)
+        {
+            // Generation can create a controller before stock moves it to the truck.
+            // Discovery begins only once the local avatar has entered normal gameplay.
+            if (!generator || !generator.Generated || !GameDirector.instance ||
+                GameDirector.instance.currentState != GameDirector.gameState.Main)
+                return null;
+
+            var controller = PlayerController.instance;
+            if (!controller || !controller.isActiveAndEnabled || !controller.rb) return null;
+            var avatar = controller.playerAvatarScript;
+            return avatar && avatar == SemiFunc.PlayerAvatarLocal() && Spawned(avatar) ? controller : null;
+        }
+    }
+}

@@ -6,6 +6,14 @@ namespace Contour4.Procedural.Catalog
 {
     public static class SampleStorage
     {
+        internal const float RackStart = 6.80f;
+        internal const float RackEnd = 10.20f;
+        internal const float RackFront = 2.70f;
+        internal const float RackShelterDepth = .68f;
+        internal const float RackShelterBoard = .07f;
+        internal const float NearShelterX = 9.64f;
+        internal const float FarShelterX = 8.50f;
+
         public static GrayModule Create(bool narrow = false)
         {
             var room = new GrayBuilder(narrow ? "sample-storage-narrow" : "sample-storage", 15, 15, narrow ? 1 : 0);
@@ -16,8 +24,8 @@ namespace Contour4.Procedural.Catalog
                 DockUse.Physical | DockUse.DoorPortal);
             room.RectangleWalls(0, 15, 0, Height, -7.5f, 7.5f, west: west, east: east);
             float inner = narrow ? .65f : 1.1f;
-            room.Box("near-rack", BlockRole.Obstacle, 6.8f, 10.2f, 0, 2.4f, -2.7f, -inner);
-            room.Box("far-rack", BlockRole.Obstacle, 6.8f, 10.2f, 0, 2.4f, inner, 2.7f);
+            StorageRack("near-rack", -1, NearShelterX);
+            StorageRack("far-rack", 1, FarShelterX);
             room.Box("large-containers", BlockRole.Obstacle, 10.8f, 12.3f, 0, 1.7f, -3.1f, -.7f);
             room.Module.Landmarks.Add("containers", new Vector3(10.25f, 0, 4.65f));
             room.Module.Landmarks.Add("hand-samples", new Vector3(10.8f, 0, 0));
@@ -52,6 +60,23 @@ namespace Contour4.Procedural.Catalog
                 new Vector3(6.90f, 0, -6.46f), new Vector3(0, 0, 1.04f), new Vector3(1.4f, 0, -1.6f));
             room.AddDressing(fitout);
             return room.Module;
+
+            void StorageRack(string id, int side, float axis)
+            {
+                const float height = RoomDressing.RackShelterHeight;
+                const float halfBay = RoomDressing.RackShelterWidth / 2;
+                const float boardTop = height + RackShelterBoard;
+                float backOfBay = RackFront - RackShelterDepth;
+                RackPart("upper-body", RackStart, RackEnd, boardTop, 2.4f, inner, RackFront);
+                RackPart("shelter-roof", axis - halfBay, axis + halfBay, height, boardTop, backOfBay, RackFront);
+                RackPart("base-left", RackStart, axis - halfBay, 0, boardTop, inner, RackFront);
+                RackPart("base-right", axis + halfBay, RackEnd, 0, boardTop, inner, RackFront);
+                RackPart("shelter-back", axis - halfBay, axis + halfBay, 0, boardTop, inner, backOfBay);
+
+                void RackPart(string part, float x0, float x1, float y0, float y1, float from, float to) =>
+                    room.Box($"{id}-{part}", BlockRole.Obstacle, x0, x1, y0, y1,
+                        side < 0 ? -to : from, side < 0 ? -from : to);
+            }
         }
     }
 }

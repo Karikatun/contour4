@@ -58,12 +58,19 @@ namespace Contour4.NativeRaid.Runtime
         private readonly Dictionary<RaidPlan.Room, BakedRoom> rooms = new();
         private readonly List<Material> materials = new();
         private readonly List<Mesh> meshes = new();
+        private RoomLighting roomLighting;
+        private readonly RaidInteriorDetails details = new();
+        private readonly RoomBloodTraces bloodTraces = new();
+        private readonly BrokenEquipment brokenEquipment = new();
+        private RoomLighting Lighting => roomLighting ??= new RoomLighting(materials, meshes);
         private readonly List<FreightFold> folds = new();
         private RaidPlan plan;
         private RaidLayout layout;
+        private RaidFloor[] branchFloors = Array.Empty<RaidFloor>();
         private NativeRaidPortal[] portals;
         private Action beforeClose;
         private int solidMask;
+        private (Material Floor, Material Wall) finishes;
         private Material terminalSteel, terminalAmber;
         internal RaidNavigationContext Context { get; private set; }
         internal IEnumerable<BakedRoom> Rooms => rooms.Values;
@@ -109,20 +116,22 @@ namespace Contour4.NativeRaid.Runtime
             RoomPrefabs = roomPrefabs;
             var shader = Shader.Find("Standard");
             if (!shader) throw new InvalidOperationException("The gray raid requires Unity's Standard shader.");
-            var floor = Material(shader, new Color(.32f, .36f, .40f));
-            var wall = Material(shader, new Color(.52f, .56f, .57f));
+            var (floor, wall) = Finishes(shader);
+            var shellDetails = Material(shader, new Color(.52f, .56f, .57f));
             var obstaclesMaterial = Material(shader, new Color(.39f, .33f, .25f));
             var sightStrips = new RaidSightStrips(shader, materials, meshes);
+            var fitout = CreateFitout(shader);
             foreach (var room in plan.Rooms)
             {
                 if (roomPrefabs != null && roomPrefabs.TryGetPrepared(room, out var prepared))
                 {
-                    rooms.Add(room, PlacePrepared(room, worldLayer, prepared, catalogSites ? obstaclesMaterial : null));
+                    rooms.Add(room, PlacePrepared(room, worldLayer, prepared, catalogSites ? obstaclesMaterial : null, fitout));
                     continue;
                 }
                 if (catalogSites) RaidCatalogSites.Dress(room.Module);
                 RaidLootSites.Dress(room.Module);
-                rooms.Add(room, PlaceRoom(room, worldLayer, floor, wall, obstaclesMaterial, sightStrips, roomPrefabs?.For(room)));
+                rooms.Add(room, PlaceRoom(room, worldLayer, floor, wall, shellDetails, obstaclesMaterial, sightStrips,
+                    roomPrefabs?.For(room), fitout));
             }
             foreach (var link in plan.Freight)
             {
@@ -130,18 +139,25 @@ namespace Contour4.NativeRaid.Runtime
                 var root = Child(transform, $"Freight fold {link.To.Room.Index:D2}");
                 root.SetPositionAndRotation(link.Fold.Frame.position, link.Fold.Frame.rotation);
                 var geometry = link.Fold.Module.Geometry.Concat(RaidFreightFold.SeamDecks(link.Fold.Module)).ToArray();
+                bool open = link.Fold.Module.Id is RaidFreightFold.ShortRise or RaidFreightFold.ShortDrop;
                 foreach (var block in geometry)
-                    PlaceVisualPiece(root, block, worldLayer, block.Role == BlockRole.Floor ? floor : wall);
+                {
+                    var finish = block.Role == BlockRole.Floor ? floor :
+                        open || RetainsShellFinish(block.Id) ? shellDetails : wall;
+                    PlaceVisualPiece(root, block, worldLayer, finish);
+                }
 
                 // A rebase moves every fold at once. Keep the exact collision triangles but
                 // submit one static shape per role, including a separate invisible barrier.
                 var deck = PlaceFoldCollider(root, "Freight deck", worldLayer, geometry.Where(block => block.Role == BlockRole.Floor));
                 var shell = PlaceFoldCollider(root, "Freight walls", worldLayer, geometry.Where(block => block.Role != BlockRole.Floor));
                 PlaceFoldCollider(root, "Invisible freight safety", worldLayer, RaidFreightFold.SafetyBarriers(link.Fold.Module));
-                var fold = new FreightFold(link, root, new[] { deck, shell });
+                var fold = new FreightFold(link, root, deck, shell);
                 folds.Add(fold);
-                RaidLighting.Fold(fold);
+                Lighting.Fold(fold);
+                details.Transit(root, geometry);
             }
+            Collider branchCollar = null;
             if (plan.Branch is { } selected)
             {
                 BranchRoot = Child(transform, selected.Descriptor.Module.Id);
@@ -151,10 +167,11 @@ namespace Contour4.NativeRaid.Runtime
                 var ringLink = plan.RingLink;
                 var collar = ringLink.Fold == null ? selected.Entrance :
                     new RaidPlan.End(ringLink.Fold, ringLink.Fold.Module.Docks[1]);
-                PlaceCollar(collar, selected.Descriptor.ThresholdSpacing, worldLayer, floor, wall);
+                branchCollar = PlaceCollar(collar, selected.Descriptor.ThresholdSpacing, worldLayer, floor, wall);
             }
             if (catalogSites) RaidCatalogSites.Mark(this);
             Physics.SyncTransforms();
+            foreach (var room in rooms.Values) bloodTraces.Apply(room);
 
             var passages = new List<RaidWalkPassage>();
             foreach (var (from, to) in plan.Passages)
@@ -181,9 +198,36 @@ namespace Contour4.NativeRaid.Runtime
                 links.Add(navigation);
             }
             portals = directions.ToArray();
-            layout = new RaidLayout(rooms.Values.SelectMany(room => room.Floors), links, passages,
-                solidMask, new Vector3(16000, 0, 16000), .86f, 2.86f,
-                rooms.Values.Where(room => room.Prepared).SelectMany(room => room.PreparedSurfaces.DeckPassages(solidMask)));
+            var decks = rooms.Values.Where(room => room.Prepared)
+                .SelectMany(room => room.PreparedSurfaces.DeckPassages(solidMask)
+                    .Concat(room.PreparedSurfaces.StairPassages(solidMask)))
+                .Concat(folds.Where(fold => fold.Link != plan.RingLink).SelectMany(fold => fold.DeckPassages(
+                    Room(fold.Link.From.Room).DockFloor(fold.Link.From.Dock),
+                    Room(fold.Link.To.Room).DockFloor(fold.Link.To.Dock))));
+            if (plan.Branch?.Descriptor.Navigation?.Invoke(BranchRoot, branchCollar) is { } branchNavigation)
+            {
+                branchFloors = branchNavigation.Floors;
+                decks = decks.Concat(branchNavigation.Decks);
+                links.AddRange(branchNavigation.Portals);
+                var link = plan.RingLink;
+                var source = Room(link.From.Room).DockFloor(link.From.Dock);
+                float arrivalLead = plan.Branch.Value.Descriptor.ThresholdSpacing;
+                if (link.Fold == null)
+                {
+                    const float setback = 1.40f;
+                    Vector3 from = link.From.Pad(setback), to = link.To.Pad(setback + arrivalLead);
+                    float length = Vector3.Distance(from, to);
+                    passages.Add(new RaidWalkPassage(source, branchNavigation.Entrance, from, to, length));
+                    passages.Add(new RaidWalkPassage(branchNavigation.Entrance, source, to, from, length));
+                }
+                else
+                {
+                    var fold = folds.Single(candidate => candidate.Link == link);
+                    decks = decks.Concat(fold.DeckPassages(source, branchNavigation.Entrance, arrivalLead));
+                }
+            }
+            layout = new RaidLayout(rooms.Values.SelectMany(room => room.Floors).Concat(branchFloors), links, passages,
+                solidMask, new Vector3(16000, 0, 16000), .86f, 2.86f, decks);
         }
 
         private static List<(RaidPlan.End A, RaidPlan.End B)> CollectPortalPairs(RaidPlan plan,
@@ -207,7 +251,7 @@ namespace Contour4.NativeRaid.Runtime
             return pairs;
         }
 
-        private void PlaceCollar(RaidPlan.End dock, float depth, int worldLayer, Material floor, Material wall)
+        private Collider PlaceCollar(RaidPlan.End dock, float depth, int worldLayer, Material floor, Material wall)
         {
             var collar = Child(BranchRoot, "Authored ring entrance collar");
             collar.SetPositionAndRotation(dock.Sill, Quaternion.LookRotation(dock.Outward, dock.Up));
@@ -222,6 +266,9 @@ namespace Contour4.NativeRaid.Runtime
                     new Vector3(.25f, height, depth));
                 wallBox.transform.SetParent(collar, false);
             }
+
+            details.RingCollar(collar);
+            return floorBox.GetComponent<Collider>();
 
             GameObject Piece(string name, Material material, Vector3 position, Vector3 size)
             {
@@ -241,7 +288,7 @@ namespace Contour4.NativeRaid.Runtime
             if (layout == null) throw new InvalidOperationException("Place the raid before installing navigation.");
             var navigation = gameObject.GetComponent<NavigationRuntime>() ?? gameObject.AddComponent<NavigationRuntime>();
             navigation.Install(layout);
-            var context = new RaidNavigationContext(plan.Seed, navigation, rooms.Values.ToArray(), portals, solidMask);
+            var context = new RaidNavigationContext(plan.Seed, navigation, rooms.Values.ToArray(), branchFloors, portals, solidMask);
             try
             {
                 RaidNavigation.Publish(context);
@@ -326,8 +373,17 @@ namespace Contour4.NativeRaid.Runtime
                 Vector3.Dot(support.normal, up) >= .8f;
         }
 
-        private BakedRoom PlaceRoom(RaidPlan.Room room, int worldLayer, Material floor, Material wall, Material obstacles,
-            RaidSightStrips sightStrips, GameObject prefab)
+        private static bool RetainsShellFinish(string id) =>
+            id is "roof" or "freight-pit-rail" or "gallery-rail" or "lab-gallery-rail" or "common-edge" ||
+            id.StartsWith("roof-", StringComparison.Ordinal) || id.EndsWith("-roof", StringComparison.Ordinal) ||
+            id.Contains("-roof-", StringComparison.Ordinal) ||
+            id.EndsWith("-ceiling", StringComparison.Ordinal) || id.Contains("-ceiling-wing-", StringComparison.Ordinal) ||
+            id.EndsWith("stair-landing-rail-east", StringComparison.Ordinal) ||
+            id.EndsWith("stair-landing-rail-west", StringComparison.Ordinal) ||
+            id.StartsWith("middle-guard-", StringComparison.Ordinal) || id.StartsWith("upper-guard-", StringComparison.Ordinal);
+
+        private BakedRoom PlaceRoom(RaidPlan.Room room, int worldLayer, Material floor, Material wall, Material shellDetails,
+            Material obstacles, RaidSightStrips sightStrips, GameObject prefab, RaidInteriorFitout fitout)
         {
             var root = prefab ? Object.Instantiate(prefab, transform, false).transform : Child(transform, room.Module.Id);
             root.name = room.Module.Id;
@@ -337,9 +393,15 @@ namespace Contour4.NativeRaid.Runtime
             var floorBounds = new List<Bounds>();
             var localGeometry = new List<Bounds>();
             var authored = prefab ? AuthoredBlocks(root, room.Module) : null;
+            var offlineParts = RoomLighting.OfflineFixtureParts(room.Module);
             foreach (var block in room.Module.Geometry)
             {
                 if (block.Role == BlockRole.Free) continue;
+                if (offlineParts.Contains(block.Id))
+                {
+                    if (authored != null) RoomLighting.RemoveFixture(authored[block.Id].gameObject);
+                    continue;
+                }
                 if (room.OpenPlugs.Contains(block.Id))
                 {
                     if (authored != null) authored[block.Id].gameObject.SetActive(false);
@@ -361,6 +423,8 @@ namespace Contour4.NativeRaid.Runtime
                     {
                         BlockRole.Floor => floor,
                         BlockRole.Obstacle or BlockRole.Fixture => obstacles,
+                        BlockRole.Shell when RetainsShellFinish(block.Id) => shellDetails,
+                        BlockRole.Plug when block.Id.EndsWith("hatch-plug", StringComparison.Ordinal) => shellDetails,
                         _ => wall,
                     };
                     collider = box.GetComponent<BoxCollider>();
@@ -374,19 +438,22 @@ namespace Contour4.NativeRaid.Runtime
                 floorBounds.Add(new Bounds(new Vector3(bounds.center.x, bounds.max.y + .93f, bounds.center.z),
                     new Vector3(bounds.size.x + .02f, 2.10f, bounds.size.z + .02f)));
             }
+            Collider cableSupport = fitout.Install(room.Module.Id, root, worldLayer, colliders);
+            if (cableSupport) support.Add(cableSupport);
             Bounds volume = localGeometry[0];
             foreach (var block in localGeometry) volume.Encapsulate(block);
             Bounds bake = volume;
             bake.Expand(.20f);
             var raidFloor = new RaidFloor($"{room.Module.Id}-{room.Index}", "ground", room.Module.Id,
                 room.Frame, bake, colliders, support, root);
-            if (prefab) RaidLighting.Brighten(root);
-            else RaidLighting.GrayRoom(root, volume);
+            Lighting.Apply(room.Module, root, prefab);
             DressCappedTransit(room, root, worldLayer);
-            return new BakedRoom(room, root, raidFloor, colliders, floorBounds, prefab);
+            var baked = new BakedRoom(room, root, raidFloor, colliders, floorBounds, prefab);
+            details.Room(baked);
+            return baked;
         }
 
-        internal BakedRoom PlacePrepared(RaidPlan.Room room, int layer, GameObject prefab, Material catalogMaterial = null)
+        internal BakedRoom PlacePrepared(RaidPlan.Room room, int layer, GameObject prefab, Material catalogMaterial = null, RaidInteriorFitout fitout = null)
         {
             var root = Object.Instantiate(prefab, transform, false).transform;
             try
@@ -400,6 +467,9 @@ namespace Contour4.NativeRaid.Runtime
                 if (parts.Count != known.Length)
                     throw new InvalidOperationException($"{room.Module.Id}: prefab has {parts.Count} colliders for {known.Length} catalog blocks.");
                 var colliders = new List<Collider>(parts.Count);
+                var offlineParts = RoomLighting.OfflineFixtureParts(room.Module);
+                bool shaft = room.Module.Id == "shaft-plant";
+                var shaftFinishes = shaft ? Finishes(Shader.Find("Standard")) : default;
                 foreach (var (a, b) in room.Module.InternalPortals)
                 {
                     room.OpenPlugs.Add(room.Module.Docks.Single(dock => dock.Id == a).PlugId);
@@ -410,12 +480,24 @@ namespace Contour4.NativeRaid.Runtime
                     if (!parts.TryGetValue(block.Id, out Collider part) || part is not MeshCollider mesh || !mesh.sharedMesh ||
                         !mesh.sharedMesh.isReadable || !part.enabled || part.isTrigger || !part.gameObject.activeInHierarchy)
                         throw new InvalidOperationException($"{room.Module.Id}/{block.Id}: missing prepared collision mesh.");
+                    if (offlineParts.Contains(block.Id))
+                    {
+                        parts.Remove(block.Id);
+                        RoomLighting.RemoveFixture(part.gameObject);
+                        continue;
+                    }
                     if (room.OpenPlugs.Contains(block.Id))
                     {
                         part.gameObject.SetActive(false);
                         continue;
                     }
                     part.gameObject.layer = layer;
+                    if (shaft && part.TryGetComponent(out MeshRenderer renderer))
+                    {
+                        if (block.Role == BlockRole.Floor) renderer.sharedMaterial = shaftFinishes.Floor;
+                        if (block.Role == BlockRole.Shell && !RetainsShellFinish(block.Id))
+                            renderer.sharedMaterial = shaftFinishes.Wall;
+                    }
                     colliders.Add(part);
                 }
                 if (catalogMaterial)
@@ -429,11 +511,12 @@ namespace Contour4.NativeRaid.Runtime
                         colliders.Add(collider);
                     }
                 }
-                var prepared = new PreparedRaidSurfaces(room, root, parts, colliders.ToArray());
+                Collider cableSupport = fitout?.Install(room.Module.Id, root, layer, colliders);
+                var prepared = new PreparedRaidSurfaces(room, root, parts, colliders.ToArray(), cableSupport);
                 var baked = new BakedRoom(room, root, prepared.Floors.First(), colliders, new List<Bounds>(), true, parts, prepared);
-                RaidLighting.Brighten(root);
-                RaidLighting.DimPassage(baked);
+                Lighting.Apply(room.Module, root, true);
                 DressCappedTransit(room, root, layer);
+                details.Room(baked);
                 return baked;
             }
             catch
@@ -457,8 +540,8 @@ namespace Contour4.NativeRaid.Runtime
             // Put the sealed power-distribution terminal on the existing bulkhead.
             // The visual projection is 38 mm. The original wall remains its collision surface.
             Shader shader = Shader.Find("Standard");
-            if (!terminalSteel) terminalSteel = Material(shader, new Color(.24f, .30f, .32f));
-            if (!terminalAmber) terminalAmber = Material(shader, new Color(.67f, .46f, .20f));
+            if (!terminalSteel) terminalSteel = NamedMaterial(shader, new Color(.24f, .30f, .32f), "Contour-4 terminal enamel");
+            if (!terminalAmber) terminalAmber = NamedMaterial(shader, new Color(.67f, .46f, .20f), "Contour-4 terminal legend");
             Plate("Sealed transfer switchboard", 1.32f, 2.13f, -.78f, .78f, .035f, terminalSteel);
             Plate("Transfer switchboard rail", 2.03f, 2.09f, -.62f, .62f, .038f, terminalAmber);
             for (int i = -1; i <= 1; i++)
@@ -576,10 +659,34 @@ namespace Contour4.NativeRaid.Runtime
             throw new InvalidOperationException($"{end.Room.Module.Id}/{end.Dock.Id}: no clear supported hatch landing.");
         }
 
+        private (Material Floor, Material Wall) Finishes(Shader shader)
+        {
+            if (finishes.Floor) return finishes;
+            if (!shader) throw new InvalidOperationException("The raid requires Unity's Standard shader.");
+            finishes = (RoomFinish.CreateFloor(shader), RoomFinish.CreateWall(shader));
+            materials.Add(finishes.Floor);
+            materials.Add(finishes.Wall);
+            return finishes;
+        }
+
         private Material Material(Shader shader, Color color)
         {
             var material = new Material(shader) { color = color };
             materials.Add(material);
+            return material;
+        }
+
+        private RaidInteriorFitout CreateFitout(Shader shader) =>
+            new(NamedMaterial(shader, new Color(.24f, .34f, .34f), "Contour-4 fitout housing"),
+                NamedMaterial(shader, new Color(.28f, .39f, .43f), "Contour-4 fitout control housing"),
+                NamedMaterial(shader, new Color(.43f, .47f, .43f), "Contour-4 fitout storage housing"),
+                NamedMaterial(shader, new Color(.63f, .55f, .32f), "Contour-4 fitout trim metal"),
+                NamedMaterial(shader, new Color(.11f, .16f, .17f), "Contour-4 fitout faceplate"), materials, meshes, brokenEquipment);
+
+        private Material NamedMaterial(Shader shader, Color color, string name)
+        {
+            var material = Material(shader, color);
+            material.name = name;
             return material;
         }
 
@@ -750,6 +857,9 @@ namespace Contour4.NativeRaid.Runtime
         private void OnDestroy()
         {
             ReleaseNavigation();
+            details.Release();
+            bloodTraces.Release();
+            brokenEquipment.Release();
             foreach (var material in materials)
                 if (Application.isPlaying) Object.Destroy(material); else Object.DestroyImmediate(material);
             foreach (var mesh in meshes)
@@ -762,20 +872,48 @@ namespace Contour4.NativeRaid.Runtime
         internal RaidPlan.FreightLink Link { get; }
         internal Transform Root { get; }
         internal IReadOnlyList<Collider> Colliders { get; }
+        private readonly Collider deck;
         private readonly Vector3[] points;
         private readonly Vector3[] support;
         private readonly float halfWidth, height;
 
-        internal FreightFold(RaidPlan.FreightLink link, Transform root, Collider[] colliders)
+        internal FreightFold(RaidPlan.FreightLink link, Transform root, Collider deck, Collider shell)
         {
             Link = link;
             Root = root;
-            Colliders = colliders;
+            this.deck = deck;
+            Colliders = new[] { deck, shell };
             var frames = link.Fold.Module.Routes[0].Knots;
             points = frames.Select(frame => RaidPlan.Vector(frame.Position)).ToArray();
             support = frames.Select(frame => RaidPlan.Vector(frame.Up)).ToArray();
             halfWidth = link.From.Dock.Opening.X / 2;
             height = link.From.Dock.Opening.Y;
+        }
+
+        internal IEnumerable<RaidDeckPassage> DeckPassages(RaidFloor from, RaidFloor to, float arrivalLead = 0f)
+        {
+            // Local meshes are eroded at the sill, even though the fold joins the room.
+            const float setback = 1.30f;
+            var course = new List<Pose> { Lead(Link.From, Link.From.Outward, setback) };
+            var knots = Link.Fold.Module.Routes[0].Knots;
+            foreach (var knot in knots)
+                course.Add(new Pose(RaidPlan.Vector(knot.Position),
+                    Quaternion.LookRotation(RaidPlan.Vector(knot.Forward), RaidPlan.Vector(knot.Up))));
+            course.Add(Lead(Link.To, -Link.To.Outward, setback + arrivalLead));
+
+            // Keep the preflight sampling finer than the motion driver and include both room leads.
+            var samples = RaidDeckPassage.DenseSamples(course, .12f).ToArray();
+
+            var supports = new HashSet<Collider>(from.Support);
+            supports.UnionWith(to.Support);
+            supports.Add(deck);
+            yield return new RaidDeckPassage(from, to, Root, samples, supports);
+            var reverse = samples.Reverse().Select(pose => new Pose(pose.position,
+                pose.rotation * Quaternion.AngleAxis(180f, Vector3.up))).ToArray();
+            yield return new RaidDeckPassage(to, from, Root, reverse, supports);
+
+            Pose Lead(RaidPlan.End end, Vector3 forward, float distance) => new(Root.InverseTransformPoint(end.Pad(distance)),
+                Quaternion.LookRotation(Root.InverseTransformDirection(forward), Root.InverseTransformDirection(end.Up)));
         }
 
         internal bool TryUp(Vector3 position, out Vector3 up)

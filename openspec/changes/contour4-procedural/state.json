@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "contour4-procedural",
+  "kind": "level",
+  "stage": "implementation",
+  "blockers": [],
+  "nextAction": "Продолжить приёмочный рейс на паре Контур-4 0.2.37 и Contour4Valuables 0.2.4 в изолированной копии R.E.P.O. Начать со штатной гружёной тележки. Сборка, процедура и оставшиеся сценарии указаны в playtest.",
+  "playtest": {
+    "packagesAndHashes": "implementation.md#сборка-0237-для-игрового-прогона",
+    "mapZip": "../../../prototype/ring/dist/Contour4-0.2.37.zip",
+    "valuablesZip": "../../../contour4-valuables/dist/Contour4Valuables-0.2.4.zip",
+    "runInstructions": "../../../playtest/README.md#приёмочный-рейс-в-обычных-условиях",
+    "checkPlan": "verification.json",
+    "qualityConditions": "map-quality-scorecard.md#обязательные-условия",
+    "remainingChecks": [
+      {
+        "scenario": "Проехать со штатным незакреплённым грузом через угловую пару и порталы в обе стороны. Повторно загрузить пару и завершить оставшиеся сценарии Tab.",
+        "reference": "tasks.md#3-процедурная-сборка-из-проверенных-модулей"
+      },
+      {
+        "scenario": "После доставки проследить полный ход платформы дополнительной квоты. Провести штатного врага через портал в погоне.",
+        "priorRun": "../../../local-evidence/contour4-native-acceptance/verification/native-execution.md"
+      },
+      {
+        "scenario": "Перенести груз обратно через спираль, перейти между полями настила и оболочки сферы, завершить перенос по ленте Мёбиуса и прыжок с посадкой на повёрнутую ленту.",
+        "priorRun": "../../../local-evidence/contour4-native-acceptance/gravity/RESULTS.md"
+      }
+    ]
+  },
+  "materialComparisonInUnity": "implementation.md#менее-пятнистые-материалы-в-0247",
+  "decisions": {
+    "specification": {
+      "status": "agreed",
+      "reference": "Поручение владельца через чат 01a1fe0c-2af9-70b0-9a6b-20cf7f13bc6f: «Первый игровой срез — две серые комнаты разных размеров, с прямым стыком под 90°. В разрезе их углы сходятся, в 3D есть общая кромка и встроенный поворотный настил. Проверь геометрию, коллизии и проход с грузом». После проверки среза владелец поручил продолжить каталог по одному модулю, включая многоэтажную лабораторию и коридор с верхним выходом. Остальные сценарии процедурной сборки описаны в context.md и design.md."
+    }
+  }
+}

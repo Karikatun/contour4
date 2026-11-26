@@ -15,6 +15,13 @@ public static class BuildRoomPrefabs
         "Assets/Contour4/Rooms/sample-receiving.prefab",
         "Assets/Contour4/Rooms/sample-receiving-without-research.prefab",
     };
+    private static readonly string[] Wear =
+    {
+        "Assets/Contour4/Rooms/RoomSurfaceWear.shader",
+        "Assets/Contour4/Rooms/Materials/SurfaceTextures/concrete_floor_worn_001_diff_1k.jpg",
+        "Assets/Contour4/Rooms/Materials/SurfaceTextures/painted_plaster_wall_diff_1k.jpg",
+        "Assets/Contour4/Rooms/Materials/SurfaceTextures/green_metal_rust_diff_1k.jpg",
+    };
 
     public static void Build()
     {
@@ -22,7 +29,10 @@ public static class BuildRoomPrefabs
             if (!AssetDatabase.LoadAssetAtPath<GameObject>(path))
                 throw new InvalidOperationException($"Missing authored room prefab {path}.");
 
-        var bundle = BuildAndOpen(BundleName, Rooms);
+        var shader = AssetDatabase.LoadAssetAtPath<Shader>(Wear[0]);
+        if (!shader || ShaderUtil.ShaderHasError(shader))
+            throw new InvalidOperationException("The room surface-wear shader did not compile.");
+        var bundle = BuildAndOpen(BundleName, Rooms.Concat(Wear).ToArray());
         try
         {
             foreach (string path in Rooms)
@@ -32,6 +42,9 @@ public static class BuildRoomPrefabs
                     prefab.GetComponentsInChildren<Light>().Length == 0)
                     throw new InvalidOperationException($"Packed asset {path} has no authored colliders or lights.");
             }
+            if (!bundle.LoadAsset<Shader>(Wear[0]) ||
+                Wear.Skip(1).Any(path => !bundle.LoadAsset<Texture2D>(path)))
+                throw new InvalidOperationException("The room surface-wear inputs did not reload from the bundle.");
         }
         finally { bundle.Unload(true); }
         Debug.Log("CONTOUR4 ROOMS BUNDLE PASSED: both authored prefab paths loaded from the standalone bundle.");

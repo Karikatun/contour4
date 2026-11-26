@@ -80,6 +80,7 @@ internal static class RaidLootPrefab
     {
         private readonly List<Shape> shapes, rendered;
         private readonly Bounds occupied;
+        private readonly Bounds visibleAndSolid;
 
         internal Footprint(List<Shape> shapes, List<Shape> rendered)
         {
@@ -91,6 +92,8 @@ internal static class RaidLootPrefab
             if (contact.Count == 0) return;
             occupied = contact[0].Bounds;
             foreach (var shape in contact) occupied.Encapsulate(shape.Bounds);
+            visibleAndSolid = occupied;
+            foreach (var shape in rendered) visibleAndSolid.Encapsulate(shape.Bounds);
         }
 
         internal bool Fits(RaidLootPlacement placement, Pose pose)
@@ -98,7 +101,9 @@ internal static class RaidLootPrefab
             if (shapes.Count == 0 && rendered.Count == 0) return false;
             Vector3 bottom = new(occupied.center.x, occupied.min.y, occupied.center.z);
             return placement.Supports(pose.position + pose.rotation * bottom, pose.up) &&
-                Clear(shapes) && Clear(rendered);
+                Clear(shapes) && Clear(rendered) &&
+                (!placement.EquipmentPocket || shapes.Count > 0 && placement.AllowsRetrieval(
+                    pose.position + pose.rotation * visibleAndSolid.center, pose.rotation, visibleAndSolid.extents));
 
             bool Clear(List<Shape> geometry)
             {

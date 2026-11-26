@@ -394,7 +394,7 @@ namespace Contour4.Procedural.Catalog
             "shaft-plant" => new Bay[] {
                 new("mid-landing-service-kit", "middle-landing", 10.38f, -7.02f, -1, Size.Tiny),
                 new("upper-landing-spares", "upper-landing", 19.95f, -7.02f, -1),
-                new("upper-guard-spares", "upper-landing", 20.75f, -3.82f, 1, Size.Tiny) },
+                new("upper-guard-spares", "upper-landing", 17.65f, -.37f, 1, Size.Small) },
             "gallery-chamber" => new Bay[] { new("gallery-rail-spares", "lab-gallery", 12.8f, -3.83f, 1) },
             _ when SphericalChamber.IsVariant(module) => SphereBays(SphericalChamber.GetMask(module)),
             MobiusHall.Id => new Bay[] {

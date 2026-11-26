@@ -91,6 +91,7 @@ internal sealed class NativeRaidFeature : IDisposable
             harmony.CreateClassProcessor(typeof(NativeRaidCabinetGrab.FallHeightPatch)).Patch();
             harmony.CreateClassProcessor(typeof(NativeRaidSphericalFallPatch)).Patch();
             EnemyHooks.Install(harmony);
+            NativeRaidEnemyStarts.Install(harmony);
         }
         catch
         {

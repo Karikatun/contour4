@@ -30,6 +30,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private readonly NativeRaidCargoTraversal cargoTraversal = new();
     private readonly HashSet<Rigidbody> transferredWithPlayer = new();
     internal Func<PhysGrabber, NativeRaidPortal, (bool CanCross, Rigidbody Body)?> MappedHandFor { private get; set; }
+    internal Action<RaidAssembly, Rigidbody> StepHeldHand { private get; set; }
     internal Action<bool> ClearMappedHand { private get; set; }
     internal Action UnbindMappedHand { private get; set; }
     private Transform arrivalDoor;
@@ -37,6 +38,19 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private bool catalogSpawned;
     internal Dictionary<ValuableVolume, RaidLootSlot> Loot { get; private set; }
     internal int LootSeed => raid.Plan.Seed;
+    private readonly Dictionary<LevelPoint, RaidFloor> enemyStartWaypoints = new();
+    private readonly Dictionary<RaidFloor, RoomVolume> enemyStartFloors = new();
+    private bool warnedAboutMissingEnemyStarts;
+    internal IReadOnlyDictionary<LevelPoint, RaidFloor> EnemyStartWaypoints => enemyStartWaypoints;
+    internal IReadOnlyDictionary<RaidFloor, RoomVolume> EnemyStartFloors => enemyStartFloors;
+    internal Dictionary<LevelPoint, RaidFloor> SupplementalEnemyStarts { get; set; }
+
+    internal void WarnAboutMissingEnemyStarts()
+    {
+        if (warnedAboutMissingEnemyStarts) return;
+        warnedAboutMissingEnemyStarts = true;
+        Debug.LogWarning($"[Contour4 Procedural] No supported initial enemy spawn points for seed {raid.Plan.Seed}. Using the stock selection.");
+    }
 
     internal void Place(StockModule module, Func<int> seed, Level stockManor, Action<RaidAssembly> prepareCatalog = null,
         RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null)
@@ -110,7 +124,9 @@ internal sealed class NativeRaidModule : MonoBehaviour
                     bounds.size = new Vector3(floor.size.x, 3.85f, floor.size.z);
                     bounds.isTrigger = true;
                 }
-                volumes.Add(room.Plan, volumeNode.gameObject.AddComponent<RoomVolume>());
+                var volume = volumeNode.gameObject.AddComponent<RoomVolume>();
+                volumes.Add(room.Plan, volume);
+                RegisterEnemyStartFloor(room, room.Floor, volume);
             }
 
             foreach (var floor in room.Floors.Where(floor => floor.Prepared))
@@ -121,7 +137,9 @@ internal sealed class NativeRaidModule : MonoBehaviour
                 bounds.center = floor.LocalBakeBounds.center;
                 bounds.size = floor.LocalBakeBounds.size;
                 bounds.isTrigger = true;
-                preparedVolumes.Add(floor, node.gameObject.AddComponent<RoomVolume>());
+                var volume = node.gameObject.AddComponent<RoomVolume>();
+                preparedVolumes.Add(floor, volume);
+                RegisterEnemyStartFloor(room, floor, volume);
             }
 
             foreach (Collider collider in room.Colliders)
@@ -188,6 +206,8 @@ internal sealed class NativeRaidModule : MonoBehaviour
                         }
                         var point = Point(room.Root, $"{path.name} {knot.name}", knot.position, knot.forward,
                             preparedVolumes[floor], up: floor.Up);
+                        if (enemyStartFloors.ContainsKey(floor) && !path.name.StartsWith(approachPrefix, StringComparison.Ordinal))
+                            enemyStartWaypoints.Add(point, floor);
                         if (previous && previousFloor == floor) ConnectIfClear(floor, previous, point, float.PositiveInfinity);
                         if (!previous || knot == path.GetChild(path.childCount - 1))
                         {
@@ -231,6 +251,8 @@ internal sealed class NativeRaidModule : MonoBehaviour
                         Vector3.Distance(previous.transform.position, position) < 2f) continue;
                     var point = Point(room.Root, $"{route.Id} waypoint {index}", position,
                         room.Plan.Direction(route.Knots[index].Forward), volumes[room.Plan]);
+                    if (enemyStartFloors.ContainsKey(room.Floor))
+                        enemyStartWaypoints.Add(point, room.Floor);
                     Connect(previous, point);
                     previous = point;
                 }
@@ -238,6 +260,15 @@ internal sealed class NativeRaidModule : MonoBehaviour
             }
 
         }
+    }
+
+    private void RegisterEnemyStartFloor(BakedRoom room, RaidFloor floor, RoomVolume volume)
+    {
+        if (room.Plan == raid.Plan.Entrance.Room ||
+            room.Plan.Module.Id is SphericalChamber.Id or MobiusHall.Id ||
+            !StockPortalPursuit.WorldUp(floor) || floor.Prepared && floor.IslandId != "floor")
+            return;
+        enemyStartFloors.Add(floor, volume);
     }
 
     private static LevelPoint Point(Transform parent, string name, Vector3 feet, Vector3 forward, RoomVolume volume,
@@ -269,6 +300,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
             !GameManager.instance || GameManager.Multiplayer() || !SemiFunc.LevelGenDone())
         {
             cargoTraversal.Clear();
+            StepHeldHand?.Invoke(raid, null);
             return;
         }
         var controller = PlayerController.instance;
@@ -276,15 +308,18 @@ internal sealed class NativeRaidModule : MonoBehaviour
         if (!controller || !controller.rb || !avatar || (bool)AvatarDisabled.GetValue(avatar))
         {
             cargoTraversal.Clear();
+            StepHeldHand?.Invoke(raid, null);
             ClearPlayerTracking();
             if (playerTarget) playerTarget.Unbind();
             return;
         }
 
         var body = controller.rb;
+        bool canMove = CanMovePlayer(body, avatar);
+        StepHeldHand?.Invoke(raid, canMove ? body : null);
         Vector3 feet = body.position;
         Vector3 previousFeet = raid.transform.TransformPoint(previousFeetInRaid);
-        if (CanMovePlayer(body, avatar) && portalDoorDebris.NeedsCheck())
+        if (canMove && portalDoorDebris.NeedsCheck())
             foreach (var portal in context.Portals)
                 portalDoorDebris.ClearNear(body.worldCenterOfMass, portal.Entrance.position, portal.Entrance.rotation,
                     portal.HalfWidth, portal.HalfHeight, portal.Exit.position, portal.Exit.rotation);
@@ -296,15 +331,14 @@ internal sealed class NativeRaidModule : MonoBehaviour
             foreach (var portal in context.Portals)
             {
                 if (!portal.Crossed(previousFeet, feet, 0, 0)) continue;
-                bool deliberateReturn = portal.Entrance != arrivalDoor ||
-                    (Depth(arrivalDoor, previousFeet) < -.001f && Vector3.Dot(body.linearVelocity, arrivalDoor.forward) > .01f);
-                if (deliberateReturn && CanMovePlayer(body, avatar) &&
+                if (AllowsCrossingDirection(portal.Entrance, previousFeet, body) && canMove &&
                     portal.Crossed(previousFeet, feet, RaidAssembly.Character.Radius, RaidAssembly.Character.Height) &&
                     TryMoveAcross(controller, avatar, portal, previousFeet))
                 {
                     arrivalDoor = portal.Exit;
                     destination = portal.ExitFloor;
                     feet = body.position;
+                    StepHeldHand?.Invoke(raid, null);
                 }
                 else
                     feet = RejectCrossing(body, portal, previousFeet);
@@ -385,6 +419,8 @@ internal sealed class NativeRaidModule : MonoBehaviour
             !CanMovePlayer(trackedBody, trackedAvatar) || SemiFunc.PhysGrabberLocalIsGrabbing())
             return null;
 
+        Vector3 feet = trackedBody.position;
+        Vector3 previousFeet = raid.transform.TransformPoint(previousFeetInRaid);
         foreach (var portal in raid.Context.Portals)
         {
             if (!portal.Door) continue;
@@ -393,9 +429,10 @@ internal sealed class NativeRaidModule : MonoBehaviour
             if (localEye.z <= 0 || localEye.z > nearCorner + .12f ||
                 Mathf.Abs(localEye.x) >= portal.HalfWidth || Mathf.Abs(localEye.y) >= portal.HalfHeight)
                 continue;
-            Vector3 feet = trackedBody.position;
             float depth = Depth(entrance, feet);
-            if (depth > .25f || depth < -.75f)
+            // The visual eye can protrude through the arrival door during the
+            // world rebase. Use the same deliberate-return test as the body.
+            if (depth > .25f || depth < -.75f || !AllowsCrossingDirection(entrance, previousFeet, trackedBody))
                 continue;
 
             // The visible aperture selects the view. Test the capsule and destination at the physics threshold.
@@ -411,6 +448,9 @@ internal sealed class NativeRaidModule : MonoBehaviour
     }
 
     private static float Depth(Transform door, Vector3 point) => Vector3.Dot(point - door.position, door.forward);
+
+    private bool AllowsCrossingDirection(Transform door, Vector3 previousFeet, Rigidbody body) =>
+        door != arrivalDoor || Depth(door, previousFeet) < -.001f && Vector3.Dot(body.linearVelocity, door.forward) > .01f;
 
     private static Vector3 RejectCrossing(Rigidbody body, NativeRaidPortal portal, Vector3 lastFeet)
     {
@@ -467,6 +507,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private void OnDisable()
     {
         cargoTraversal.Clear();
+        StepHeldHand?.Invoke(raid, null);
         ClearMappedHand?.Invoke(false);
         ClearTarget();
         ClearPlayerTracking();

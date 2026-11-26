@@ -21,7 +21,8 @@ internal static class ProceduralRingBranch
             Quaternion.Inverse(root.rotation) * entry.rotation);
         // Quota__South_Truck is authored as a cart dock of 3.6 × 3.2 before the 1.25 grid scale.
         return new RaidPrefabBranch("test-ring", reservation, entrance, new Vector2(4.5f, 4f),
-            RingRuntime.PortalPairCount, host => Mount(prefab, host, reservation), DescribeOutline(root, entry));
+            RingRuntime.PortalPairCount, host => Mount(prefab, host, reservation), DescribeOutline(root, entry),
+            RingRoomNavigation.Collect);
     }
 
     private static RaidPlanarLayout.BranchOutline DescribeOutline(Transform root, Transform entrance)

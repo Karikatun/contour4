@@ -98,13 +98,17 @@ namespace Contour4.NativeRaid.Runtime
             }
             else if (purpose == InstrumentService)
             {
-                fixtures.Bench("inspection-bench", 1.34f, 0, workWall, -1, 1.57f, FixedSeat.Chair,
+                fixtures.Bench("inspection-bench", 1.34f, 0, workWall, -1, 1.57f, FixedSeat.None,
                     powered: true, active: true);
                 fixtures.LowCabinet("instrument-spares", 7.49f, 0, workWall + .41f, -1, 1.38f, stacked: true);
                 fixtures.LootBlock("probe-test-rig", 7.57f, 0, 3.42f, 1, 1.70f, 1.05f, 1.34f);
                 fixtures.Box("probe-rig-indication", 7.57f, 1.20f, 2.89f, .48f, .12f, .036f, DressingSurface.ActiveLens);
                 fixtures.OverheadFeed("probe-rig-supply", 7.84f, 1.28f, 3.80f, Height, farWall, 1);
                 fixtures.WallLamp("probe-rig-worklight", 7.58f, 3.36f, farWall, 1, LampDuty.Work);
+                // Fixed screens divide the equipment bays from the crossing without taking up the cargo lanes.
+                fixtures.Box("inspection-bay-screen", 2.28f, .80f, -3.22f, .16f, 1.60f, 1.78f);
+                fixtures.Box("spares-bay-screen", 7.55f, .90f, -2.72f, 1.18f, 1.80f, .30f);
+                fixtures.Box("probe-bay-screen", 7.55f, .90f, 2.72f, 1.18f, 1.80f, .30f);
             }
             fixtures.WallLamp("west-guidance", .94f, 2.44f, workWall, -1, LampDuty.Guidance, .28f);
             fixtures.AisleStrip("east-guidance", length - 1.1f, .39f, workWall, -1, -.60f);

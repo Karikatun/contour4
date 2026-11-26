@@ -291,14 +291,37 @@ namespace Contour4.NativeRaid.Runtime
                         .Where(c => c.transform.IsChildOf(raid.transform)).ToArray();
                     if (hits.Length > 0) throw new InvalidOperationException($"Field-core carry route seed={raid.Plan.Seed} sample={samples}: " + string.Join(",",hits.Select(c => c.name)));
                     if (Vector3.Dot(feet-raid.Plan.Entrance.Sill,raid.Plan.Entrance.Outward) < -.01f &&
-                        !Physics.RaycastAll(feet + up * .55f, -up, 1.1f, ~0, QueryTriggerInteraction.Ignore)
-                            .Any(hit => hit.collider.transform.IsChildOf(raid.transform) && Vector3.Dot(hit.normal,up) >= .6f))
+                        !HasFieldCoreDeckSupport(raid, feet, up))
                         throw new InvalidOperationException("Field-core route lacks deck support at " + feet);
                     samples++;
                 }
             }
             Debug.Log($"[Contour4 Catalog] seed={raid.Plan.Seed}: field-core catalog 2.35x1.35x1.55m carry clearance at 0.25m deck offset to stock entrance PASS, {samples} samples. Native grip/delivery is checked in game.");
         }
+        private static bool HasFieldCoreDeckSupport(RaidAssembly raid, Vector3 feet, Vector3 up)
+        {
+            const float originHeight = .55f;
+            const float reach = 1.1f;
+            const float seamDepth = .025f;
+            var origin = feet + up * originHeight;
+            foreach (var hit in Physics.RaycastAll(origin, -up, reach, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (!hit.collider.transform.IsChildOf(raid.transform)) continue;
+                float normal = Vector3.Dot(hit.normal, up);
+                if (normal >= .6f) return true;
+                if (Mathf.Abs(normal) > .05f || Mathf.Abs(hit.distance - originHeight) > seamDepth ||
+                    !raid.Folds.Any(fold => fold.Colliders[0] == hit.collider)) continue;
+
+                // At a deck knot PhysX may report an internal span cap as the mesh's
+                // closest hit. Continue down the same ray just past that grazing face.
+                float advance = hit.distance + .001f;
+                if (hit.collider.Raycast(new Ray(origin - up * advance, -up), out var below,
+                    Mathf.Min(seamDepth, reach - advance)) && Vector3.Dot(below.normal, up) >= .6f)
+                    return true;
+            }
+            return false;
+        }
+
         private static void ValidateLensRoute(RaidAssembly raid)
         {
             var route = LensRoute(raid);

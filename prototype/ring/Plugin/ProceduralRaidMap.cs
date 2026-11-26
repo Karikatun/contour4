@@ -28,6 +28,7 @@ namespace SpaceJourney
         {
             internal readonly CatalogFloor Floor;
             internal readonly Pose Room;
+            internal RaidPlan.Room Owner;
             internal readonly Vector2[] Local;
             internal Vector2[] Outline;
             internal Vector2 Position;
@@ -147,7 +148,60 @@ namespace SpaceJourney
 
             internal Vector2 Flat(Vector2 point) => Position + Turn(point, Angle);
 
-            internal float FloorDistance(Vector3 position, out Vector2 point)
+            internal int[] CoverTriangles(out Vector2 question)
+            {
+                // An unfolded footprint can be concave, including the sphere's dock extensions.
+                // Clip inward ears of its polygon rather than filling its enclosing rectangle.
+                float crossSum = 0f;
+                for (int i = 0; i < Outline.Length; i++)
+                    crossSum += Cross(Outline[i], Outline[(i + 1) % Outline.Length]);
+                var corners = Enumerable.Range(0, Outline.Length).ToList();
+                if (crossSum < 0f) corners.Reverse();
+                var triangles = new List<int>((corners.Count - 2) * 3);
+                float largest = 0f;
+                question = Bounds.center;
+                bool centerInside = Contains(Outline, question);
+                while (corners.Count > 2)
+                {
+                    bool clipped = false;
+                    for (int i = 0; i < corners.Count; i++)
+                    {
+                        int first = corners[(i + corners.Count - 1) % corners.Count];
+                        int middle = corners[i];
+                        int last = corners[(i + 1) % corners.Count];
+                        Vector2 a = Outline[first], b = Outline[middle], c = Outline[last];
+                        float area = Cross(b - a, c - b);
+                        const float tolerance = .0001f;
+                        if (area < -tolerance) continue;
+                        if (area > tolerance)
+                        {
+                            if (corners.Any(index => index != first && index != middle && index != last &&
+                                Inside(Outline[index], a, b, c))) continue;
+                            triangles.Add(first);
+                            triangles.Add(middle);
+                            triangles.Add(last);
+                            if (!centerInside && area > largest)
+                            {
+                                largest = area;
+                                question = (a + b + c) / 3;
+                            }
+                        }
+                        corners.RemoveAt(i);
+                        clipped = true;
+                        break;
+                    }
+                    if (!clipped)
+                        throw new InvalidOperationException("Cannot triangulate the map contour of " + Floor.Id);
+                }
+                return triangles.ToArray();
+
+                static bool Inside(Vector2 p, Vector2 a, Vector2 b, Vector2 c) =>
+                    Cross(b - a, p - a) >= 0f && Cross(c - b, p - b) >= 0f && Cross(a - c, p - c) >= 0f;
+            }
+
+            private static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
+
+            internal float FloorDistance(Vector3 position, out Vector2 point, bool strict = false)
             {
                 point = Project(position, out float height);
                 if (sphereMask != 0 && point.sqrMagnitude + height * height <= Mathf.Pow(SphericalChamber.Radius + .32f, 2))
@@ -168,7 +222,7 @@ namespace SpaceJourney
                         return (Floor.Id == "ceiling") == ceilingHalf ? 0f : float.PositiveInfinity;
                     }
                 }
-                return ContactDistance(point, height);
+                return ContactDistance(point, height, strict ? .015f : .42f);
             }
 
             private static Vector2[] SphereOutline(bool east)
@@ -208,11 +262,11 @@ namespace SpaceJourney
                 return new[] { new Vector2(start.X, start.Z), new Vector2(turn.X, turn.Z) };
             }
 
-            internal float ContactDistance(Vector2 point, float height)
+            internal float ContactDistance(Vector2 point, float height, float margin = .42f)
             {
                 if (height < -.28f || height > 2.8f) return float.PositiveInfinity;
                 float horizontal = Contains(Local, point) ? 0f : Vector2.Distance(point, Boundary(Local, point, out _));
-                if (horizontal > .42f) return float.PositiveInfinity;
+                if (horizontal > margin) return float.PositiveInfinity;
                 return Mathf.Abs(height) + horizontal * 2f;
             }
         }
@@ -226,14 +280,21 @@ namespace SpaceJourney
             internal readonly Vector2 Across;
             internal readonly float Width;
             internal readonly bool Interior;
+            internal readonly Pose Opening;
+            internal readonly float OpeningHeight;
+            internal readonly string DockId;
 
             internal End(FloorView floor, Vector2 point, Vector2? expectedOutward = null, float width = 3f,
-                bool interior = false, Vector2? across = null)
+                bool interior = false, Vector2? across = null, Pose opening = default, float height = 0f,
+                string dockId = null)
             {
                 Floor = floor;
                 Point = point;
                 Width = width;
                 Interior = interior;
+                Opening = opening;
+                OpeningHeight = height;
+                DockId = dockId;
                 if (Interior)
                 {
                     Edge = point;
@@ -252,6 +313,14 @@ namespace SpaceJourney
             }
 
             internal Vector2 Outside => Floor.Flat(Edge + Outward * 1.3f);
+
+            internal bool IsNearOpening(Vector3 position, float inside)
+            {
+                if (OpeningHeight == 0f) return false;
+                Vector3 local = Quaternion.Inverse(Opening.rotation) * (position - Opening.position);
+                return local.z >= -inside && local.z <= .25f &&
+                    Mathf.Abs(local.x) <= Width / 2 && Mathf.Abs(local.y) <= OpeningHeight / 2 + .12f;
+            }
         }
 
         internal sealed class Link
@@ -266,6 +335,8 @@ namespace SpaceJourney
             internal Vector2 Start => A.Floor.Flat(A.Edge);
             internal Vector2 Finish => B.Floor.Flat(B.Edge);
             internal bool Visited;
+            internal float ExploredFromA;
+            internal float ExploredFromB;
 
             internal Link(End a, End b, Vector3[] transition = null, bool stairs = false)
             {
@@ -275,11 +346,24 @@ namespace SpaceJourney
                 Stairs = stairs;
             }
 
-            internal bool TryProjectTransition(Vector3 position, out float progress, out Vector3 tangent)
+            internal bool TryProjectTransition(Vector3 position, out float progress, out Vector3 tangent, out float error)
             {
                 progress = 0f;
                 tangent = default;
-                float distance = 0f, nearest = float.PositiveInfinity;
+                error = float.PositiveInfinity;
+                if (Transition == null)
+                {
+                    if (!A.IsNearOpening(position, .55f) && !B.IsNearOpening(position, .55f)) return false;
+                    Vector3 from = A.Opening.position - A.Opening.rotation * Vector3.forward * .55f;
+                    Vector3 to = B.Opening.position - B.Opening.rotation * Vector3.forward * .55f;
+                    Vector3 span = to - from;
+                    if (span.sqrMagnitude < .001f) return false;
+                    tangent = span.normalized;
+                    progress = Mathf.Clamp01(Vector3.Dot(position - from, span) / span.sqrMagnitude);
+                    error = (position - Vector3.Lerp(from, to, progress)).sqrMagnitude;
+                    return true;
+                }
+                float distance = 0f;
                 for (int i = 1; i < Transition.Length; i++)
                 {
                     Vector3 start = Transition[i - 1];
@@ -287,16 +371,16 @@ namespace SpaceJourney
                     float length = segment.magnitude;
                     if (length < .001f) continue;
                     float t = Mathf.Clamp01(Vector3.Dot(position - start, segment) / segment.sqrMagnitude);
-                    float error = (position - (start + segment * t)).sqrMagnitude;
-                    if (error < nearest)
+                    float offset = (position - (start + segment * t)).sqrMagnitude;
+                    if (offset < error)
                     {
-                        nearest = error;
+                        error = offset;
                         progress = distance + length * t;
                         tangent = segment / length;
                     }
                     distance += length;
                 }
-                if (distance < .001f || nearest > 1.4f * 1.4f) return false;
+                if (distance < .001f || error > 1.4f * 1.4f) return false;
                 progress /= distance;
                 return progress > .12f && progress < .88f;
             }
@@ -307,8 +391,19 @@ namespace SpaceJourney
             internal readonly End End;
             internal readonly Color32 Color;
             internal readonly bool Portal;
+            internal bool Revealed;
+            internal Pose? HatchApproach;
 
             internal Door(End end, Color32 color, bool portal) { End = end; Color = color; Portal = portal; }
+
+            internal bool CanDiscover(Vector3 position)
+            {
+                if (End.IsNearOpening(position, 1.8f)) return true;
+                if (!(HatchApproach is Pose pad)) return false;
+                Vector3 local = Quaternion.Inverse(pad.rotation) * (position - pad.position);
+                return local.y >= -.22f && local.y <= 2.2f &&
+                    local.x * local.x + local.z * local.z <= 1f;
+            }
 
             internal (Vector2 From, Vector2 To) PortalStroke()
             {
@@ -345,7 +440,7 @@ namespace SpaceJourney
             foreach (var room in plan.Rooms)
             {
                 var views = room.Module.Floors.ToDictionary(f => f.Id,
-                    f => new FloorView(f, room.Frame, room.Module.Routes, room.Module.Geometry, room.Module.Id));
+                    f => new FloorView(f, room.Frame, room.Module.Routes, room.Module.Geometry, room.Module.Id) { Owner = room });
                 byRoom.Add(room, views);
                 floors.AddRange(views.Values);
                 foreach (var (id, view) in views) Bind(view, room.Index, id);
@@ -364,7 +459,9 @@ namespace SpaceJourney
                 return new End(floor, Point(end.Dock.MapPoint),
                     new Vector2(Vector3.Dot(direction, V(floor.Floor.Pose.Forward)),
                         Vector3.Dot(direction, V(floor.Floor.Pose.Right))).normalized,
-                    opening ?? end.Dock.Opening.X, hatch, across);
+                    opening ?? end.Dock.Opening.X, hatch, across,
+                    new Pose(end.Sill + end.Up * (end.Dock.Opening.Y / 2), Quaternion.LookRotation(end.Outward, end.Up)),
+                    end.Dock.Opening.Y, end.Dock.Id);
             }
 
             void Physical(End a, End b, Vector3[] course = null)
@@ -403,7 +500,10 @@ namespace SpaceJourney
             stock.Revealed = true;
             floors.Insert(0, stock);
             Bind(stock, RaidPlanarLayout.Stock, RaidPlanarLayout.StockFloor);
-            Physical(new End(stock, Vector2.zero, Vector2.left), DockEnd(entrance));
+            var entranceEnd = DockEnd(entrance);
+            var stockOpening = new Pose(entranceEnd.Opening.position, Quaternion.LookRotation(-entrance.Outward, entrance.Up));
+            Physical(new End(stock, Vector2.zero, Vector2.left, entranceEnd.Width, opening: stockOpening,
+                height: entranceEnd.OpeningHeight), entranceEnd);
 
             int pair = 0;
             void PortalPair(End a, End b)
@@ -431,7 +531,9 @@ namespace SpaceJourney
                 var entry = RingRuntime.Marker(ring.Rooms[0], "Quota__South_Truck");
                 Vector3 point = frame.MultiplyPoint3x4(entry.position);
                 Vector3[] courseToRing = FoldCourse(plan.RingLink)?.Append(point).ToArray();
-                Physical(DockEnd(ringEntrance.Value), new End(branch[0], branch[0].Project(point, out _)), courseToRing);
+                var ringOpening = new Pose(point + frame.MultiplyVector(entry.up) * 2f, rotation * entry.rotation);
+                Physical(DockEnd(ringEntrance.Value), new End(branch[0], branch[0].Project(point, out _),
+                    width: 4.5f, opening: ringOpening, height: 4f), courseToRing);
 
                 string[] bridges = { "BridgeQuotaLoot1", "BridgeLoot1Loot2" };
                 for (int i = 0; i < bridges.Length; i++)
@@ -448,7 +550,9 @@ namespace SpaceJourney
                     Vector3 point = frame.MultiplyPoint3x4(portal.Marker.position);
                     Vector3 right = frame.MultiplyVector(portal.Orientation * Vector3.right);
                     Vector2 across = floor.Project(point + right, out _) - floor.Project(point - right, out _);
-                    return new End(floor, floor.Project(point, out _), width: portal.Width, interior: portal.Upper, across: across);
+                    return new End(floor, floor.Project(point, out _), width: portal.Width, interior: portal.Upper,
+                        across: across, opening: new Pose(frame.MultiplyPoint3x4(portal.Center), rotation * portal.Orientation),
+                        height: portal.Height);
                 }
                 foreach (var portal in ring.Portals) PortalPair(PortalEnd(portal.A), PortalEnd(portal.B));
             }
@@ -494,6 +598,13 @@ namespace SpaceJourney
                 }
                 return;
             }
+            const int placementAttempts = 64;
+            for (int attempt = 0; attempt < placementAttempts; attempt++)
+            {
+                if (!TryArrangePassages(Gap, attempt)) continue;
+                FitCanvas(rotatePassages: true);
+                return;
+            }
             for (int pass = 0; pass < 3; pass++)
             for (int attempt = 0; attempt < 4; attempt++)
             {
@@ -528,12 +639,22 @@ namespace SpaceJourney
             }
             throw new InvalidOperationException("No non-crossing physical route on the flat raid map.");
 
-            void FitCanvas()
+            void FitCanvas(bool rotatePassages = false)
             {
                 Rect extent = Enclose(floors.SelectMany(f => f.Outline));
                 if (extent.height > extent.width)
                 {
                     foreach (var floor in floors) floor.Place(Turn(floor.Position, -90f), floor.Angle - 90f);
+                    if (rotatePassages)
+                    {
+                        foreach (var link in links)
+                        {
+                            link.Path[0] = link.Start;
+                            for (int i = 1; i < link.Path.Length - 1; i++)
+                                link.Path[i] = Turn(link.Path[i], -90f);
+                            link.Path[link.Path.Length - 1] = link.Finish;
+                        }
+                    }
                     extent = Enclose(floors.SelectMany(f => f.Outline));
                 }
                 scale = Mathf.Min((Width - 2 * Margin) / extent.width, (Height - 2 * Margin) / extent.height);
@@ -727,6 +848,188 @@ namespace SpaceJourney
             }
         }
 
+        // Reserve a passage as its destination floor is placed. Leaving that strip
+        // free keeps later rooms from separating two already connected doorways.
+        private bool TryArrangePassages(float gap, int attempt)
+        {
+            const float padding = CorridorWidth * .5f + .1f;
+            const int searchSteps = 8;
+            var placed = new HashSet<FloorView> { Stock };
+            var routes = new Dictionary<Link, Vector2[]>();
+            var strips = new List<PassageStrip>();
+            var ordered = links.ToArray();
+            bool reverse = attempt == 1 || attempt > 1 && attempt % 2 == 0;
+            if (attempt == 1) Array.Reverse(ordered);
+            if (attempt > 1)
+            {
+                // Retry competing branches in a deterministic order. This search
+                // has no effect on the random state used to generate the raid.
+                uint state = (uint)(attempt - 1);
+                for (int i = ordered.Length - 1; i > 0; i--)
+                {
+                    state = unchecked(state * 1664525u + 1013904223u);
+                    int j = (int)((ulong)state * (uint)(i + 1) >> 32);
+                    (ordered[i], ordered[j]) = (ordered[j], ordered[i]);
+                }
+            }
+            Stock.Place(Vector2.zero, 180f);
+            while (placed.Count < floors.Count)
+            {
+                var frontier = ordered.Where(link => placed.Contains(link.A.Floor) != placed.Contains(link.B.Floor)).ToArray();
+                if (frontier.Length == 0)
+                {
+                    var detached = floors.First(floor => !placed.Contains(floor));
+                    detached.Place(new Vector2(placed.Max(floor => floor.Bounds.xMax) + gap, 0f) -
+                        Enclose(detached.Local).min, 0f);
+                    placed.Add(detached);
+                    continue;
+                }
+
+                var mouths = ordered.Where(link => !routes.ContainsKey(link))
+                    .SelectMany(link => new[] { (Link: link, End: link.A), (Link: link, End: link.B) })
+                    .Where(mouth => placed.Contains(mouth.End.Floor))
+                    .Select(mouth => (mouth.Link, Strip: new PassageStrip(mouth.End.Floor.Flat(mouth.End.Edge), mouth.End.Outside, padding)))
+                    .ToArray();
+                if (!frontier.Any(Place)) return false;
+
+                bool Place(Link link)
+                {
+                    bool fromA = placed.Contains(link.A.Floor);
+                    End from = fromA ? link.A : link.B;
+                    End to = fromA ? link.B : link.A;
+                    Vector2 start = from.Floor.Flat(from.Edge);
+                    Vector2 forward = Turn(from.Outward, from.Floor.Angle);
+                    Vector2 side = new(-forward.y, forward.x);
+                    float angle = Vector2.SignedAngle(to.Outward, -forward);
+                    // Try short straight runs first, then three-leg offsets and right
+                    // turns. Every candidate leaves both mouths along their normals.
+                    for (int length = 1; length <= searchSteps; length++)
+                    {
+                        if (Try(new[] { start, start + forward * (length * gap) }, angle)) return true;
+                        for (int across = 1; across < length; across++)
+                        {
+                            float along = (length - across) * gap;
+                            Vector2 bend = start + forward * (along * .5f);
+                            for (int sign = -1; sign <= 1; sign += 2)
+                            {
+                                Vector2 offset = side * (across * gap * sign * (reverse ? -1 : 1));
+                                Vector2 finish = start + forward * along + offset;
+                                if (Try(new[] { start, bend, bend + offset, finish }, angle)) return true;
+                                Vector2 turn = start + forward * along;
+                                float turned = Vector2.SignedAngle(to.Outward, -offset);
+                                if (Try(new[] { start, turn, finish }, turned)) return true;
+                            }
+                        }
+                    }
+                    return false;
+
+                    bool Try(Vector2[] path, float rotation)
+                    {
+                        to.Floor.Place(path[path.Length - 1] - Turn(to.Edge, rotation), rotation);
+                        Rect bounds = Padded(to.Floor.Bounds, padding);
+                        Rect separation = Padded(bounds, padding);
+                        var footprint = new PassageStrip(to.Floor.Bounds);
+                        var paddedFootprint = new PassageStrip(bounds);
+                        if (placed.Any(floor => separation.Overlaps(floor.Bounds)) ||
+                            strips.Any(footprint.Overlaps) ||
+                            mouths.Any(mouth => mouth.Link != link && paddedFootprint.Overlaps(mouth.Strip)))
+                            return false;
+                        // Keep the other physical mouths on the new floor accessible as well.
+                        foreach (Link next in ordered)
+                        {
+                            if (next == link) continue;
+                            End mouth = next.A.Floor == to.Floor ? next.A : next.B;
+                            if (mouth.Floor != to.Floor) continue;
+                            Vector2 edge = to.Floor.Flat(mouth.Edge);
+                            Vector2 outside = mouth.Outside;
+                            var approach = new PassageStrip(edge, outside, padding);
+                            if (placed.Any(floor => Meets(Padded(floor.Bounds, padding), edge, outside)) ||
+                                strips.Any(approach.Overlaps))
+                                return false;
+                        }
+                        var passage = new List<PassageStrip>(2 * path.Length - 3);
+                        for (int i = 1; i < path.Length; i++)
+                        {
+                            Vector2 a = path[i - 1], b = path[i];
+                            bool beforeLanding = i < path.Length - 1;
+                            if (placed.Any(floor => (floor != from.Floor || i > 1) && Meets(Padded(floor.Bounds, padding), a, b)) ||
+                                (beforeLanding && Meets(bounds, a, b)))
+                                return false;
+                            var strip = new PassageStrip(a, b, padding);
+                            if (strips.Any(strip.Overlaps) ||
+                                mouths.Any(mouth => mouth.Link != link && strip.Overlaps(mouth.Strip)))
+                                return false;
+                            passage.Add(strip);
+                            if (beforeLanding)
+                            {
+                                var joint = new PassageStrip(Padded(new Rect(b, Vector2.zero), padding));
+                                if (strips.Any(joint.Overlaps)) return false;
+                                passage.Add(joint);
+                            }
+                        }
+                        strips.AddRange(passage);
+                        if (!fromA) Array.Reverse(path);
+                        routes.Add(link, path);
+                        placed.Add(to.Floor);
+                        return true;
+                    }
+                }
+            }
+
+            // Layouts with another route between positioned floors can use the
+            // general router if this placement has not reserved every passage.
+            if (routes.Count != links.Count) return false;
+            foreach (var link in links)
+            {
+                link.Path = routes[link];
+                link.Straight = link.Path.Length == 2;
+            }
+            return true;
+        }
+
+        private readonly struct PassageStrip
+        {
+            private readonly Vector2 center;
+            private readonly Vector2 forward;
+            private readonly Vector2 lateral;
+            private readonly float halfLength;
+            private readonly float halfWidth;
+
+            internal PassageStrip(Vector2 from, Vector2 to, float halfWidth)
+            {
+                Vector2 span = to - from;
+                center = (from + to) * .5f;
+                forward = span.normalized;
+                lateral = new Vector2(-forward.y, forward.x);
+                halfLength = span.magnitude * .5f;
+                this.halfWidth = halfWidth;
+            }
+
+            internal PassageStrip(Rect bounds)
+            {
+                center = bounds.center;
+                forward = Vector2.right;
+                lateral = Vector2.up;
+                halfLength = bounds.width * .5f;
+                halfWidth = bounds.height * .5f;
+            }
+
+            internal bool Overlaps(PassageStrip other)
+            {
+                // End caps matter on short intermediate landings. Two opposite
+                // approaches can be close there and still have clear map strips.
+                Vector2 offset = center - other.center;
+                return !Separated(other, forward, offset) && !Separated(other, lateral, offset) &&
+                    !Separated(other, other.forward, offset) && !Separated(other, other.lateral, offset);
+            }
+
+            private bool Separated(PassageStrip other, Vector2 axis, Vector2 offset) =>
+                Mathf.Abs(Vector2.Dot(offset, axis)) >= Extent(axis) + other.Extent(axis) - .008f;
+
+            private float Extent(Vector2 axis) => halfLength * Mathf.Abs(Vector2.Dot(axis, forward)) +
+                halfWidth * Mathf.Abs(Vector2.Dot(axis, lateral));
+        }
+
         private bool Arrange(float gap, bool reverse, bool requireStraightBridges)
         {
             var placed = new HashSet<FloorView> { Stock };
@@ -892,42 +1195,91 @@ namespace SpaceJourney
             }
         }
 
+        private FloorView currentFloor;
+        private FloorView lastRoom;
+        private Link currentPassage;
+
         internal bool Project(Vector3 position, Vector3 forward, bool visit, out FloorView floor,
             out Vector2 point, out Vector2 heading)
+        {
+            return Project(position, forward, visit, out floor, out point, out heading, null);
+        }
+
+        internal bool ProjectPlayer(Vector3 position, Vector3 forward, Func<FloorView, bool> owns,
+            out FloorView floor, out Vector2 point, out Vector2 heading)
+        {
+            return Project(position, forward, true, out floor, out point, out heading, owns);
+        }
+
+        private bool Project(Vector3 position, Vector3 forward, bool visit, out FloorView floor,
+            out Vector2 point, out Vector2 heading, Func<FloorView, bool> owns)
         {
             floor = null;
             point = heading = default;
             float best = float.PositiveInfinity;
+            bool owned = false;
             foreach (var candidate in floors)
             {
-                float distance = candidate.FloorDistance(position, out Vector2 local);
-                if (distance >= best) continue;
+                float distance = candidate.FloorDistance(position, out Vector2 local, strict: visit);
+                if (float.IsPositiveInfinity(distance)) continue;
+                bool hasOwner = owns != null && owns(candidate);
+                if (floor != null && (owned && !hasOwner || owned == hasOwner &&
+                    (distance > best + .04f || distance >= best - .04f && candidate != currentFloor))) continue;
                 best = distance;
+                owned = hasOwner;
                 floor = candidate;
                 point = candidate.Flat(local);
             }
+
             if (best > .5f)
             {
+                Link passage = null;
+                float progress = 0f;
+                Vector3 tangent = default;
+                float nearest = float.PositiveInfinity;
                 foreach (var link in links)
                 {
-                    if (link.Transition == null || !link.TryProjectTransition(position, out float progress, out Vector3 tangent)) continue;
-                    floor = progress < .5f ? link.A.Floor : link.B.Floor;
-                    if (link.Straight)
-                    {
-                        point = Vector2.Lerp(link.Start, link.Finish, progress);
-                        heading = link.Finish - link.Start;
-                    }
-                    else
-                    {
-                        ProjectAlong(link.Path, progress, out point, out heading);
-                    }
+                    // Direct doors use the opening's own frame. A nearby fold or stair must
+                    // never take precedence over a different room's established floor.
+                    if (floor != null && floor != link.A.Floor && floor != link.B.Floor) continue;
+                    if (link.Transition == null && !visit) continue;
+                    if (!link.TryProjectTransition(position, out float t, out var direction, out float error) ||
+                        error >= nearest) continue;
+                    passage = link;
+                    progress = t;
+                    tangent = direction;
+                    nearest = error;
+                }
+                if (passage != null)
+                {
+                    floor = progress < .5f ? passage.A.Floor : passage.B.Floor;
+                    ProjectAlong(passage.Path, progress, out point, out heading);
                     if (Vector3.Dot(forward, tangent) < 0f) heading = -heading;
-                    if (visit) link.Visited = true;
+                    if (visit)
+                    {
+                        currentPassage = passage;
+                        if (lastRoom == passage.A.Floor)
+                            passage.ExploredFromA = Mathf.Max(passage.ExploredFromA, progress);
+                        else if (lastRoom == passage.B.Floor)
+                            passage.ExploredFromB = Mathf.Max(passage.ExploredFromB, 1f - progress);
+                    }
                     return true;
                 }
             }
             if (floor == null) return false;
-            if (visit) floor.Revealed = true;
+            if (visit)
+            {
+                if (currentPassage != null &&
+                    (lastRoom == currentPassage.A.Floor && floor == currentPassage.B.Floor ||
+                     lastRoom == currentPassage.B.Floor && floor == currentPassage.A.Floor))
+                    currentPassage.Visited = true;
+                currentPassage = null;
+                lastRoom = currentFloor = floor;
+                floor.Revealed = true;
+                foreach (var door in doors)
+                    if (door.Portal && door.End.Floor == floor && door.CanDiscover(position))
+                        door.Revealed = true;
+            }
             heading = floor.Flat(floor.Project(position + forward * .4f, out _)) - point;
             return true;
         }

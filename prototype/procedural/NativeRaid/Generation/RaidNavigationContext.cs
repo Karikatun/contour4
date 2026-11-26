@@ -27,17 +27,19 @@ namespace Contour4.NativeRaid.Runtime
     public sealed class RaidNavigationContext
     {
         private readonly BakedRoom[] rooms;
+        private readonly RaidFloor[] branchFloors;
         private readonly int solidMask;
         public int Seed { get; }
         public NavigationRuntime Navigation { get; }
         public IReadOnlyList<NativeRaidPortal> Portals { get; }
 
-        internal RaidNavigationContext(int seed, NavigationRuntime navigation, BakedRoom[] rooms, NativeRaidPortal[] portals,
-            int solidMask)
+        internal RaidNavigationContext(int seed, NavigationRuntime navigation, BakedRoom[] rooms, RaidFloor[] branchFloors,
+            NativeRaidPortal[] portals, int solidMask)
         {
             Seed = seed;
             Navigation = navigation;
             this.rooms = rooms;
+            this.branchFloors = branchFloors;
             this.solidMask = solidMask;
             Portals = Array.AsReadOnly(portals);
         }
@@ -52,6 +54,15 @@ namespace Contour4.NativeRaid.Runtime
             {
                 if (!room.Prepared || !room.PreparedSurfaces.TryNearFloor(feet, 1.65f, solidMask, out var candidate,
                     out float distance) || distance >= nearest) continue;
+                floor = candidate;
+                nearest = distance;
+            }
+            foreach (var candidate in branchFloors)
+            {
+                if (!candidate.LocalBakeBounds.Contains(candidate.Local(feet)) ||
+                    !PreparedRaidSurfaces.Probe(feet, candidate.Up, 1.65f, solidMask, candidate.Support, out float distance) ||
+                    distance >= nearest)
+                    continue;
                 floor = candidate;
                 nearest = distance;
             }

@@ -12,6 +12,9 @@ namespace Contour4.Procedural
 
     public sealed class RoomDressing
     {
+        public const float RackShelterWidth = 1.08f;
+        public const float RackShelterHeight = .60f;
+
         public readonly struct Part
         {
             public readonly string Id;
@@ -103,11 +106,13 @@ namespace Contour4.Procedural
         public ModulePose Frame { get; }
         private readonly List<Part> parts = new List<Part>();
         private readonly List<Lamp> lamps = new List<Lamp>();
+        private readonly List<string> offlineLampParts = new List<string>();
         private readonly List<Cover> covers = new List<Cover>();
         private readonly List<MovingFront> fronts = new List<MovingFront>();
         private readonly List<LootSurface> lootSurfaces = new List<LootSurface>();
         public IReadOnlyList<Part> Parts => parts;
         public IReadOnlyList<Lamp> Lamps => lamps;
+        internal IReadOnlyList<string> OfflineLampParts => offlineLampParts;
         public IReadOnlyList<Cover> Covers => covers;
         public IReadOnlyList<MovingFront> MovingFronts => fronts;
         public IReadOnlyList<LootSurface> LootSurfaces => lootSurfaces;
@@ -137,6 +142,7 @@ namespace Contour4.Procedural
                 Axis(Frame.Forward), Axis(Frame.Up)));
             placed.parts.AddRange(parts);
             placed.lamps.AddRange(lamps);
+            placed.offlineLampParts.AddRange(offlineLampParts);
             placed.covers.AddRange(covers);
             placed.fronts.AddRange(fronts);
             placed.lootSurfaces.AddRange(lootSurfaces);
@@ -292,54 +298,80 @@ namespace Contour4.Procedural
 
         public void PartsRack(string id, float x, float y, float wall, int side, float width)
         {
+            width = MathF.Max(width, RackShelterWidth + .16f);
             float center = wall - side * .29f;
+            float shelterCenter = wall - side * .35f;
+            const float board = .075f, shelterDepth = .70f;
+            const float baseBoard = RackShelterHeight + board / 2;
+            float panel = (width - RackShelterWidth) / 2;
             foreach (int end in new[] { -1, 1 })
             {
-                float edge = x + end * (width / 2 - .055f);
-                Box($"{id}-anchor-{end}", edge, y + .04f, center, .18f, .08f, .58f);
-                Box($"{id}-upright-{end}", edge, y + 1.01f, center, .11f, 1.86f, .49f);
+                Box($"{id}-lower-cheek-{end}", x + end * (width - panel) / 2, y + RackShelterHeight / 2,
+                    shelterCenter, panel, RackShelterHeight, shelterDepth, DressingSurface.Conduit);
+                Box($"{id}-upright-{end}", x + end * (width / 2 - .055f), y + 1.26f,
+                    center, .11f, 1.32f, .49f);
             }
+            Box($"{id}-shelter-back", x, y + RackShelterHeight / 2, wall - side * .025f,
+                RackShelterWidth, RackShelterHeight, .05f, DressingSurface.Housing);
             for (int level = 0; level < 3; level++)
             {
-                float height = y + .38f + .62f * level;
-                Box($"{id}-shelf-{level}", x, height, center, width - .11f, .075f, .54f, DressingSurface.Worktop);
-                Box($"{id}-lip-{level}", x, height + .06f, center - side * .255f,
+                float height = y + (level == 0 ? baseBoard : .38f + .62f * level);
+                float depth = level == 0 ? shelterDepth : .54f;
+                float shelfCenter = level == 0 ? shelterCenter : center;
+                Box($"{id}-shelf-{level}", x, height, shelfCenter,
+                    width - (level == 0 ? .035f : .11f), board, depth, DressingSurface.Worktop);
+                Box($"{id}-lip-{level}", x, height + .06f, shelfCenter - side * (depth / 2 - .015f),
                     width - .16f, .065f, .035f, DressingSurface.SteelTrim);
             }
-            Box($"{id}-retained-bin", x - width * .18f, y + .54f, center, .33f, .26f, .38f);
+            Box($"{id}-retained-bin", x - width * .23f, y + baseBoard + board / 2 + .09f,
+                center, .33f, .18f, .38f);
         }
 
         public void WallLamp(string id, float x, float y, float wall, int side, LampDuty duty,
             float along = 0)
         {
+            int firstPart = parts.Count;
             float z = wall - side * .085f;
             Box($"{id}-housing", x, y, z, duty == LampDuty.Work ? .96f : .54f, .19f, .17f);
             Box($"{id}-lens", x, y - .02f, z - side * .089f, duty == LampDuty.Work ? .84f : .43f,
                 .09f, .025f, Lens(duty));
-            if (duty != LampDuty.Offline)
-                lamps.Add(new Lamp(id, new Vector3(x, y - .055f, z - side * .135f),
-                    new Vector3(along, duty == LampDuty.Guidance ? -.52f : -.72f, -side), duty));
+            RecordLamp(firstPart, id, new Vector3(x, y - .055f, z - side * .135f),
+                new Vector3(along, duty == LampDuty.Guidance ? -.52f : -.72f, -side), duty);
         }
 
         public void CeilingLamp(string id, float x, float y, float z, LampDuty duty)
         {
+            int firstPart = parts.Count;
             Box($"{id}-housing", x, y - .07f, z, 1.08f, .14f, .30f);
             Box($"{id}-lens", x, y - .15f, z, .94f, .035f, .23f,
                 Lens(duty));
-            if (duty != LampDuty.Offline)
-                lamps.Add(new Lamp(id, new Vector3(x, y - .19f, z), -Vector3.UnitY, duty));
+            RecordLamp(firstPart, id, new Vector3(x, y - .19f, z), -Vector3.UnitY, duty);
         }
 
         public void TaskPendant(string id, float x, float ceiling, float z, float drop, LampDuty duty, float across = 0)
         {
+            int firstPart = parts.Count;
             float housing = ceiling - drop;
             foreach (int end in new[] { -1, 1 })
                 Box($"{id}-hanger-{end}", x + end * .59f, ceiling - drop / 2, z, .075f, drop, .075f);
             Box($"{id}-housing", x, housing, z, 1.48f, .15f, .36f, DressingSurface.SteelTrim);
             foreach (int side in new[] { -1, 1 })
                 Box($"{id}-tube-{side}", x, housing - .087f, z + side * .091f, 1.34f, .038f, .064f, Lens(duty));
+            RecordLamp(firstPart, id, new Vector3(x, housing - .14f, z), new Vector3(0, -1, across), duty, LampOptics.Task);
+        }
+
+        private void RecordLamp(int firstPart, string id, Vector3 emitter, Vector3 direction, LampDuty duty,
+            LampOptics optics = LampOptics.Wide)
+        {
             if (duty != LampDuty.Offline)
-                lamps.Add(new Lamp(id, new Vector3(x, housing - .14f, z), new Vector3(0, -1, across), duty, LampOptics.Task));
+            {
+                lamps.Add(new Lamp(id, emitter, direction, duty, optics));
+                return;
+            }
+
+            // Retain the authored part IDs for validation before removing the offline fixture at placement.
+            for (int index = firstPart; index < parts.Count; index++)
+                offlineLampParts.Add(parts[index].Id);
         }
 
         public void AisleStrip(string id, float x, float y, float wall, int side, float along)

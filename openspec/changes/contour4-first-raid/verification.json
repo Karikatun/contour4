@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "kind": "level",
+  "subjectPaths": [
+    "prototype/assets/FBX/Loot1.fbx",
+    "prototype/assets/layout.json",
+    "prototype/first-raid"
+  ],
+  "environment": {
+    "gameBuild": "26732417 (0.5.2)",
+    "unityEditor": "6000.3.17f1",
+    "bepInEx": "5.4.23.5",
+    "repoLib": "4.5.1",
+    "profile": "Изолированная копия Contour4-dev-052 с отдельными userdata"
+  },
+  "playModes": [
+    "singleplayer"
+  ],
+  "design": {
+    "document": "design.md",
+    "visualPrototype": {
+      "required": true,
+      "selectedFiles": [
+        "prototype/assets/overview.png"
+      ]
+    }
+  },
+  "assets": [
+    {
+      "path": "prototype/assets/FBX/Loot1.fbx",
+      "source": "Оригинальный блок-аут Контур-4, generate_blockout.py",
+      "license": "Собственный ресурс проекта",
+      "redistributionAllowed": true
+    }
+  ],
+  "criteria": [
+    {
+      "id": "AC-001",
+      "requirement": "REQ-001",
+      "mode": "game",
+      "required": true,
+      "procedure": "Запустить отдельную копию с пакетом и выбрать Контур-4.",
+      "expected": "Уровень зарегистрирован, создана штатная стартовая и лутовая комнаты, игрок появился.",
+      "evidence": "Лог игры, точная версия пакета и запись наблюдений."
+    },
+    {
+      "id": "AC-002",
+      "requirement": "REQ-002",
+      "mode": "game",
+      "required": true,
+      "procedure": "Перенести достаточный груз из комнаты Контур-4 и запустить штатную сдачу.",
+      "expected": "Штатная первая точка принимает груз и завершает квоту.",
+      "evidence": "Лог и результат штатной точки сдачи; действия тестового сценария описаны."
+    },
+    {
+      "id": "AC-003",
+      "requirement": "REQ-001",
+      "mode": "package",
+      "required": true,
+      "procedure": "Проверить состав ZIP и хеш.",
+      "expected": "Декларация зависимостей и собственные ассеты мода; игровых файлов нет.",
+      "evidence": "Список ZIP и SHA-256."
+    },
+    {
+      "id": "AC-004",
+      "requirement": "REQ-001",
+      "mode": "review",
+      "required": true,
+      "procedure": "Сравнить создание prefab и регистрацию с фактическими API игры и REPOLib.",
+      "expected": "Ссылки указывают на собственный модуль и совместимые игровые объекты.",
+      "evidence": "Исходники, отчёт Unity и лог загрузки."
+    }
+  ]
+}

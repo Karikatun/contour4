@@ -9,6 +9,7 @@ namespace Contour4.Procedural.Catalog
     internal static class SphericalChamberDressing
     {
         const string Dir = "Assets/Contour4/PreparedModules/spherical-chamber";
+        const float RailPracticalZ = 2.18f;
         static Material[] mats;
         static Mesh cube;
         static List<CombineInstance>[] pieces;
@@ -202,10 +203,11 @@ namespace Contour4.Procedural.Catalog
             if (east) BayPanel(SphericalChamber.ServiceBayCenter, -SphericalChamber.ServiceBayEdge + .08f, -1);
             float[] railStations = east ? new[] { -15f, -5.1f, 5.1f, 15f } : new[] { -15f, -5.1f };
             foreach (float x in railStations)
-                foreach (float z in new[] { -2.18f, 2.18f })
-                    RailLamp(x, z);
+                RailLamp(x, RailPracticalZ);
             string path = $"Assets/Contour4/PreparedModules/{SphericalChamber.VariantId(mask)}/sphere-dressing-geometry.asset";
-            var old = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Mesh>().ToDictionary(x => x.name);
+            // Unity may name the main mesh after the asset file rather than its renderer.
+            var old = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Mesh>()
+                .ToDictionary(mesh => mesh.name == "sphere-dressing-geometry" ? "Sphere instrumentation 0" : mesh.name);
             bool initialized = old.Count > 0;
             for (int i = 0; i < 4; i++)
             {
@@ -214,6 +216,7 @@ namespace Contour4.Procedural.Catalog
                 mesh.CombineMeshes(pieces[i].ToArray(), true, true);
                 if (old.TryGetValue(name, out var previous))
                 {
+                    mesh.name = previous.name;
                     EditorUtility.CopySerialized(mesh, previous);
                     Object.DestroyImmediate(mesh);
                     mesh = previous;
@@ -238,7 +241,7 @@ namespace Contour4.Procedural.Catalog
             {
                 var light = new GameObject("Rail practical emitter").AddComponent<Light>();
                 light.transform.SetParent(fixtures, false);
-                light.transform.localPosition = new Vector3(x, 1.04f, 2.18f);
+                light.transform.localPosition = new Vector3(x, 1.04f, RailPracticalZ);
                 light.type = LightType.Point;
                 light.color = new Color(1f, .88f, .71f);
                 light.intensity = 1.7f;

@@ -18,7 +18,7 @@ namespace Contour4.NativeRaid.Runtime
         {
             Vector3 local = room.InverseTransformPoint(point);
             var up = MobiusHall.RoomUpAt(new(local.x, local.y, local.z));
-            return room.TransformDirection(RaidPlan.Vector(up));
+            return room.TransformDirection(new Vector3(up.X, up.Y, up.Z));
         }
 
         internal MobiusWalk(Transform room, Collider ribbon)

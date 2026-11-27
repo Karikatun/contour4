@@ -923,7 +923,7 @@ namespace Contour4.NativeRaid.Runtime
                 .Select(end => (End: end, Separation: OriginalQuotaSeparation(end, quotas), Tie: Next(int.MaxValue)))
                 .OrderByDescending(entry => entry.Separation).ThenBy(entry => entry.Tie)
                 .Select(entry => entry.End).ToArray();
-            return TryAttach(candidates, RaidExtraction.CreateForSlot(CompletedLevels, quotas.Count, quotaLayout),
+            return TryAttach(candidates, RaidExtraction.CreateForSlot(CompletedLevels, quotas.Count, quotaLayout, Seed),
                 RaidExtraction.Entry, out _, placeNext: room =>
             {
                 quotas.Add(room);
@@ -969,7 +969,7 @@ namespace Contour4.NativeRaid.Runtime
             const int improvementPlacements = 24;
             var slots = Enumerable.Range(0, count).Select(slot =>
             {
-                var module = RaidExtraction.CreateForSlot(CompletedLevels, slot, quotaLayout);
+                var module = RaidExtraction.CreateForSlot(CompletedLevels, slot, quotaLayout, Seed);
                 var ramp = RaidExtraction.LoadingRoute(module);
                 return (Module: module, Entry: module.ExternalDocks.Single(dock => dock.Id == RaidExtraction.Entry),
                     Length: RouteLength(ramp), Anchor: ramp.Knots.Last().Position);

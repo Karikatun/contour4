@@ -16,12 +16,12 @@ namespace Contour4.NativeRaid.Runtime
         private readonly List<PassengerPose> poses = new();
         private Transform rotor, farDock;
         private GameObject nearGate, farGate;
+        private Material shutterGlass;
         private Bounds farField;
         private Rigidbody rider;
         private float travel, turnDegrees, interruptedTurn;
         private bool atFar, turning, returning, recalling;
 
-        internal Transform Button { get; private set; }
         internal Transform Rotor => rotor;
         internal bool IsTurning => turning;
         internal bool NearOpen => !nearGate.activeSelf;
@@ -31,7 +31,7 @@ namespace Contour4.NativeRaid.Runtime
 
         // Floor centers are coplanar with the cabin deck at the two docking planes.
         // The supplied far gravity bounds are measured from its floor center in the dock frame.
-        internal static Pose Doorway(Vector3 center, Quaternion nearRotation, bool far, float turnDegrees = 90f)
+        internal static Pose Doorway(Vector3 center, Quaternion nearRotation, bool far, float turnDegrees)
         {
             Quaternion rotation = nearRotation * Quaternion.AngleAxis(far ? turnDegrees : 0f, Vector3.forward);
             Vector3 position = center + rotation * new Vector3(0, -HalfHeight, far ? HalfLength : -HalfLength);
@@ -39,7 +39,7 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         internal static RaidQuotaRotaryCabin Create(Transform room, Vector3 center, Quaternion nearRotation,
-            Bounds farField, int layer, Material frame, Material gate, Material indicator, float turnDegrees = 90f)
+            Bounds farField, int layer, Material frame, Material gate, float turnDegrees)
         {
             var anchor = RaidAssembly.Child(room, "Quota rotary transfer chamber");
             anchor.SetLocalPositionAndRotation(center, nearRotation);
@@ -65,23 +65,48 @@ namespace Contour4.NativeRaid.Runtime
                 foreach (float z in new[] { -HalfLength + .09f, 0f, HalfLength - .09f })
                     Box(rotor, "Cabin post", new Vector3(x, 0, z), new Vector3(Shell, 2 * HalfHeight, .18f), layer, frame, false);
             }
-            cabin.Button = Box(rotor, "Transfer switch", new Vector3(HalfWidth - .08f, -.40f, 0),
-                new Vector3(.20f, .45f, .52f), layer, indicator, false).transform;
-            cabin.nearGate = Gate(anchor, "Near bulkhead", false, layer, gate, turnDegrees);
-            cabin.farGate = Gate(anchor, "Far bulkhead", true, layer, gate, turnDegrees);
+            Shader standard = Shader.Find("Standard");
+            if (standard) cabin.shutterGlass = RaidSightStrips.Glazing(standard, "Contour-4 rotary shutter glazing",
+                new Color(.32f, .48f, .53f, .085f));
+            cabin.nearGate = cabin.Gate("Near bulkhead", false, layer, gate);
+            cabin.farGate = cabin.Gate("Far bulkhead", true, layer, gate);
             cabin.SetGates();
             return cabin;
         }
 
-        private static GameObject Gate(Transform anchor, string name, bool far, int layer, Material material, float degrees)
+        private GameObject Gate(string name, bool far, int layer, Material material)
         {
-            Pose pose = Doorway(Vector3.zero, Quaternion.identity, far, degrees);
-            var mount = RaidAssembly.Child(anchor, name);
+            Pose pose = Doorway(Vector3.zero, Quaternion.identity, far, turnDegrees);
+            var mount = RaidAssembly.Child(transform, name);
             mount.SetLocalPositionAndRotation(pose.position, pose.rotation);
-            // A fixed shutter must cover the full sweep of the rectangular rotor aperture.
+            // Keep a solid interlock across the swept aperture and a clear view between docks.
             float radius = Mathf.Sqrt(HalfWidth * HalfWidth + HalfHeight * HalfHeight) + .08f;
-            return Box(mount, "Interlocked shutter", new Vector3(0, HalfHeight, far ? Shell / 2 : -Shell / 2),
+            var shutter = Box(mount, "Interlocked shutter", new Vector3(0, HalfHeight, far ? Shell / 2 : -Shell / 2),
                 new Vector3(2 * radius, 2 * radius, Shell), layer, material);
+            shutter.GetComponent<Renderer>().enabled = false;
+            const float view = HalfHeight - .06f;
+            foreach (int sign in new[] { -1, 1 })
+            {
+                Box(mount, "Shutter jamb", new Vector3(sign * (radius + view) / 2, HalfHeight, shutter.transform.localPosition.z),
+                    new Vector3(radius - view, 2 * radius, Shell), layer, material, false).transform.SetParent(shutter.transform, true);
+                Box(mount, "Shutter crosspiece", new Vector3(0, HalfHeight + sign * (radius + view) / 2, shutter.transform.localPosition.z),
+                    new Vector3(2 * view, radius - view, Shell), layer, material, false).transform.SetParent(shutter.transform, true);
+            }
+            if (shutterGlass)
+            {
+                var pane = Box(mount, "Shutter glass", shutter.transform.localPosition,
+                    new Vector3(2 * view, 2 * view, .018f), layer, shutterGlass, false);
+                pane.transform.SetParent(shutter.transform, true);
+                pane.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            return shutter;
+        }
+
+        private void OnDestroy()
+        {
+            if (!shutterGlass) return;
+            if (Application.isPlaying) Destroy(shutterGlass);
+            else DestroyImmediate(shutterGlass);
         }
 
         private static GameObject Box(Transform parent, string name, Vector3 center, Vector3 size, int layer,
@@ -187,7 +212,7 @@ namespace Contour4.NativeRaid.Runtime
             {
                 // A controller can return during an unattended roll. Relevel the whole
                 // deck and its load once before using the upright rider frame again.
-                Quaternion level = Quaternion.FromToRotation(rotor.up, Vector3.up);
+                Quaternion level = LevelFrom(rotor.up);
                 Vector3 velocity = player.linearVelocity;
                 Vector3 spin = player.angularVelocity;
                 rebase(player.position, level, null);
@@ -260,6 +285,10 @@ namespace Contour4.NativeRaid.Runtime
             up = default;
             return false;
         }
+
+        internal Quaternion LevelFrom(Vector3 up) => Vector3.Dot(up, Vector3.up) < -.999999f
+            ? Quaternion.AngleAxis(180f, transform.forward)
+            : Quaternion.FromToRotation(up, Vector3.up);
 
         private readonly struct PassengerPose
         {

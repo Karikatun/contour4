@@ -40,9 +40,9 @@ namespace Contour4.NativeRaid.Runtime
                 Quaternion.Inverse(Quaternion.LookRotation(loadingDirection, UnityEngine.Vector3.up));
         }
 
-        internal static GrayModule CreateForSlot(int completedLevels, int slot, QuotaLayout layout) => slot switch
+        internal static GrayModule CreateForSlot(int completedLevels, int slot, QuotaLayout layout, int seed) => slot switch
         {
-            0 when layout == QuotaLayout.Rotary => RaidQuotaRotaryRoom.Create(),
+            0 when layout == QuotaLayout.Rotary => RaidQuotaRotaryRoom.Create(RaidQuotaRotaryRoom.TurnDegrees(seed)),
             0 when layout != QuotaLayout.Ordinary && completedLevels >= StraightBridgeUnlock =>
                 RaidExtractionBridge.Create(StraightBridgeId, Entry, Machine, bent: false),
             1 when layout != QuotaLayout.Ordinary && completedLevels >= BentBridgeUnlock =>

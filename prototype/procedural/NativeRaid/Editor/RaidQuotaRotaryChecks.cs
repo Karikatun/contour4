@@ -21,7 +21,7 @@ namespace Contour4.NativeRaid.Editor
             {
                 Physics.simulationMode = SimulationMode.Script;
                 Physics.gravity = new Vector3(0, -9.81f, 0);
-                CheckRoomAndTransfer();
+                foreach (float degrees in new[] { -90f, 90f, 180f }) CheckRoomAndTransfer(degrees);
                 CheckSeed();
                 Debug.Log($"{Label} PASSED");
             }
@@ -32,10 +32,10 @@ namespace Contour4.NativeRaid.Editor
             }
         }
 
-        private static void CheckRoomAndTransfer()
+        private static void CheckRoomAndTransfer(float degrees)
         {
             Transform stage = new GameObject("Quota fixture").transform;
-            var module = RaidQuotaRotaryRoom.Create();
+            var module = RaidQuotaRotaryRoom.Create(degrees);
             foreach (var block in module.Geometry.Where(block => block.Role is not BlockRole.Free and not BlockRole.Plug))
             {
                 var (low, high) = block.Bounds;
@@ -44,7 +44,14 @@ namespace Contour4.NativeRaid.Editor
                 part.gameObject.AddComponent<BoxCollider>().size = RaidPlan.Vector(high - low);
             }
             var cabin = RaidQuotaRotaryCabin.Create(stage, RaidQuotaRotaryRoom.Center, RaidQuotaRotaryRoom.NearRotation,
-                RaidQuotaRotaryRoom.FarField, 0, null, null, null);
+                RaidQuotaRotaryRoom.FarField, 0, null, null, degrees);
+            var farApproach = RaidExtraction.LoadingRoute(module).Knots.Last();
+            Transform farDock = cabin.DockFrame(true);
+            Require(Vector3.Angle(RaidPlan.Vector(farApproach.Up), farDock.up) < .06f &&
+                Vector3.Angle(RaidPlan.Vector(farApproach.Forward), farDock.forward) < .06f &&
+                Mathf.Abs(Vector3.Dot(RaidPlan.Vector(farApproach.Position) - farDock.position, farDock.up)) < .001f,
+                $"The rotary far deck and native machine inherit the same docking axis and elevation ({degrees}°)");
+            CheckSight(cabin, false);
             var rebase = new RaidWorldRebase();
             Vector3 Offset(float width, float height, float depth) => cabin.Rotor.TransformPoint(new Vector3(width, height, depth));
             var observer = PlayerEnvelope(Offset(-1.35f, -RaidQuotaRotaryCabin.HalfHeight + .03f, -4.2f));
@@ -92,14 +99,18 @@ namespace Contour4.NativeRaid.Editor
                 int steps = 0;
                 while (cabin.IsTurning && steps++ < 150)
                 {
+                    Require(!cabin.CanBoard(observer.position) &&
+                        !cabin.CanCall(false, cabin.DockFrame(false).TransformPoint(new Vector3(0, .03f, -1.55f))) &&
+                        !cabin.CanCall(true, cabin.DockFrame(true).TransformPoint(new Vector3(0, .03f, 3.25f))),
+                        "None of the three controls can actuate during a transfer");
                     cabin.Step(Tick, observer, (feet, rotation, aboard) => rebase.Apply(stage, observer, actors, feet, rotation, aboard));
                     Physics.Simulate(Tick);
                     Require(Quaternion.Angle(cabin.Rotor.rotation, upright) < .06f, "Rider frame stays upright through the transfer");
                 }
                 Require(!cabin.IsTurning && steps is >= 139 and <= 142, "Both directions use the timed smooth rotation");
                 Require(cabin.FarOpen == far && cabin.NearOpen != far, "Only the destination gate releases at the end of each turn");
-                Require(Vector3.Angle(currentFarUp, stage.up) is > 89.95f and < 90.05f,
-                    "Cabin rolls through a physical quarter-turn relative to the room");
+                Require(Mathf.Abs(Vector3.Angle(currentFarUp, stage.up) - Mathf.Abs(degrees)) < .06f,
+                    $"Cabin rolls through {degrees}° for this layout");
                 Require(Vector3.Distance(observer.position, startingPoint) < .055f, "Player remains supported during the turn");
                 Vector3 cargoAfter = cabin.Rotor.InverseTransformPoint(cargo.position);
                 Require(Vector3.Distance(cargoRelative, cargoAfter) < .14f,
@@ -123,8 +134,10 @@ namespace Contour4.NativeRaid.Editor
             Require(cabin.TryBegin(observer, cart, _ => true), "Park the cabin at the far dock for the reverse regression");
             for (int step = 0; cabin.IsTurning && step < 150; step++) AdvanceObserved();
             CheckInterruptedTrip(far: true, destroyRider: false);
-            Debug.Log($"{Label} the same replacement recalled, boarded and rode from each opposite dock after an interruption");
+            Debug.Log($"{Label} {degrees}°: staged player, cart and freight crossed both directions. " +
+                "The replacement recalled, boarded and rode from each opposite dock after an interruption.");
             CheckEmptyCalls();
+            UnityEngine.Object.DestroyImmediate(stage.gameObject);
 
             void CheckInterruptedTrip(bool far, bool destroyRider)
             {
@@ -155,7 +168,7 @@ namespace Contour4.NativeRaid.Editor
                 }
                 Require(!cabin.IsTurning && cabin.FarOpen == far && cabin.NearOpen != far,
                     "The cabin returns to the departure dock after losing its controller");
-                Require(Quaternion.Angle(cabin.Rotor.localRotation, Quaternion.AngleAxis(far ? 90f : 0f, Vector3.forward)) < .06f,
+                Require(Quaternion.Angle(cabin.Rotor.localRotation, Quaternion.AngleAxis(far ? degrees : 0f, Vector3.forward)) < .06f,
                     "The departure gate only releases at its aligned rotor pose");
                 Require(Quaternion.Angle(stage.rotation, fixedStage) < .06f &&
                     (!replacement || Vector3.Distance(replacement.position, replacementPosition) < .001f),
@@ -166,7 +179,7 @@ namespace Contour4.NativeRaid.Editor
 
                 if (observer) UnityEngine.Object.DestroyImmediate(observer.gameObject);
                 observer = replacement ? replacement : PlayerEnvelope(replacementPosition);
-                rebase.Apply(stage, observer, actors, observer.position, Quaternion.FromToRotation(opposite.up, Vector3.up));
+                rebase.Apply(stage, observer, actors, observer.position, cabin.LevelFrom(opposite.up));
                 observer.isKinematic = false;
                 Require(!cabin.CanBoard(observer.position), "The inside switch is out of reach on the opposite apron");
                 Require(cabin.CanCall(!far, observer.position), "The stranded replacement has a call switch on its own apron");
@@ -238,7 +251,7 @@ namespace Contour4.NativeRaid.Editor
                     Transform dock = cabin.DockFrame(far);
                     Vector3 feet = dock.TransformPoint(new Vector3(-1.35f, .025f, far ? 3.35f : -2.85f));
                     var caller = PlayerEnvelope(feet);
-                    rebase.Apply(stage, caller, actors, caller.position, Quaternion.FromToRotation(dock.up, Vector3.up));
+                    rebase.Apply(stage, caller, actors, caller.position, cabin.LevelFrom(dock.up));
                     Require(cabin.TryCall(caller, far, _ => true) && !cabin.Passengers.Any(),
                         "The cabin parked after an occupied trip can be called empty");
                     int steps = 0;
@@ -250,8 +263,9 @@ namespace Contour4.NativeRaid.Editor
                     Require(!cabin.IsTurning && steps is >= 139 and <= 142 && cabin.FarOpen == far && cabin.NearOpen != far,
                         "An empty call reaches the selected dock even when the controller briefly goes away");
                     UnityEngine.Object.DestroyImmediate(caller.gameObject);
+                    CheckSight(cabin, far);
                 }
-                Debug.Log($"{Label} both idle empty calls complete through a controller gap");
+                Debug.Log($"{Label} {degrees}°: both idle calls complete through a controller gap. Both dock views clear.");
             }
 
             void MoveTo(float target)
@@ -285,6 +299,29 @@ namespace Contour4.NativeRaid.Editor
                 cabin.Rotor.forward * Mathf.Clamp(8f * error, -2f, 2f) + Vector3.Project(body.linearVelocity, Vector3.up);
         }
 
+        private static void CheckSight(RaidQuotaRotaryCabin cabin, bool far)
+        {
+            Transform nearDock = cabin.DockFrame(false);
+            Transform farDock = cabin.DockFrame(true);
+            Vector3 machine = farDock.TransformPoint(new Vector3(0, 1.5f, 10.8f));
+            Vector3 nearEntry = nearDock.TransformPoint(new Vector3(0, 1.5f, -6.80f));
+            Vector3 source = far ? machine : nearEntry;
+            Vector3 delta = (far ? nearEntry : machine) - source;
+            Physics.SyncTransforms();
+            var ray = new Ray(source, delta.normalized);
+            var hits = Physics.RaycastAll(ray, delta.magnitude, ~0, QueryTriggerInteraction.Ignore);
+            Require(hits.Length == 1 && hits[0].collider.name == "Interlocked shutter" &&
+                !hits[0].collider.GetComponent<Renderer>().enabled,
+                $"Entry-to-quota eye line crosses only an interlocked window, far dock open={far}: " +
+                string.Join(", ", hits.Select(hit => hit.collider.name)));
+            var rendered = cabin.GetComponentsInChildren<Renderer>().Where(renderer => renderer.enabled &&
+                renderer.bounds.IntersectRay(ray, out float distance) && distance < delta.magnitude).ToArray();
+            Require(rendered.Length == 1 && rendered[0].name == "Shutter glass" &&
+                rendered[0].sharedMaterial.renderQueue == (int)UnityEngine.Rendering.RenderQueue.Transparent,
+                "The shutter's opaque trim and cabin guards leave the glazing visible through the center sight line: " +
+                string.Join(", ", rendered.Select(renderer => renderer.name)));
+        }
+
         private static Rigidbody Body(Transform parent, string name, Vector3 position)
         {
             var node = RaidAssembly.Child(parent, name);
@@ -316,6 +353,15 @@ namespace Contour4.NativeRaid.Editor
                 Require(normal.Rooms.All(room => room.Module.Id != RaidQuotaRotaryRoom.Id), "Default raid never uses the prototype");
                 Require(count == (normal.QuotaCount == 0 ? 0 : 1) && normal.QuotaCount == optedIn.QuotaCount,
                     $"Opt-in retains native quota count and replaces one terminal after quotas unlock (completed {level})");
+            }
+            foreach ((int sample, Vector3 up) in new[] { (-31, Vector3.forward), (-30, Vector3.back), (-29, Vector3.down) })
+            {
+                var generated = RaidPlan.Generate(sample, start, completedLevels: 1, rotaryQuota: true);
+                var room = generated.Rooms.Single(entry => entry.Module.Id == RaidQuotaRotaryRoom.Id);
+                var approach = RaidExtraction.LoadingRoute(room.Module).Knots.Last();
+                Require(RaidPlan.Vector(approach.Up) == up,
+                    $"Seed {sample} naturally generates its own far floor plane");
+                Debug.Log($"{Label} seed {sample} generated far local up {up}");
             }
             Debug.Log($"{Label} seed {seed} verified with opt-in at completed levels 1, 5, 9 and 14");
         }

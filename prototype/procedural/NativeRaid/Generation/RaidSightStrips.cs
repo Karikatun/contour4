@@ -77,7 +77,7 @@ namespace Contour4.NativeRaid.Runtime
             return (near + far) / 2;
         }
 
-        private static Material Glazing(Shader standard, string name, Color tint)
+        internal static Material Glazing(Shader standard, string name, Color tint)
         {
             // Configure Standard's Fade variant on a raid-owned material.
             var material = new Material(standard) { name = name, color = tint, renderQueue = (int)RenderQueue.Transparent };

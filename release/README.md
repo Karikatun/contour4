@@ -1,4 +1,4 @@
-# «Контур‑4» 0.3.0 · ветка сложности рейда
+# «Контур‑4» 0.3.1 · ветка сложности рейда
 
 Для сборки распакуйте архив исходников и откройте PowerShell 7 в его корне. Используйте .NET SDK 10.0.404 и локальные зависимости из R.E.P.O. 0.5.2, BepInExPack 5.4.2305, REPOLib 4.5.1 и Contour4Valuables 0.2.4. Контрольные суммы зависимостей и ресурсов перечислены в release/input-lock.json.
 
@@ -17,10 +17,10 @@ $bundles = './release/bundles'
 $project = './prototype/ring/Plugin/Contour4.csproj'
 $revision = (Get-Content ./release/input-lock.json -Raw | ConvertFrom-Json).sourceRevisionId
 dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4" "-p:SourceRevisionId=$revision" "-p:DebugType=None"
-./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.3.0.zip
+./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.3.1.zip
 ~~~
 
-Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. `SourceRevisionId` воспроизводит метку базовой ревизии в метаданных обеих DLL при сборке из распакованного ZIP. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей.
+Перед сборкой сверьте хеш `REPOLib.dll` с `localReferences` в `release/input-lock.json`: игровая копия после перенаправления имеет тот же MVID, но другие байты и не подходит как исходная зависимость. Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. `SourceRevisionId` воспроизводит метку базовой ревизии в метаданных обеих DLL при сборке из распакованного ZIP. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей. Для 0.3.1 эта метка указывает на базовый коммит `0875c500cb22142d7ca654c35a4b11bab8dcf259`; изменения кандидата содержатся в ZIP исходников и не обозначают отдельный коммит.
 
 Для проверки новых маршрутов запустите `prototype/ring/Test-PreparedPackage.ps1 -MapPackage <архив карты> -Output <новый каталог> -ExtractionBridges`. Проверка загружает бандлы из указанного ZIP и собирает рейды на трёх seed при 1, 4, 5, 8, 9 и 14 пройденных уровнях. Она проверяет грузовой габарит и опору колёс в обоих направлениях, открытый провал и ориентацию подхода к штатной рампе.
 

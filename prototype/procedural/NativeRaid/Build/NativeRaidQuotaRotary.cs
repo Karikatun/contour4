@@ -8,82 +8,32 @@ internal sealed class NativeRaidQuotaRotary : MonoBehaviour
 {
     private RaidQuotaRotaryCabin cabin;
     private NativeRaidGravity gravity;
-    private Transform nearRecall, farRecall;
-    private Light indicator;
+    private NativeRaidRotaryControls controls;
 
     internal static void Install(RaidAssembly raid, BakedRoom room)
     {
         var ground = room.Root.Find("ground").GetComponent<Renderer>();
         var bulkhead = room.Root.Find("near-rupture-left").GetComponent<Renderer>();
+        float degrees = RaidQuotaRotaryRoom.TurnDegrees(raid.Plan.Seed);
         var cabin = RaidQuotaRotaryCabin.Create(room.Root, RaidQuotaRotaryRoom.Center, RaidQuotaRotaryRoom.NearRotation,
-            RaidQuotaRotaryRoom.FarField, ground.gameObject.layer, ground.sharedMaterial, bulkhead.sharedMaterial, bulkhead.sharedMaterial);
-        var controls = cabin.gameObject.AddComponent<NativeRaidQuotaRotary>();
-        controls.cabin = cabin;
-        controls.gravity = raid.GetComponent<NativeRaidGravity>();
-        controls.gravity.BindRotaryCabin(cabin);
-        controls.InstallPanel();
-        controls.nearRecall = controls.InstallRecallSwitch(false, bulkhead.sharedMaterial, ground.gameObject.layer);
-        controls.farRecall = controls.InstallRecallSwitch(true, bulkhead.sharedMaterial, ground.gameObject.layer);
-        AddLamp(room.Root, "Near docking work light", new Vector3(3.7f, 3.7f, .7f), 8.5f, 1.45f,
+            RaidQuotaRotaryRoom.FarField, ground.gameObject.layer, ground.sharedMaterial, bulkhead.sharedMaterial, degrees);
+        var interaction = cabin.gameObject.AddComponent<NativeRaidQuotaRotary>();
+        interaction.cabin = cabin;
+        interaction.gravity = raid.GetComponent<NativeRaidGravity>();
+        interaction.gravity.BindRotaryCabin(cabin);
+        interaction.controls = NativeRaidRotaryControls.Create(cabin, bulkhead.sharedMaterial, ground.gameObject.layer);
+        AddLamp(room.Root, "Near docking work light", new Vector3(4.55f, 3.05f, 0), 6.5f, 2.4f,
             new Color(1f, .83f, .63f));
-        Pose far = RaidQuotaRotaryCabin.Doorway(RaidQuotaRotaryRoom.Center, RaidQuotaRotaryRoom.NearRotation, true);
-        AddLamp(room.Root, "Far landing work light", far.position + far.rotation * new Vector3(1.8f, 3.8f, 5.2f),
-            11f, 1.7f, new Color(.73f, .88f, 1f));
+        AddLamp(cabin.Rotor, "Cabin work light", new Vector3(0, 1.4f, 1.5f), 4.5f, .9f,
+            new Color(.78f, .87f, 1f));
+        Transform far = cabin.DockFrame(true);
+        AddLamp(far, "Far landing work light", new Vector3(1.8f, 3.8f, 5.2f),
+            8f, 1.65f, new Color(.73f, .88f, 1f));
+        // Light the whole stock loading face, including the display and the ramp.
+        Light quota = AddLamp(far, "Quota loading work light", new Vector3(0, 2.20f, 6.45f),
+            7.5f, 3.7f, new Color(1f, .86f, .68f));
+        quota.renderMode = LightRenderMode.ForcePixel;
         Physics.SyncTransforms();
-    }
-
-    private void InstallPanel()
-    {
-        // The recessed panel sits at the middle of the cabin, clear of the freight path.
-        Transform labelNode = RaidAssembly.Child(cabin.Rotor, "Transfer label");
-        labelNode.localPosition = cabin.Button.localPosition + new Vector3(-.11f, .15f, 0);
-        labelNode.localRotation = Quaternion.LookRotation(Vector3.right, Vector3.up);
-        AddLabel(labelNode, "ПОВОРОТ");
-        indicator = AddLamp(cabin.Rotor, "Transfer status", cabin.Button.localPosition + new Vector3(-.36f, -.10f, 0),
-            1.7f, .65f, Color.green);
-    }
-
-    private Transform InstallRecallSwitch(bool far, Material material, int layer)
-    {
-        Transform dock = cabin.DockFrame(far);
-        var button = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        button.name = far ? "Far recall switch" : "Near recall switch";
-        button.layer = layer;
-        button.GetComponent<BoxCollider>().enabled = false;
-        button.GetComponent<Renderer>().sharedMaterial = material;
-        Transform panel = button.transform;
-        panel.SetParent(cabin.transform, false);
-        Vector3 position = dock.TransformPoint(far ? new Vector3(2.55f, 1.23f, 3.25f) : new Vector3(1.72f, 1.23f, -1.55f));
-        Quaternion rotation = Quaternion.LookRotation(dock.right, dock.up);
-        panel.SetPositionAndRotation(position, rotation);
-        panel.localScale = new Vector3(.58f, .50f, .16f);
-
-        var bracket = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        bracket.name = "Recall switch pedestal";
-        bracket.GetComponent<BoxCollider>().enabled = false;
-        bracket.GetComponent<Renderer>().sharedMaterial = material;
-        bracket.transform.SetParent(cabin.transform, false);
-        bracket.transform.SetPositionAndRotation(position - dock.up * .62f, rotation);
-        bracket.transform.localScale = new Vector3(.14f, 1.24f, .14f);
-
-        Transform label = RaidAssembly.Child(cabin.transform, "Recall label");
-        label.SetPositionAndRotation(position - panel.forward * .091f, rotation);
-        AddLabel(label, "ВЫЗОВ");
-        return panel;
-    }
-
-    private static void AddLabel(Transform labelNode, string text)
-    {
-        var label = labelNode.gameObject.AddComponent<TextMesh>();
-        label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        label.GetComponent<Renderer>().sharedMaterial = label.font.material;
-        label.text = text;
-        label.anchor = TextAnchor.MiddleCenter;
-        label.alignment = TextAlignment.Center;
-        label.characterSize = .055f;
-        label.fontSize = 64;
-        label.color = Color.white;
-
     }
 
     private static Light AddLamp(Transform parent, string name, Vector3 position, float range, float intensity, Color color)
@@ -100,7 +50,7 @@ internal sealed class NativeRaidQuotaRotary : MonoBehaviour
 
     private void Update()
     {
-        indicator.color = cabin.IsTurning ? new Color(1f, .43f, .12f) : new Color(.40f, .95f, .65f);
+        controls.SetTurning(cabin.IsTurning);
         var controller = PlayerController.instance;
         if (cabin.IsTurning || !controller || !controller.rb ||
             !GameDirector.instance || GameDirector.instance.currentState != GameDirector.gameState.Main ||
@@ -108,9 +58,9 @@ internal sealed class NativeRaidQuotaRotary : MonoBehaviour
 
         Transform eye = CameraNoise.Instance.transform;
         Vector3 feet = controller.rb.position;
-        if (cabin.CanBoard(feet) && AimedAt(eye, cabin.Button)) gravity.RequestRotaryTrip(cabin);
-        else if (cabin.CanCall(false, feet) && AimedAt(eye, nearRecall, localSight: true)) gravity.RequestRotaryTrip(cabin, false);
-        else if (cabin.CanCall(true, feet) && AimedAt(eye, farRecall, localSight: true)) gravity.RequestRotaryTrip(cabin, true);
+        if (cabin.CanBoard(feet) && AimedAt(eye, controls.Transfer)) gravity.RequestRotaryTrip(cabin);
+        else if (cabin.CanCall(false, feet) && AimedAt(eye, controls.NearRecall, localSight: true)) gravity.RequestRotaryTrip(cabin, false);
+        else if (cabin.CanCall(true, feet) && AimedAt(eye, controls.FarRecall, localSight: true)) gravity.RequestRotaryTrip(cabin, true);
     }
 
     private static bool AimedAt(Transform eye, Transform button, bool localSight = false)
@@ -178,7 +128,7 @@ internal sealed partial class NativeRaidGravity
         if (!player || !TryRotaryUp(player.position, out Vector3 up)) return false;
         if (Vector3.Dot(up, Vector3.up) < .999999f)
         {
-            Quaternion rotation = Quaternion.FromToRotation(up, Vector3.up);
+            Quaternion rotation = rotaryCabin.LevelFrom(up);
             Vector3 velocity = player.linearVelocity;
             Vector3 spin = player.angularVelocity;
             Rebase(player, player.position, rotation);

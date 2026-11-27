@@ -614,6 +614,7 @@ namespace Contour4.NativeRaid.Editor
                             CheckHand(point, -forward, root.up);
                         }
                         bool bent = module.Id == RaidExtraction.BentBridgeId;
+                        CheckOpenApron(room, bent);
                         CheckTimber(room, bent);
                         Vector3 abyss = root.TransformPoint(new Vector3(7f, .1f, -3.85f));
                         Vector3 fallen = abyss - root.up * 6f;
@@ -652,6 +653,39 @@ namespace Contour4.NativeRaid.Editor
                 finally { Object.DestroyImmediate(stage); }
             }
             Debug.Log($"{Log} EXTRACTION BRIDGES PASSED");
+        }
+
+        private static void CheckOpenApron(BakedRoom room, bool bent)
+        {
+            Transform root = room.Root;
+            float lip = RaidExtractionBridge.GapStart;
+            CheckEdge(new Vector3(lip - .12f, 0, -1.2f), Vector3.right);
+            CheckEdge(new Vector3(lip - .12f, 0, 1.2f), Vector3.right);
+            if (bent) CheckEdge(new Vector3(1.5f, 0, 4.68f), Vector3.forward);
+
+            foreach (float z in new[] { -.18f, .18f })
+            {
+                Require(ProbeFloor(new Vector3(lip - .05f, 0, z), out var before) &&
+                    before.collider.name == "safe-entry-apron" &&
+                    ProbeFloor(new Vector3(lip + .08f, 0, z), out var after) &&
+                    after.collider.name.StartsWith(RaidExtractionBridge.TimberPrefix, StringComparison.Ordinal),
+                    "Both planks meet the preserved entrance deck.");
+            }
+
+            bool ProbeFloor(Vector3 point, out RaycastHit hit) =>
+                Physics.Raycast(root.TransformPoint(point) + root.up * .12f, -root.up,
+                    out hit, .32f, 1, QueryTriggerInteraction.Ignore);
+
+            void CheckEdge(Vector3 point, Vector3 outward)
+            {
+                Vector3 feet = root.TransformPoint(point);
+                Vector3 up = root.up;
+                Require(ProbeFloor(point, out var deck) && deck.collider.name == "safe-entry-apron" &&
+                    !Physics.CheckCapsule(feet + up * .25f, feet + up * 1.45f, .20f, 1, QueryTriggerInteraction.Ignore),
+                    "The entrance deck supports a player in the volume of the former parapet at " + point);
+                Require(!ProbeFloor(point + outward * .28f, out _),
+                    "The shaft starts beyond the open entrance edge at " + point);
+            }
         }
 
         private static void CheckTimber(BakedRoom room, bool bent)

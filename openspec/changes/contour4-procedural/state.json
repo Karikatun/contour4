@@ -27,6 +27,17 @@
       }
     ]
   },
+  "openAprons036": {
+    "mapZip": "../../../build/feature/final-036/Contour4-0.3.6.zip",
+    "sha256": "3A1D18BCF1853B607C8C1A07DED829007D07FC9611AD6E3CEE4BBB2B443E2622",
+    "observedCriteria": [
+      "AC-2153",
+      "AC-2152",
+      "AC-2143"
+    ],
+    "results": "implementation.md#открытые-входные-площадки-двух-мостов-036",
+    "nextAction": "Приёмка владельцем точной 0.3.6 в одиночном профиле."
+  },
   "plankRoutes035": {
     "mapZip": "../../../build/feature/final-035/Contour4-0.3.5.zip",
     "sha256": "D9E0B7BF2FBB9B38C68AC051E88414B280AFCFD04B373988C60339E7B9C9CCB4",

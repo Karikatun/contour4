@@ -626,6 +626,84 @@
           "sha256": "87d79e49049cb9715d48e3239180337d6957db3d6d771a3e96a170a6532a0d5e"
         }
       ]
+    },
+    {
+      "criterion": "AC-2153",
+      "status": "passed",
+      "subject": "e455d8ebff9ee18192612a16ed82502a3b75f0302a69a89cbfe79ff067b57e32",
+      "recordedAt": "2026-11-27T19:01:35.821Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "R.E.P.O. 0.5.2 в изолированной копии, seed −32 после 9 уровней. Одинаковые проходы сферой через пять бывших бортиков задели ровно пять ожидаемых коллайдеров в 0.3.5 D9E0B7BF и дали ноль столкновений в 0.3.6 3A1D18BC. На 0.3.6 лучи нашли пол до края, открытый провал за краем и непрерывный вход на доски, укрытие загрузилось.",
+      "files": [
+        {
+          "path": "build/evidence/open-aprons-036/current-036/bridge-journey.ndjson",
+          "sha256": "1bcf494314fc9a6e7cd7b1d42d0c0ce05ba0f3e61fe6b7fa6a8e0002c046f3c3"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/current-036/launch.json",
+          "sha256": "d5b90eb1a58c79422c4ddb80b0b413f063c66c3613145db90a7a4ac0f93cd58a"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/current-036/run.json",
+          "sha256": "9345a4f533be9c72f34754021d45616738057269bc8dfabf394f6fcb030f9e1d"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/baseline-035/bridge-journey.ndjson",
+          "sha256": "b230ea3028290ad98cef43574774db24dc5e6926eebc0f8f846c12b326767059"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/baseline-035/launch.json",
+          "sha256": "2138b305141c5a1e8fb05e9b95b3a703020b109805e1798066e8a60f47450ec2"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/baseline-035/run.json",
+          "sha256": "45902145bd616822e0cd48f44abd443af8514aa9fdca209a909d5be5df409986"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/aprons-before-after.png",
+          "sha256": "79dcb7ef5d3bab11e549039a3d63c683bb27dd75faaa8c5f0403314a3f50fe46"
+        },
+        {
+          "path": "build/evidence/open-aprons-036/open-entry-aprons.png",
+          "sha256": "75dc008fdb4cb8c0e1bca1f70e7bc0674dd04946aaaca5d83021766129dd1775"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2152",
+      "status": "passed",
+      "subject": "e455d8ebff9ee18192612a16ed82502a3b75f0302a69a89cbfe79ff067b57e32",
+      "recordedAt": "2026-11-27T19:01:35.836Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "Test-PreparedPackage.ps1 -ExtractionBridges на ZIP 0.3.6 3A1D18BC. Unity 6000.3.17f1 проверила 18 раскладок на трёх seed и стадиях 1/4/5/8/9/14. У бывших бортиков есть опора до края, за краем открыт провал. Проверены обе доски, поворот и Tab. Код выхода 0.",
+      "files": [
+        {
+          "path": "build/evidence/open-aprons-036/unity-prepared-package.log",
+          "sha256": "8da67702608df3f4af44b098d69771356b9a1fbc9d3f0c4987e6ffbf0994ea94"
+        },
+        {
+          "path": "build/feature/final-036/package-pair.json",
+          "sha256": "e3383fd04f55f930ba06093e2c23a6dcd32a0822b13dec6021e6c699fd39d6b8"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "e455d8ebff9ee18192612a16ed82502a3b75f0302a69a89cbfe79ff067b57e32",
+      "recordedAt": "2026-11-27T19:01:35.841Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "ZIP 0.3.6 3A1D18BC проверен в паре с Contour4Valuables 0.2.4. Чистая сборка из ZIP исходников F573A108 с закреплённым REPOLib совпала по всем девяти записям.",
+      "files": [
+        {
+          "path": "build/feature/final-036/cold-replay-result.json",
+          "sha256": "1612ff14d1a9f8e7ae2e1a05cf0b020c034b5bf2f67ed633ff9a9bbfd5196e61"
+        },
+        {
+          "path": "build/feature/final-036/package-pair.json",
+          "sha256": "e3383fd04f55f930ba06093e2c23a6dcd32a0822b13dec6021e6c699fd39d6b8"
+        }
+      ]
     }
   ]
 }

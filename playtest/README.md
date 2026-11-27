@@ -10,6 +10,16 @@
 
 Для карты с зависимостью `SpaceJourney-Contour4Valuables` скрипт берёт нужную версию из манифеста ZIP и проверяет пакет в `contour4-valuables/dist`. Другой путь к компаньону можно передать через `-ValuablesPackage`. Отсутствие или ошибка обязательного компаньона останавливает запуск до установки. Старые версии карты без этой зависимости запускаются по-прежнему.
 
+## Открытые входные площадки у мостов 0.3.6
+
+Запусти отдельный одиночный рейс с картой [Контур-4 0.3.6](../build/feature/final-036/Contour4-0.3.6.zip).
+
+~~~powershell
+./playtest/Launch-OwnerPlay.ps1 -NaturalRun -MapPackage './build/feature/final-036/Contour4-0.3.6.zip' -ExpectedSha256 '3A1D18BCF1853B607C8C1A07DED829007D07FC9611AD6E3CEE4BBB2B443E2622' -ValuablesPackage '../../contour4-valuables/dist/Contour4Valuables-0.2.4.zip'
+~~~
+
+В конфигурации изолированной копии задай `Seed = -32` и `Rotary Quota Prototype = false`. После девяти пройденных уровней осмотри входные площадки обоих мостов. Край перед шахтой открыт по обе стороны досок, а у ломаного моста открыт и боковой край. [Сравнение и журнал коллизий](../build/evidence/open-aprons-036/REPORT.md)
+
 ## Два ряда досок у дополнительных квот 0.3.5
 
 Запусти отдельный одиночный рейс с картой [Контур-4 0.3.5](../build/feature/final-035/Contour4-0.3.5.zip).

@@ -12,7 +12,6 @@ namespace Contour4.Procedural.Catalog
         private const float PlankWidth = .40f;
         private const int PlankRows = 2;
         private const float BridgeHalfWidth = PlankWidth * PlankRows / 2;
-        private const float ApronOpeningHalfWidth = .55f;
         internal const float BentLanding = 6.15f;
         internal const float BentAxis = 10.8f;
         internal const float NearWall = -6f;
@@ -42,10 +41,6 @@ namespace Contour4.Procedural.Catalog
 
             chamber.Deck("safe-entry-apron", 0, GapStart, 0, NearWall, apronFar);
             chamber.Box("cart-cover", BlockRole.Obstacle, 3.0f, 3.45f, 0, 2.45f, 2.55f, 4.50f);
-            chamber.Box("apron-shaft-guard", BlockRole.Shell, GapStart - .23f, GapStart, 0, .88f, NearWall, -ApronOpeningHalfWidth);
-            chamber.Box("apron-return-guard", BlockRole.Shell, GapStart - .23f, GapStart, 0, .88f, ApronOpeningHalfWidth, apronFar);
-            if (bent)
-                chamber.Box("entry-pit-side-guard", BlockRole.Shell, 0, GapStart, 0, .88f, apronFar - .23f, apronFar);
 
             var staging = Pose(2.4f, 0, 0);
             chamber.Module.Landmarks.Add(CartStaging, staging.Position);

@@ -10,6 +10,7 @@ public static class BuildRoomPrefabs
 {
     private const string BundleName = "contour4-rooms.bundle";
     private const string PreparedBundleName = "contour4-prepared-modules.bundle";
+    private const string TrenchBundleName = "contour4-maintenance-trench.bundle";
     private static readonly string[] Rooms =
     {
         "Assets/Contour4/Rooms/sample-receiving.prefab",
@@ -56,16 +57,29 @@ public static class BuildRoomPrefabs
         if (ids.Length == 0 || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
             throw new InvalidOperationException("Expected a nonempty catalog of distinct prepared modules.");
         string[] roots = ids.Select(id => $"Assets/Contour4/PreparedModules/{id}/{id}").ToArray();
-        var paths = roots.SelectMany(root => new[] { root + ".prefab", root + "-loot.json", root + "-catalog.json" }).ToArray();
         var authored = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Contour4/PreparedModules" })
             .Select(AssetDatabase.GUIDToAssetPath);
         if (!new HashSet<string>(roots.Select(root => root + ".prefab"), StringComparer.Ordinal).SetEquals(authored))
             throw new InvalidOperationException("The prepared prefab inventory differs from the catalog.");
+        BuildPreparedRooms(PreparedBundleName, roots);
+        Debug.Log($"CONTOUR4 PREPARED MODULES BUNDLE PASSED: {roots.Length} prefabs with both authored sidecars and dependencies.");
+    }
+
+    public static void BuildMaintenanceTrench()
+    {
+        string id = MaintenanceTrench.Id;
+        BuildPreparedRooms(TrenchBundleName, new[] { $"Assets/Contour4/PreparedModules/{id}/{id}" });
+        Debug.Log("CONTOUR4 MAINTENANCE TRENCH BUNDLE PASSED: trench prefab with both authored sidecars and dependencies.");
+    }
+
+    private static void BuildPreparedRooms(string bundleName, string[] roots)
+    {
+        var paths = roots.SelectMany(root => new[] { root + ".prefab", root + "-loot.json", root + "-catalog.json" }).ToArray();
         foreach (string path in paths)
             if (!AssetDatabase.LoadMainAssetAtPath(path))
                 throw new InvalidOperationException($"Missing authored prepared asset {path}.");
 
-        var bundle = BuildAndOpen(PreparedBundleName, paths);
+        var bundle = BuildAndOpen(bundleName, paths);
         try
         {
             foreach (string root in roots)
@@ -80,7 +94,6 @@ public static class BuildRoomPrefabs
             }
         }
         finally { bundle.Unload(true); }
-        Debug.Log($"CONTOUR4 PREPARED MODULES BUNDLE PASSED: {roots.Length} prefabs with both authored sidecars and dependencies.");
     }
 
     private static AssetBundle BuildAndOpen(string name, string[] paths)

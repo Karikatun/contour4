@@ -29,6 +29,8 @@ internal sealed class NativeRaidFeature : IDisposable
     private Level stockManor;
     private readonly ConfigEntry<string> configuredSeed;
     private readonly ConfigEntry<bool> rotaryQuota;
+    private readonly ConfigEntry<TrenchShutterMode> trenchShutter;
+    private readonly ConfigEntry<bool> trenchReplayLoot;
     private readonly ManualLogSource logger;
     private readonly Harmony harmony;
     private readonly string additionalSoloLevel;
@@ -46,6 +48,10 @@ internal sealed class NativeRaidFeature : IDisposable
         configuredSeed = config.Bind("Raid", "Seed", "", "A signed 32-bit seed. Blank generates a new seed for each solo raid.");
         rotaryQuota = config.Bind("Raid", "Rotary Quota Prototype", false,
             "Try the rotating transfer chamber in the first additional extraction of a solo raid.");
+        trenchShutter = config.Bind("Raid", "TrenchShutter", TrenchShutterMode.Campaign,
+            "Campaign fixes the raised shutter through eight completed levels and enables it from nine. FixedOpen and Working override only the shutter.");
+        trenchReplayLoot = config.Bind("Raid", "TrenchReplayLoot", false,
+            "Use two identical native $600 goblets at the two trench sample sites for paired solo runs. Reuse the same Raid Seed and save progression for both runs.");
         harmony = new Harmony(patchOwner);
     }
 
@@ -201,7 +207,7 @@ internal sealed class NativeRaidFeature : IDisposable
             if (!generator || !IsThisLevel(generator.Level) || GameManager.Multiplayer()) return;
             var entry = __instance.GetComponent<NativeRaidModule>();
             if (entry) entry.Place(__instance, instance.RaidSeed, instance.stockManor, instance.prepareCatalog,
-                instance.prefabBranch?.Invoke(), instance.roomPrefabs, instance.rotaryQuota.Value);
+                instance.prefabBranch?.Invoke(), instance.roomPrefabs, instance.rotaryQuota.Value, instance.trenchShutter.Value, instance.trenchReplayLoot.Value);
         }
     }
 

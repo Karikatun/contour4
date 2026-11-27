@@ -60,7 +60,7 @@ function Get-MethodOperands($Assembly, [string] $Type, [string] $Name) {
     $methods[0].Body.Instructions | ForEach-Object { $_.Operand }
 }
 
-function Test-MainPlugin([string] $Path, [string] $Version) {
+function Test-MainPlugin([string] $Path, [string] $Version, [bool] $HasTrenchBundle) {
     Add-Type -Path (Join-Path $BepInExCore 'Mono.Cecil.dll')
     $archive = [IO.Compression.ZipFile]::OpenRead($Path)
     $resolver = [Mono.Cecil.DefaultAssemblyResolver]::new()
@@ -162,6 +162,9 @@ function Test-MainPlugin([string] $Path, [string] $Version) {
                 $expectedCalls.Add('mobiusTakeoffForce', @($ribbonJump, 'UnityEngine.Rigidbody', 'AddForce'))
             }
             if ($awake -cnotcontains 'contour4-prepared-modules.bundle') { throw 'Plugin does not open the packed prepared bundle path.' }
+            if (($awake -ccontains 'contour4-maintenance-trench.bundle') -ne $HasTrenchBundle) {
+                throw 'Plugin and package disagree about the maintenance trench bundle.'
+            }
             $preparedBindings = [ordered]@{}
             foreach ($binding in $expectedCalls.GetEnumerator()) {
                 $operands, $type, $method = $binding.Value
@@ -201,11 +204,14 @@ if ($map.Metadata.version_number -ne '0.2.11') {
 }
 if ($map.Metadata.version_number -in '0.2.19','0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36','0.2.37','0.2.38','0.2.39','0.2.40','0.2.41','0.2.42','0.2.43','0.2.44','0.2.45','0.2.46','0.2.47','0.2.48','0.2.49','0.2.50','0.2.51','0.2.52','0.2.53','0.3.0','0.3.1','0.3.2','0.3.3','0.3.4','0.3.5','0.3.6','0.3.7','0.3.8','0.3.9') { $mapEntries += 'plugins/Contour4/contour4-rooms.bundle' }
 if ($map.Metadata.version_number -in '0.2.20','0.2.21','0.2.22','0.2.23','0.2.24','0.2.25','0.2.26','0.2.27','0.2.28','0.2.29','0.2.30','0.2.31','0.2.32','0.2.33','0.2.34','0.2.35','0.2.36','0.2.37','0.2.38','0.2.39','0.2.40','0.2.41','0.2.42','0.2.43','0.2.44','0.2.45','0.2.46','0.2.47','0.2.48','0.2.49','0.2.50','0.2.51','0.2.52','0.2.53','0.3.0','0.3.1','0.3.2','0.3.3','0.3.4','0.3.5','0.3.6','0.3.7','0.3.8','0.3.9') { $mapEntries += 'plugins/Contour4/contour4-prepared-modules.bundle' }
+$trenchEntry = 'plugins/Contour4/contour4-maintenance-trench.bundle'
+$hasTrenchBundle = $map.Metadata.version_number -eq '0.3.9' -and $map.Entries.Contains($trenchEntry)
+if ($hasTrenchBundle) { $mapEntries += $trenchEntry }
 Require-ExactSet $map.Entries.Keys $mapEntries 'map archive entries'
 Require-ExactSet $valuables.Entries.Keys ($rootEntries + 'plugins/Contour4Valuables/Contour4Valuables.dll',
     'plugins/Contour4Valuables/contour4-valuables.bundle') 'valuables archive entries'
 if ($map.Metadata.version_number -ne '0.2.11') {
-    $mainPlugin = Test-MainPlugin $map.Path $map.Metadata.version_number
+    $mainPlugin = Test-MainPlugin $map.Path $map.Metadata.version_number $hasTrenchBundle
 }
 [ordered]@{ check='package-pair-metadata-and-entry-hashes'; passed=$true; map=$map; valuables=$valuables; plugin=$mainPlugin } |
     ConvertTo-Json -Depth 5

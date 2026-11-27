@@ -11,6 +11,8 @@ namespace Contour4.NativeRaid.Editor
     public static class HazardFurnitureChecks
     {
         private const float Step = .02f;
+        internal const int ReplaySeed = -31;
+        internal const int ReplayProgress = 5;
 
         public static void Run()
         {
@@ -25,8 +27,8 @@ namespace Contour4.NativeRaid.Editor
                 {
                     var raid = owner.AddComponent<RaidAssembly>();
                     raid.Place(42, new Pose(Vector3.zero, Quaternion.identity), 0, 0, catalogSites: true, completedLevels: 7);
-                    var runtime = RaidRoomInteractions.Attach(raid);
-                    Expect(ReferenceEquals(runtime, RaidRoomInteractions.Attach(raid)), "Duplicate installation");
+                    var runtime = RaidRoomInteractions.Attach(raid, TrenchShutterMode.Working);
+                    Expect(ReferenceEquals(runtime, RaidRoomInteractions.Attach(raid, TrenchShutterMode.Working)), "Duplicate installation");
                     var trench = raid.Rooms.Single(room => room.Plan.Module.Id == MaintenanceTrench.Id);
                     Expect(raid.Plan.Freight.Any(link => link.To.Room == trench.Plan), "No native freight connection to the selected trench");
                     var lab = raid.Rooms.FirstOrDefault(room => room.Plan.Module.Id == "observation-lab-broken-floor");
@@ -35,7 +37,7 @@ namespace Contour4.NativeRaid.Editor
                             lab.Root.TransformPoint(new Vector3(10.275f, -1.6f, 0))), "Selected broken lab shaft has no death volume");
                     Physics.SyncTransforms();
                     CheckCabinets(raid, runtime, trench);
-                    CheckShutter(runtime, trench);
+                    CheckShutter(runtime, trench, TrenchShutterMode.Working);
                     CheckTrench(runtime, trench);
                     Debug.Log($"CONTOUR4 HAZARD FURNITURE PASS seed={raid.Plan.Seed} level={raid.Plan.CompletedLevels + 1}");
                 }
@@ -46,6 +48,55 @@ namespace Contour4.NativeRaid.Editor
                 Physics.gravity = previousGravity;
                 Physics.simulationMode = previousSimulation;
             }
+        }
+
+        internal static void CheckTrenchReplay(RaidRoomPrefabs prefabs)
+        {
+            var entrance = new Pose(new Vector3(40, 0, -20), Quaternion.Euler(0, 90, 0));
+            for (int progress = 0; progress <= 14; progress++)
+            {
+                var expected = progress < 9 ? TrenchShutterMode.FixedOpen : TrenchShutterMode.Working;
+                Expect(RaidRoomInteractions.ResolveTrenchShutter(TrenchShutterMode.Campaign, progress) == expected &&
+                    RaidRoomInteractions.ResolveTrenchShutter(TrenchShutterMode.FixedOpen, progress) == TrenchShutterMode.FixedOpen &&
+                    RaidRoomInteractions.ResolveTrenchShutter(TrenchShutterMode.Working, progress) == TrenchShutterMode.Working,
+                    $"Wrong campaign or explicit shutter mode at {progress} completed levels.");
+            }
+
+            string[] reference = null;
+            foreach (var mode in new[] { TrenchShutterMode.FixedOpen, TrenchShutterMode.Working })
+            {
+                var owner = new GameObject("Prepared trench paired replay");
+                try
+                {
+                    var raid = owner.AddComponent<RaidAssembly>();
+                    raid.Place(ReplaySeed, entrance, 0, 0, catalogSites: true, completedLevels: ReplayProgress, roomPrefabs: prefabs);
+                    var interactions = RaidRoomInteractions.Attach(raid, mode);
+                    var trench = raid.Rooms.Single(room => room.Plan.Module.Id == MaintenanceTrench.Id);
+                    Expect(trench.Prepared, "Replay check must instantiate the packaged trench prefab.");
+                    var slots = RaidLootSites.Find(raid);
+                    var samples = TrenchReplayLoot.Select(slots);
+                    string Frame(Pose pose) => $"{pose.position:F5}:{pose.rotation:F5}";
+                    string Dock(RaidPlan.End end) => $"{end.Room.Index}/{end.Dock.Id}";
+                    string Slot(RaidLootSlot slot) => $"{slot.Room.Plan.Index}/{slot.Support.name}/{slot.Size}/{Frame(slot.Pose)}";
+                    var signature = raid.Plan.Rooms.Select(room => $"{room.Index}/{room.Module.Id}/{Frame(room.Frame)}")
+                        .Concat(raid.Plan.Freight.Select(edge => $"freight/{Dock(edge.From)}/{Dock(edge.To)}"))
+                        .Concat(raid.Plan.HandPassages.Select(edge => $"hand/{Dock(edge.From)}/{Dock(edge.To)}"))
+                        .Concat(raid.Plan.Portals.Select(edge => $"portal/{Dock(edge.A)}/{Dock(edge.B)}"))
+                        .Concat(trench.Plan.Module.Routes.Select(route => route.Id + ":" +
+                            string.Join("/", route.Samples(.14f).Select(pose => pose.Position))))
+                        .Concat(slots.Select(Slot)).Concat(samples.Select(slot =>
+                            $"{TrenchReplayLoot.Prefab}/${TrenchReplayLoot.Dollars}/{Slot(slot)}")).ToArray();
+                    if (reference == null) reference = signature;
+                    else Expect(reference.SequenceEqual(signature), "The shutter override changed the raid geometry, routes or replay loot.");
+                    TrenchVisibilityChecks.Verify(trench, samples, mode);
+                    CheckShutter(interactions, trench, mode);
+                    Debug.Log($"CONTOUR4 TRENCH REPLAY seed={raid.Plan.Seed} completed={raid.Plan.CompletedLevels} mode={mode}: " +
+                        $"{raid.Plan.Rooms.Count} rooms, {trench.Plan.Module.Routes.Count} trench routes, {slots.Count} eligible slots; " +
+                        $"replay manifest for {TrenchReplayLoot.Prefab} ${TrenchReplayLoot.Dollars} each at " + string.Join("; ", samples.Select(Slot)));
+                }
+                finally { Object.DestroyImmediate(owner); }
+            }
+            Debug.Log("CONTOUR4 TRENCH REPLAY PASSED: prepared geometry, routes, candidate and fixed sample manifests match across the two modes.");
         }
 
         private static void CheckCabinets(RaidAssembly raid, RaidRoomInteractions runtime, BakedRoom trench)
@@ -265,32 +316,80 @@ namespace Contour4.NativeRaid.Editor
             Debug.Log($"CONTOUR4 CABINET RIGS {doors} hinges and {drawers} slides pulled open and shut in PhysX");
         }
 
-        private static void CheckShutter(RaidRoomInteractions runtime, BakedRoom trench)
+        private static void CheckShutter(RaidRoomInteractions runtime, BakedRoom trench, TrenchShutterMode mode)
         {
             var root = trench.Root;
-            var gate = root.Find(MaintenanceTrench.Gate).GetComponent<BoxCollider>();
-            var indicators = root.GetComponentsInChildren<Renderer>().Where(renderer => renderer.name == "Shutter status").ToArray();
+            var gate = trench.Prepared ? trench.CollidersById[MaintenanceTrench.Gate] :
+                root.Find(MaintenanceTrench.Gate).GetComponent<Collider>();
+            var indicators = root.GetComponentsInChildren<Renderer>().Where(renderer => renderer.name == "Shutter status")
+                .OrderBy(renderer => renderer.transform.localPosition.x).ToArray();
             var shutter = runtime.Shutters.Single();
-            Vector3 approach = root.TransformPoint(new Vector3(12.07f, 0, MaintenanceTrench.BridgeZ));
-            Vector3 clear = root.TransformPoint(new Vector3(5, 0, 0));
+            var speaker = root.GetComponentInChildren<AudioSource>();
+            Vector3 OnLane(float x) => root.TransformPoint(new Vector3(x, 0, MaintenanceTrench.BridgeZ));
+            Vector3 clear = OnLane(MaintenanceTrench.PitStart - .40f);
             Vector3 under = root.TransformPoint(new Vector3(MaintenanceTrench.GateX, 0, MaintenanceTrench.BridgeZ));
             var crossing = new Ray(root.TransformPoint(new Vector3(11.8f, 1, MaintenanceTrench.BridgeZ)), root.right);
+            Physics.SyncTransforms();
             Expect(!gate.Raycast(crossing, out _, 3) && indicators.Length == 2, "Shutter must start open with two approach indicators");
-            runtime.Advance(approach, 1.9f, Step, 0);
-            Expect(shutter.State == InspectionShutter.Stage.Warning &&
-                indicators.All(renderer => renderer.sharedMaterial.color.r > .9f && renderer.sharedMaterial.color.g > .55f),
-                "Shutter failed to warn visibly on both approaches");
-            for (int i = 0; i < 60; i++)
-                Expect(!runtime.Advance(clear, 1.9f, Step, 0), "Shutter hurt player before warning ended");
-            Expect(shutter.State == InspectionShutter.Stage.Warning, "Shutter shortened its warning below 1.2 seconds");
-            for (int i = 0; i < 65; i++) runtime.Advance(clear, 1.9f, Step, 0);
-            Physics.SyncTransforms();
-            Expect(shutter.State == InspectionShutter.Stage.Closed && gate.Raycast(crossing, out _, 3) &&
-                !gate.Raycast(new Ray(root.TransformPoint(new Vector3(11.8f, 1, 0)), root.right), out _, 3),
-                "Closed shutter failed to block the short route or blocked freight bypass");
-            for (int i = 0; i < 155; i++) runtime.Advance(clear, 1.9f, Step, 0);
-            Physics.SyncTransforms();
-            Expect(shutter.State == InspectionShutter.Stage.Armed && !gate.Raycast(crossing, out _, 3), "Shutter failed to reopen and re-arm");
+
+            float[] waits = { MaintenanceTrench.WestWait, MaintenanceTrench.EastWait };
+            for (int side = 0; side < waits.Length; side++)
+            {
+                Vector3 feet = OnLane(waits[side]);
+                Vector3 eye = feet + root.up * 1.60f;
+                var lamp = indicators[side].transform.position;
+                Expect(Physics.Raycast(feet + root.up * .20f, -root.up, out var landing, .28f, 1, QueryTriggerInteraction.Ignore) &&
+                    trench.Floors.Any(floor => floor.Support.Contains(landing.collider)), $"Wait {side} lost its supported landing.");
+                Expect(!Physics.Linecast(eye, lamp, 1, QueryTriggerInteraction.Ignore), $"Waiting point {side} cannot see its lamp.");
+                if (mode == TrenchShutterMode.FixedOpen) continue;
+
+                Expect(speaker && !speaker.playOnAwake && speaker.spatialBlend == 1 && speaker.volume > 0 &&
+                    Vector3.Distance(eye, speaker.transform.position) < speaker.minDistance,
+                    $"Approach {side} is outside the warning speaker's full-volume range.");
+                var wave = new float[speaker.clip.samples];
+                Expect(speaker.clip.GetData(wave, 0) && wave.Max() > .45f && wave.Min() < -.45f && speaker.clip.length < 1.20f,
+                    "Shutter warning clip is silent or overlaps movement.");
+                Expect(!runtime.Advance(feet, 1.9f, Step, 0) && shutter.State == InspectionShutter.Stage.Warning &&
+                    shutter.WarningCues == side + 1 && indicators.All(renderer => renderer.sharedMaterial.color.r > .9f &&
+                        renderer.sharedMaterial.color.g > .55f), $"Approach {side} did not trigger the warning and both lamps.");
+                Vector3 raised = gate.transform.position;
+                for (int i = 0; i < 60; i++)
+                    Expect(!runtime.Advance(feet, 1.9f, Step, 0), "Shutter hurt player before warning ended");
+                Expect(shutter.State == InspectionShutter.Stage.Warning && gate.transform.position == raised && shutter.WarningCues == side + 1,
+                    "Shutter moved during warning or shortened it below 1.2 seconds.");
+                for (int i = 0; i < 65; i++)
+                    Expect(!runtime.Advance(feet, 1.9f, Step, 0), $"The descending shutter hit waiting point {side}.");
+                Physics.SyncTransforms();
+                Expect(shutter.State == InspectionShutter.Stage.Closed && gate.Raycast(crossing, out _, 3) &&
+                    !gate.Raycast(new Ray(root.TransformPoint(new Vector3(11.8f, 1, 3.75f)), root.right), out _, 3),
+                    "Closed shutter failed to block the short route or blocked freight bypass.");
+                for (int i = 0; i < 155; i++)
+                    Expect(!runtime.Advance(feet, 1.9f, Step, 0), $"The opening shutter hit waiting point {side}.");
+                Physics.SyncTransforms();
+                Expect(shutter.State == InspectionShutter.Stage.Rearming && !gate.Raycast(crossing, out _, 3) &&
+                    indicators.All(renderer => renderer.sharedMaterial.color == InspectionShutter.ReadyColor),
+                    "Shutter did not provide an open, green window for a waiting player.");
+                runtime.Advance(clear, 1.9f, Step, 0);
+                Expect(shutter.State == InspectionShutter.Stage.Armed, "Shutter failed to re-arm after leaving the approach.");
+                Debug.Log($"CONTOUR4 SHUTTER Working approach={(side == 0 ? "west" : "east")}: supported waiting pad, visible lamp, " +
+                    $"warning #{shutter.WarningCues} in range, no travel for 1.2 s, closed hand lane and open bypass, reopened without contact.");
+            }
+
+            if (mode == TrenchShutterMode.FixedOpen)
+            {
+                Vector3 raised = gate.transform.position;
+                foreach (float wait in waits.Concat(new[] { MaintenanceTrench.GateX }))
+                    for (int i = 0; i < 280; i++)
+                        Expect(!runtime.Advance(OnLane(wait), 1.9f, Step, 0), "Fixed shutter contacted the player.");
+                Expect(shutter.State == InspectionShutter.Stage.FixedOpen && gate.transform.position == raised &&
+                    !gate.Raycast(crossing, out _, 3) && !speaker && shutter.WarningCues == 0 &&
+                    indicators.All(renderer => renderer.sharedMaterial.color == InspectionShutter.LockedColor) &&
+                    root.GetComponentsInChildren<Renderer>().Count(renderer => renderer.name == "Shutter retaining bar") == 2,
+                    "Fixed open shutter moved, played a cue or lost its retaining bars or static lamps.");
+                Debug.Log("CONTOUR4 SHUTTER FixedOpen: supported waiting pads, visible blue lamps, two retaining bars, no motion, cue or contact.");
+                return;
+            }
+
             int strikes = 0;
             for (int i = 0; i < 185; i++) if (runtime.Advance(under, 1.9f, Step, 0)) strikes++;
             Expect(strikes == 1 && shutter.State == InspectionShutter.Stage.Rearming, "Shutter did not strike once and reopen for an occupied passage");
@@ -307,7 +406,7 @@ namespace Contour4.NativeRaid.Editor
                 Physics.gravity = -root.up * 9.81f;
                 Physics.SyncTransforms();
                 VerifyCrossing(MaintenanceTrench.BridgeZ, new Vector3(.48f, .7f, .72f));
-                VerifyCrossing(0, new Vector3(2.6f, 2.05f, 1.8f));
+                VerifyCrossing(3.75f, new Vector3(2.6f, 2.05f, 1.8f));
                 VerifyFall(-6.1f);
                 VerifyFall(-3.45f);
                 Debug.Log($"CONTOUR4 TRENCH PhysX sideways={sideways}: flush plank with hand cargo, broad bypass with loaded cart envelope, both actual falls reached death volume");

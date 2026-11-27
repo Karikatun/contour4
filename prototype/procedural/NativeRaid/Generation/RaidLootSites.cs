@@ -185,7 +185,9 @@ namespace Contour4.NativeRaid.Runtime
                     (10.82f, 6.51f, RaidLootSize.Tall), (12.95f, -2.66f, RaidLootSize.VeryTall) },
                 MaintenanceTrench.Id => new[] {
                     (2.0f, 5.70f, RaidLootSize.Wide), (6.48f, 5.78f, RaidLootSize.Tall),
-                    (13.45f, 5.68f, RaidLootSize.VeryTall) },
+                    (13.45f, 5.68f, RaidLootSize.VeryTall),
+                    (MaintenanceTrench.SampleSite.X, MaintenanceTrench.SampleSite.Z, RaidLootSize.Small),
+                    (MaintenanceTrench.SampleReserveSite.X, MaintenanceTrench.SampleReserveSite.Z, RaidLootSize.Small) },
                 "shaft-plant" => new[] { (17.65f, -.37f, RaidLootSize.Small) },
                 _ => Array.Empty<(float, float, RaidLootSize)>(),
             };
@@ -195,7 +197,9 @@ namespace Contour4.NativeRaid.Runtime
                 Vector3 size = Envelope(category);
                 Vector3 bottom = new(x, elevation + .008f, z);
                 float wallSide = id == "shaft-plant" ? 1 : Mathf.Sign(z);
-                var rotation = Quaternion.LookRotation(Vector3.forward * wallSide, Vector3.up);
+                Vector3 forward = id == MaintenanceTrench.Id && category == RaidLootSize.Small
+                    ? Vector3.right : Vector3.forward * wallSide;
+                var rotation = Quaternion.LookRotation(forward, Vector3.up);
                 var bounds = new Bounds(bottom + Vector3.up * (size.y * .5f), size);
                 if (!HasClearance(room, bounds.center, size, rotation) ||
                     result.Any(slot => slot.LocalBounds.Intersects(bounds)) || routes.Any(bounds.Intersects))

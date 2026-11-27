@@ -20,7 +20,8 @@ namespace SpaceJourney
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
-                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
+                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"),
+                trenchPath: Environment.GetEnvironmentVariable("CONTOUR4_TRENCH_BUNDLE"));
             var prefabs = bundle.Prefabs;
             Verify(0, 0, prefabs, false);
 

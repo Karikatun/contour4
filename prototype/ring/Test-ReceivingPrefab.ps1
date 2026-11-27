@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory, ParameterSetName='Archive')] [string] $MapPackage,
     [Parameter(Mandatory, ParameterSetName='Bundle')] [string] $RoomsBundle,
     [Parameter(ParameterSetName='Bundle')] [string] $PreparedModulesBundle,
+    [Parameter(ParameterSetName='Bundle')] [string] $TrenchBundle,
     [Parameter(Mandatory)] [string] $Output,
     [string] $Unity = 'C:/Program Files/Unity/Hub/Editor/6000.3.17f1/Editor/Unity.exe'
 )
@@ -37,6 +38,12 @@ if ($MapPackage) {
             $PreparedModulesBundle = Join-Path $outPath $prepared.Name
             [IO.Compression.ZipFileExtensions]::ExtractToFile($prepared, $PreparedModulesBundle)
         }
+        $trench = $archive.GetEntry('plugins/Contour4/contour4-maintenance-trench.bundle')
+        if ($trench) {
+            if ($trench.Length -le 0) { throw 'The package has an empty maintenance trench bundle.' }
+            $TrenchBundle = Join-Path $outPath $trench.Name
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($trench, $TrenchBundle)
+        }
     } finally { $archive.Dispose() }
     Get-FileHash -LiteralPath $MapPackage -Algorithm SHA256
 }
@@ -44,11 +51,14 @@ $bundlePath = (Resolve-Path -LiteralPath $RoomsBundle).Path
 Get-FileHash -LiteralPath $bundlePath -Algorithm SHA256
 $preparedPath = if ($PreparedModulesBundle) { (Resolve-Path -LiteralPath $PreparedModulesBundle).Path }
 if ($preparedPath) { Get-FileHash -LiteralPath $preparedPath -Algorithm SHA256 }
+$trenchPath = if ($TrenchBundle) { (Resolve-Path -LiteralPath $TrenchBundle).Path }
+if ($trenchPath) { Get-FileHash -LiteralPath $trenchPath -Algorithm SHA256 }
 
 $unityArgs = @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'),
     '-executeMethod', 'SpaceJourney.ReceivingPrefabChecks.Run', '-logFile', ('"' + $log + '"'))
 $editor = Start-Process -FilePath $Unity -ArgumentList $unityArgs -Wait -PassThru -WindowStyle Hidden `
     -Environment @{ CONTOUR4_ROOMS_BUNDLE = $bundlePath; CONTOUR4_PREPARED_BUNDLE = $preparedPath;
+        CONTOUR4_TRENCH_BUNDLE = $trenchPath;
         CONTOUR4_MAP_PROJECTION = $map }
 if (!(Test-Path -LiteralPath $log -PathType Leaf)) { throw "Unity produced no log. Exit $($editor.ExitCode)." }
 Select-String -LiteralPath $log -Pattern 'CONTOUR4 RECEIVING PREFAB|error CS\d+|Exception:|return code|No valid Unity Editor license' |

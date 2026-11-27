@@ -19,11 +19,11 @@ internal sealed class NativeRaidInteractions : MonoBehaviour
     private Vector3 previousLocalFeet;
     private int occupiedLayers;
 
-    internal static void Attach(RaidAssembly raid)
+    internal static void Attach(RaidAssembly raid, TrenchShutterMode shutterMode)
     {
         if (raid.GetComponent<NativeRaidInteractions>()) return;
         var binding = raid.gameObject.AddComponent<NativeRaidInteractions>();
-        binding.interactions = RaidRoomInteractions.Attach(raid);
+        binding.interactions = RaidRoomInteractions.Attach(raid, shutterMode);
         binding.occupiedLayers = LayerMask.GetMask("PhysGrabObject", "PhysGrabObjectCart", "PhysGrabObjectHinge", "Enemy", "Player");
         foreach (var front in binding.interactions.Cabinets) NativeRaidCabinetGrab.Install(front);
     }

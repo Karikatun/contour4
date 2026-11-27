@@ -30,8 +30,7 @@ namespace SpaceJourney
         public static void Run()
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
-                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
+            using var bundle = OpenPackagedRooms();
             foreach (int mask in SphericalChamber.VariantMasks)
                 VerifyAuthoredGeometry(bundle.Prefabs, SphericalChamber.Create(mask),
                     instance => VerifySpherePrefab(instance, mask));
@@ -55,8 +54,7 @@ namespace SpaceJourney
         public static void RunMobiusSmoke()
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
-                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
+            using var bundle = OpenPackagedRooms();
             var expected = new HashSet<string>(ModuleCatalog.Rooms().Select(module => module.Id), StringComparer.Ordinal);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             Verify(bundle.Prefabs, expected, seen, new HashSet<string>(StringComparer.Ordinal), 5, -32);
@@ -66,8 +64,7 @@ namespace SpaceJourney
 
         public static void RunExtractionBridges()
         {
-            using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
-                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
+            using var bundle = OpenPackagedRooms();
             SeededRaidChecks.CheckExtractionBridges(bundle.Prefabs, raid =>
             {
                 var map = RaidMapPlan.Create(raid.Plan, preparedRooms: raid.Rooms.Select(room => room.Plan));
@@ -89,8 +86,7 @@ namespace SpaceJourney
         public static void RunMobiusOutletWitnesses()
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
-                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
+            using var bundle = OpenPackagedRooms();
             var expected = new HashSet<string>(ModuleCatalog.Rooms().Select(module => module.Id), StringComparer.Ordinal);
             var plan = RaidPlan.Generate(-32, Entrance, 5, maintenance: MaintenanceTrench.Create,
                 canPrepare: room => bundle.Prefabs.TryGetPrepared(room, out var prefab) && prefab);
@@ -185,6 +181,22 @@ namespace SpaceJourney
                 (bool)assets.Find("loot__lower-path-spares") == ((mask & SphericalChamber.LowerMask) != 0),
                 $"sphere {mask} loot markers differ from its surviving deck sections.");
             Debug.Log($"{Log} SPHERE PREFAB {mask}|{instance.name}|{root.Find("Docks").childCount} docks|{assets.childCount} loot sites");
+        }
+
+        public static void RunTrenchReplay()
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            using var bundle = OpenPackagedRooms(requireTrench: true);
+            Contour4.NativeRaid.Editor.HazardFurnitureChecks.CheckTrenchReplay(bundle.Prefabs);
+        }
+
+        private static RoomPrefabBundle OpenPackagedRooms(bool requireTrench = false)
+        {
+            var trench = Environment.GetEnvironmentVariable("CONTOUR4_TRENCH_BUNDLE");
+            if (requireTrench && string.IsNullOrEmpty(trench))
+                throw new InvalidOperationException("The trench replay requires the packaged maintenance trench bundle.");
+            return RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
+                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"), trenchPath: trench);
         }
 
         private static void VerifyAuthoredGeometry(RaidRoomPrefabs prefabs, GrayModule module, Action<GameObject> verify)

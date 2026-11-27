@@ -5,7 +5,8 @@ param(
     [string] $Runtime,
     [string] $LoadingBundle,
     [string] $RoomsBundle,
-    [Parameter(Mandatory)] [string] $PreparedModulesBundle
+    [Parameter(Mandatory)] [string] $PreparedModulesBundle,
+    [string] $TrenchBundle = "$PSScriptRoot/../../release/bundles/contour4-maintenance-trench.bundle"
 )
 $ErrorActionPreference = 'Stop'
 $bundlePath = (Resolve-Path -LiteralPath $Bundle).Path
@@ -15,6 +16,7 @@ $loadingPath = (Resolve-Path -LiteralPath $LoadingBundle).Path
 if (!$RoomsBundle) { $RoomsBundle = Join-Path ([IO.Path]::GetDirectoryName($bundlePath)) 'contour4-rooms.bundle' }
 $roomsPath = (Resolve-Path -LiteralPath $RoomsBundle).Path
 $preparedPath = (Resolve-Path -LiteralPath $PreparedModulesBundle).Path
+$trenchPath = (Resolve-Path -LiteralPath $TrenchBundle).Path
 if (!$Runtime) { $Runtime = Join-Path ([IO.Path]::GetDirectoryName($pluginPath)) 'Contour4NativeRaidRuntime.dll' }
 $runtimePath = (Resolve-Path -LiteralPath $Runtime).Path
 $outPath = [IO.Path]::GetFullPath($Output)
@@ -41,6 +43,7 @@ try {
             'plugins/Contour4/contour4-loading.bundle' = $loadingPath
             'plugins/Contour4/contour4-rooms.bundle' = $roomsPath
             'plugins/Contour4/contour4-prepared-modules.bundle' = $preparedPath
+            'plugins/Contour4/contour4-maintenance-trench.bundle' = $trenchPath
             'icon.png' = "$PSScriptRoot/icon.png"
         }
         foreach ($entry in $entries.GetEnumerator()) {

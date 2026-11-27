@@ -55,13 +55,8 @@ namespace Contour4.NativeRaid.Runtime
 
         private static readonly Station[] Trench =
         {
-            new("Return line isolation", 14.35f, 2.85f, 1.45f, 3.4f, 1.8f, Equipment.Controls, -1),
-            new("Drain pumps", 10.35f, 3.85f, 1.45f, 3.4f, 2.05f, Equipment.Machine, -1),
-            new("Supply line pumps", 6.35f, 3.35f, 1.45f, 3.4f, 2.05f, Equipment.Machine, -1),
-            new("Inspection lockout bank", 2.35f, 3.35f, 3.6f, 1.65f, 1.8f, Equipment.Controls, -1),
-            new("Deck inspection controller", 5.35f, -1.65f, 1.8f, 1.2f, 1.55f, Equipment.Controls),
-            new("Bridge tools locker", 1.85f, -3.15f, 1.8f, 1.2f, 1.7f, Equipment.Storage),
-            new("Drain bay splash partition", 11.60f, 5.40f, 1.05f, .18f, 2.45f, Equipment.Partition)
+            new("Deck inspection controller", 3.35f, -6.37f, 1.75f, .63f, 1.55f, Equipment.Controls),
+            new("Bridge tools locker", 1.05f, -6.35f, 1.4f, .67f, 1.7f, Equipment.Storage),
         };
 
         private static readonly Station[] Observation =
@@ -147,6 +142,7 @@ namespace Contour4.NativeRaid.Runtime
             Transform group = RaidAssembly.Child(room, "Work bays");
             Place(stations);
             if (module == "shaft-plant") brokenEquipment.DressCabinet(room, colliders);
+            if (module == "maintenance-trench") DressTrench(group, layer);
             if (module == "calibration-sector") DressCalibration(group, layer, colliders);
             if (module == "observation-lab" || module == "observation-lab-broken-floor")
             {
@@ -175,6 +171,18 @@ namespace Contour4.NativeRaid.Runtime
 
                     Detail(station, body.transform, layer);
                 }
+            }
+        }
+
+        private void DressTrench(Transform group, int layer)
+        {
+            // The catalog stand bears the equipment and owns collision for its footprint.
+            foreach (float x in new[] { 8.64f, 10.50f, 12.36f })
+            {
+                Piece(group, layer, "Fixed drain pump", new Vector3(x, 1.80f, .10f),
+                    new Vector3(1.38f, .76f, 2.90f), housing);
+                Piece(group, layer, "Pump nameplate", new Vector3(x, 1.83f, 1.56f),
+                    new Vector3(.60f, .20f, .03f), controls);
             }
         }
 

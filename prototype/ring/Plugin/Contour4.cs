@@ -41,7 +41,8 @@ public sealed class Contour4 : BaseUnityPlugin
             string directory = Path.GetDirectoryName(Info.Location);
             loadingArt = LoadingArt.Load(directory);
             roomBundle = RoomPrefabBundle.Load(Path.Combine(directory, RoomPrefabBundle.BundleName),
-                Path.Combine(directory, RoomPrefabBundle.PreparedBundleName), requireWear: true);
+                Path.Combine(directory, RoomPrefabBundle.PreparedBundleName), requireWear: true,
+                trenchPath: Path.Combine(directory, RoomPrefabBundle.TrenchBundleName));
             nativeRaid = NativeRaidFeature.Attach(Config, Logger, Id + ".procedural-feature", LevelName, loadingArt.Bind,
                 deferredRegistration: true, prepareCatalog: PrepareProceduralRaid, spawnCatalog: ProceduralCatalogLoot.Spawn,
                 present: PresentProceduralRaid, prefabBranch: () => proceduralRing, roomPrefabs: roomBundle.Prefabs);

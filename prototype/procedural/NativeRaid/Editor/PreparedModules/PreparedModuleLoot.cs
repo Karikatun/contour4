@@ -190,6 +190,13 @@ namespace Contour4.Procedural.Catalog
             int sphereMask = SphericalChamber.GetMask(module.Id);
             if (sphereMask != 0)
                 VerifySphereSites(result.Select(entry => entry.Site), sphereMask);
+            if (module.Id == MaintenanceTrench.Id)
+            {
+                var missing = new[] { MaintenanceTrench.SampleSiteId, MaintenanceTrench.SampleReserveSiteId }
+                    .Where(id => result.All(entry => entry.Site.Id != id)).ToArray();
+                if (missing.Length > 0)
+                    throw new InvalidOperationException($"{module.Id}: sample sites failed support, clearance or retrieval: {string.Join(", ", missing)}.");
+            }
             return result;
         }
 
@@ -203,7 +210,7 @@ namespace Contour4.Procedural.Catalog
             "quarter-turn-bridge" or "spiral-corridor" => "The central transit and dock margins occupy the curved deck and both end leads.",
             "upper-exit-corridor" => "The turn is transit only and the upper landing is a full-width dock approach.",
             "u-shaft" => "Both curved decks serve cargo transit. Loot is on the lower floor and fixed side arms.",
-            MaintenanceTrench.Id => "The plank, trench and shutter passage remain clear.",
+            MaintenanceTrench.Id => "The plank crossing, shutter and freight detour remain clear. Two sample sites sit behind the shutter.",
             SphericalChamber.Id => "Two service bays, the outer edges of both branch decks, and two radial shell locations hold loot. The center lanes and dock passages stay clear.",
             _ when SphericalChamber.IsVariant(module) => "Installed service bays and branch decks and two radial shell locations hold loot. The center lanes and dock passages stay clear.",
             MobiusHall.Id => "Small valuables rest on both faces of the flat lower ribbon beside the walking lane. The access ramp stays clear.",
@@ -223,6 +230,13 @@ namespace Contour4.Procedural.Catalog
             if (sphereMask != 0)
                 foreach (Site site in SphereSites(query, sphereMask))
                     yield return new[] { site };
+            if (module.Id == MaintenanceTrench.Id)
+            {
+                yield return new[] { new Site(MaintenanceTrench.SampleSiteId, "main", MaintenanceTrench.Bridge,
+                    LootSurfaceKind.Floor, Size.Small, V(MaintenanceTrench.SampleSite), Vector3.right, Vector3.up) };
+                yield return new[] { new Site(MaintenanceTrench.SampleReserveSiteId, "main", "east-deck-near",
+                    LootSurfaceKind.Floor, Size.Small, V(MaintenanceTrench.SampleReserveSite), Vector3.right, Vector3.up) };
+            }
             foreach (Bay bay in FloorBays(module.Id))
             {
                 var floor = module.Floors.Single(item => item.Id == bay.Floor);
@@ -405,8 +419,7 @@ namespace Contour4.Procedural.Catalog
             MaintenanceTrench.Id => new Bay[] {
                 new("freight-bypass-west", "main", 2.0f, 5.70f, 1, Size.Wide),
                 new("freight-bypass-mid", "main", 6.48f, 5.78f, 1, Size.Tall),
-                new("freight-bypass-east", "main", 13.45f, 5.68f, 1, Size.VeryTall),
-                new("inspection-wall-spares", "main", 15.84f, -6.28f, -1) },
+                new("freight-bypass-east", "main", 13.45f, 5.68f, 1, Size.VeryTall) },
             _ => Array.Empty<Bay>(),
         };
 

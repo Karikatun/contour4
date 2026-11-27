@@ -38,6 +38,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
     private bool catalogSpawned;
     internal Dictionary<ValuableVolume, RaidLootSlot> Loot { get; private set; }
     internal int LootSeed => raid.Plan.Seed;
+    internal bool TrenchReplayLoot { get; private set; }
     private readonly Dictionary<LevelPoint, RaidFloor> enemyStartWaypoints = new();
     private readonly Dictionary<RaidFloor, RoomVolume> enemyStartFloors = new();
     private bool warnedAboutMissingEnemyStarts;
@@ -53,7 +54,8 @@ internal sealed class NativeRaidModule : MonoBehaviour
     }
 
     internal void Place(StockModule module, Func<int> seed, Level stockManor, Action<RaidAssembly> prepareCatalog = null,
-        RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null, bool rotaryQuota = false)
+        RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null, bool rotaryQuota = false,
+        TrenchShutterMode shutterMode = TrenchShutterMode.Campaign, bool trenchReplayLoot = false)
     {
         if (raid) return;
         if (GameManager.Multiplayer())
@@ -76,7 +78,13 @@ internal sealed class NativeRaidModule : MonoBehaviour
         raid.Place(seed(), entrance, LayerMask.NameToLayer("Default"), LayerMask.GetMask("PhysGrabObject", "PhysGrabObjectCart", "PhysGrabObjectHinge"),
             catalogSites: prepareCatalog != null, completedLevels: RunManager.instance.levelsCompleted, branch: branch,
             roomPrefabs: roomPrefabs, rotaryQuota: rotaryQuota);
-        NativeRaidInteractions.Attach(raid);
+        NativeRaidInteractions.Attach(raid, shutterMode);
+        TrenchReplayLoot = trenchReplayLoot;
+        if (raid.Rooms.Any(room => room.Plan.Module.Id == MaintenanceTrench.Id))
+            Debug.Log($"[Contour4 Trench] seed={raid.Plan.Seed}, completed={raid.Plan.CompletedLevels}, " +
+                $"shutter={RaidRoomInteractions.ResolveTrenchShutter(shutterMode, raid.Plan.CompletedLevels)}, replayLoot={trenchReplayLoot}.");
+        else if (trenchReplayLoot)
+            Debug.LogWarning($"[Contour4 Trench] Replay loot requested, but seed {raid.Plan.Seed} at {raid.Plan.CompletedLevels} completed levels has no trench.");
         InstallNativeRoomComponents();
         NativeRaidGravity.Attach(raid);
         NativeRaidExtraction.Place(raid, stockManor);

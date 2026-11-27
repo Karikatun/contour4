@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory)] [string] $MapPackage,
     [Parameter(Mandatory)] [string] $Output,
     [string] $Unity = 'C:/Program Files/Unity/Hub/Editor/6000.3.17f1/Editor/Unity.exe',
-    [switch] $ExtractionBridges
+    [switch] $ExtractionBridges,
+    [switch] $TrenchReplay
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,26 +25,40 @@ $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $manifestPath -En
 $package = (Resolve-Path -LiteralPath $MapPackage).Path
 $receiving = Join-Path $outPath 'contour4-rooms.bundle'
 $prepared = Join-Path $outPath 'contour4-prepared-modules.bundle'
+$trench = Join-Path $outPath 'contour4-maintenance-trench.bundle'
+$bundlePaths = @($receiving, $prepared)
 $archive = [IO.Compression.ZipFile]::OpenRead($package)
 try {
-    foreach ($file in $receiving,$prepared) {
+    if ($TrenchReplay -or $archive.GetEntry('plugins/Contour4/contour4-maintenance-trench.bundle')) {
+        $bundlePaths += $trench
+    } else {
+        $trench = $null
+    }
+    foreach ($file in $bundlePaths) {
         $name = [IO.Path]::GetFileName($file)
         $entry = @($archive.Entries | Where-Object FullName -CEQ "plugins/Contour4/$name")
         if ($entry.Count -ne 1 -or $entry[0].Length -le 0) { throw "Expected exactly one nonempty archive entry for $name." }
         [IO.Compression.ZipFileExtensions]::ExtractToFile($entry[0], $file)
     }
 } finally { $archive.Dispose() }
-Get-FileHash -LiteralPath $package,$receiving,$prepared -Algorithm SHA256
+Get-FileHash -LiteralPath (@($package) + $bundlePaths) -Algorithm SHA256
 
+$graphics = '-nographics'
 $method = if ($ExtractionBridges) { 'RunExtractionBridges' } else { 'Run' }
 $success = if ($ExtractionBridges) { 'CONTOUR4 NATIVE RAID EXTRACTION BRIDGES PASSED' } else { 'CONTOUR4 PREPARED PACKAGE PASSED' }
-$unityArgs = @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'),
+if ($TrenchReplay) {
+    $method = 'RunTrenchReplay'
+    $success = 'CONTOUR4 TRENCH REPLAY PASSED'
+    $graphics = '-force-d3d11'
+}
+$unityArgs = @('-batchmode', $graphics, '-quit', '-projectPath', ('"' + $project + '"'),
     '-executeMethod', "SpaceJourney.PreparedModulePackageChecks.$method", '-logFile', ('"' + $log + '"'))
 $editor = Start-Process -FilePath $Unity -ArgumentList $unityArgs -Wait -PassThru -WindowStyle Hidden `
     -Environment @{ CONTOUR4_ROOMS_BUNDLE = $receiving; CONTOUR4_PREPARED_BUNDLE = $prepared;
+        CONTOUR4_TRENCH_BUNDLE = $trench;
         CONTOUR4_PREPARED_EVIDENCE = $outPath }
 if (!(Test-Path -LiteralPath $log -PathType Leaf)) { throw "Unity produced no log. Exit $($editor.ExitCode)." }
-Select-String -LiteralPath $log -Pattern 'CONTOUR4 (PREPARED PACKAGE (RAID|NAV|TAB|FIELD|PHYSICAL NETWORK|COMPOSITION DOCKS|SPHERE|PASSED)|SPHERE PHYSICS|PREPARED MOBIUS|NATIVE RAID extraction bridges)|error CS\d+|Exception:|return code|No valid Unity Editor license' |
+Select-String -LiteralPath $log -Pattern 'CONTOUR4 (PREPARED PACKAGE (RAID|NAV|TAB|FIELD|PHYSICAL NETWORK|COMPOSITION DOCKS|SPHERE|PASSED)|SPHERE PHYSICS|PREPARED MOBIUS|NATIVE RAID extraction bridges|TRENCH REPLAY|SHUTTER)|error CS\d+|Exception:|return code|No valid Unity Editor license' |
     Select-Object -Last 65 -ExpandProperty Line
 if ($editor.ExitCode -ne 0 -or !(Select-String -LiteralPath $log -SimpleMatch $success -Quiet)) {
     throw "Prepared package verification failed. See $log"

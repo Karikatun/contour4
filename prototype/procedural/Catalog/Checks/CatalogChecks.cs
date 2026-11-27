@@ -132,6 +132,7 @@ namespace Contour4.Procedural.Catalog.Checks
                 Expect(module.Routes.Any(route => route.Id == "freight-bypass" && route.Cargo == Cargo.Cart) &&
                     module.Routes.Any(route => route.Id == "inspection-shortcut" && route.Cargo == Cargo.Hand &&
                         route.Condition == "Shutter open"), "Maintenance route cargo/condition contract changed.");
+                VerifyTrenchHauling(module, connected);
             }
             if (module.Id == "shaft-plant")
                 Expect(module.Floors.All(f => f.Pose.Up == Vector3.UnitY) &&
@@ -266,6 +267,70 @@ namespace Contour4.Procedural.Catalog.Checks
 
         private static bool HasEndpoint(GrayModule module, string id, Cargo cargo) =>
             module.Landmarks.ContainsKey(id) || module.Docks.Any(d => d.Id == id && d.MaxCargo >= cargo);
+
+        private static void VerifyTrenchHauling(GrayModule module, Hull[] open)
+        {
+            var entry = module.Routes.Single(route => route.Id == "entry-to-plank");
+            var shortcut = module.Routes.Single(route => route.Id == "inspection-shortcut");
+            var bypass = module.Routes.Single(route => route.Id == "inspection-bay-bypass");
+            var loading = module.Routes.Single(route => route.Id == "freight-sample-loading");
+            var freight = module.Routes.Single(route => route.Id == "freight-bypass");
+            var pickup = MaintenanceTrench.SamplePickup;
+            Expect(entry.Knots[0].Position == bypass.Knots[0].Position &&
+                entry.Knots[^1].Position == shortcut.Knots[0].Position &&
+                shortcut.Knots[^1].Position == pickup && bypass.Knots[^1].Position == pickup &&
+                Vector3.Distance(pickup, MaintenanceTrench.SampleSite) < .85f,
+                "Maintenance trench hand routes must compare the same entrance and sample pickup.");
+
+            Hull blade = open.Single(hull => hull.Block.Id == MaintenanceTrench.Gate);
+            Hull south = open.Single(hull => hull.Block.Id == "shutter-south-return");
+            Hull north = open.Single(hull => hull.Block.Id == "shutter-stand-return");
+            float x = MaintenanceTrench.GateX;
+            float travel = MaintenanceTrench.GateTravel;
+            var closedBlade = new Hull(Block.Box("closed shutter", BlockRole.Obstacle, Level,
+                blade.Min.X, blade.Max.X, blade.Min.Y - travel, blade.Max.Y - travel, blade.Min.Z, blade.Max.Z));
+            Expect(south.Min.X < x && south.Max.X > x && north.Min.X < x && north.Max.X > x &&
+                south.Min.Z <= -module.Plan.X / 2 && south.Max.Z >= blade.Min.Z && north.Min.Z <= blade.Max.Z &&
+                south.Min.Y == 0 && north.Min.Y == 0 && south.Max.Y > 2.50f && north.Max.Y > 2.50f &&
+                closedBlade.Min.Y < .04f && closedBlade.Max.Y >= 2.5f,
+                "The closed shutter must force floor-level traffic around the north edge of the fixed stand.");
+            // Every floor-level detour crosses this plane north of the return wall. Even a point
+            // that cuts every corner cannot beat the straight legs via the wall's north edge.
+            var freightEdge = new Vector3(x, 0, north.Max.Z);
+            float lowerBound = Vector3.Distance(bypass.Knots[0].Position, freightEdge) + Vector3.Distance(freightEdge, pickup);
+            float shortLength = Length(entry) + Length(shortcut);
+            Expect(shortLength + 2f < lowerBound, "Maintenance trench hand shortcut must save at least 2 m each way.");
+            Console.WriteLine($"  {module.Id}: shared hand route {shortLength:F2}m; " +
+                $"marked bypass {Length(bypass):F2}m (any floor-level detour ≥{lowerBound:F2}m)");
+
+            var closed = open.Where(hull => hull != blade).Append(closedBlade).ToArray();
+            VerifyRoute(module.Id + "/shutter-closed", bypass, closed);
+            VerifyRoute(module.Id + "/shutter-closed", freight, closed);
+            VerifyRoute(module.Id + "/shutter-closed", loading, closed);
+            foreach (float wait in new[] { MaintenanceTrench.WestWait, MaintenanceTrench.EastWait })
+            {
+                const float halfLength = .55f, halfWidth = .65f;
+                float z = MaintenanceTrench.BridgeZ;
+                var pad = new Hull(Block.Box("wait", BlockRole.Free, Level,
+                    wait - halfLength, wait + halfLength, .03f, 1.89f, z - halfWidth, z + halfWidth));
+                Expect(closed.All(hull => !Intersects(pad, hull)), "Maintenance shutter needs a clear waiting pad on each side.");
+                foreach (float dx in new[] { -halfLength, halfLength })
+                foreach (float dz in new[] { -halfWidth, halfWidth })
+                    Expect(closed.Any(hull => hull.Block.Role == BlockRole.Floor &&
+                        hull.Supports(new Vector3(wait + dx, .07f, z + dz), Vector3.UnitY, .10f)),
+                        "Maintenance shutter waiting pad must be entirely supported.");
+            }
+
+            Vector3 eye = entry.Knots[^1].Position + Vector3.UnitY * 1.58f;
+            Vector3 sample = MaintenanceTrench.SampleSite + Vector3.UnitY * .25f;
+            float sightDistance = Vector3.Distance(eye, sample);
+            Vector3 sight = (eye - sample) / sightDistance;
+            Expect(open.All(hull => !hull.Supports(eye, sight, sightDistance)),
+                "The first sample must be visible from the plank approach with the shutter open.");
+
+            static float Length(HaulRoute route) => route.Knots.Zip(route.Knots.Skip(1),
+                (a, b) => Vector3.Distance(a.Position, b.Position)).Sum();
+        }
 
         internal static bool IsPhysical(Dock dock) => (dock.Use & DockUse.Physical) != 0;
 

@@ -21,8 +21,11 @@ internal static class NativeRaidLoot
         AccessTools.FieldRefAccess<ValuableDirector, int>("valuableTargetAmount");
     private static readonly AccessTools.FieldRef<ValuableDirector, float> SpawnValue =
         AccessTools.FieldRefAccess<ValuableDirector, float>("totalCurrentValue");
+    private static readonly FieldInfo CurrentDollars = AccessTools.Field(typeof(ValuableObject), "dollarValueCurrent");
+    private static readonly FieldInfo OriginalDollars = AccessTools.Field(typeof(ValuableObject), "dollarValueOriginal");
+    private static readonly MethodInfo SpawnStockValuable = AccessTools.Method(typeof(ValuableDirector), "SpawnValuable");
     private static readonly Dictionary<ValuableDirector, (RaidLootBudget.Allocation Plan, List<PrefabRef>[] Pools,
-        Dictionary<ValuableVolume, ValuableVolume> EquipmentFallbacks)>
+        Dictionary<ValuableVolume, ValuableVolume> EquipmentFallbacks, int ReplayCount)>
         Populating = new();
     private static readonly Dictionary<ValuableDirector, (ValuableVolume Volume, int[] Limits, int[] Original)> PendingFloor = new();
 
@@ -97,18 +100,23 @@ internal static class NativeRaidLoot
             {
                 var maximums = ReadState<int[]>(iterator, routine, "_maxAmount");
                 var volumes = ReadState<List<ValuableVolume>[]>(iterator, routine, "_volumes");
-                PlanPopulation(director, module, maximums, volumes, pools);
+                int replayCount = module.TrenchReplayLoot ? SpawnReplaySamples(director, module, volumes, pools) : 0;
+                PlanPopulation(director, module, maximums, volumes, pools, replayCount);
             }
             else
             {
-                Populating.Add(director, (null, pools, null));
+                Populating.Add(director, (null, pools, null, 0));
             }
 
             while (routine.MoveNext())
                 yield return routine.Current;
-            if (module && Populating.TryGetValue(director, out var population))
-                Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, actual={SpawnCount(director)}/{population.Plan.Count}, " +
-                    $"value=${SpawnValue(director) * 1000f:F0}, target=${population.Plan.Dollars}, forecast=${population.Plan.ExpectedDollars}.");
+            if (module && Populating.TryGetValue(director, out var selected))
+            {
+                int replayDollars = selected.ReplayCount * TrenchReplayLoot.Dollars;
+                Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, actual={SpawnCount(director)}/{selected.Plan.Count + selected.ReplayCount}, " +
+                    $"value=${SpawnValue(director) * 1000f:F0}, target=${selected.Plan.Dollars + replayDollars}, " +
+                    $"forecast=${selected.Plan.ExpectedDollars + replayDollars}.");
+            }
         }
         finally
         {
@@ -132,8 +140,37 @@ internal static class NativeRaidLoot
         return (T)field.GetValue(routine);
     }
 
-    private static void PlanPopulation(ValuableDirector director, NativeRaidModule module, int[] maximums,
+    private static int SpawnReplaySamples(ValuableDirector director, NativeRaidModule module,
         List<ValuableVolume>[] volumes, List<PrefabRef>[] pools)
+    {
+        if (!module.Loot.Values.Any(TrenchReplayLoot.InTrench)) return 0;
+        var sites = TrenchReplayLoot.Select(module.Loot.Values)
+            .Select(slot => module.Loot.Single(pair => pair.Value == slot).Key).ToArray();
+        if (sites.Any(site => !volumes[(int)site.VolumeType].Contains(site)))
+            throw new InvalidOperationException("The native director did not discover both trench replay sites.");
+        var prefab = pools[(int)RaidLootSize.Tiny].FirstOrDefault(reference => reference.Prefab &&
+            reference.Prefab.name == TrenchReplayLoot.Prefab);
+        if (prefab == null) throw new InvalidOperationException("The native trench replay goblet is unavailable.");
+
+        // Keep this room's test load identical in both modes, including its empty ordinary loot sites.
+        foreach (var category in volumes)
+            category.RemoveAll(volume => module.Loot.TryGetValue(volume, out var slot) && TrenchReplayLoot.InTrench(slot));
+        foreach (var site in sites)
+        {
+            var item = SpawnStockValuable.Invoke(director, new object[] { prefab, site }) as ValuableObject;
+            if (!item) throw new InvalidOperationException($"Failed to spawn the native trench sample at {site.name}.");
+            // SpawnValuable has initialized the stock object and counted its rolled value. Adjust both before the raid starts.
+            SpawnValue(director) += (TrenchReplayLoot.Dollars - (float)CurrentDollars.GetValue(item)) / 1000f;
+            CurrentDollars.SetValue(item, (float)TrenchReplayLoot.Dollars);
+            OriginalDollars.SetValue(item, (float)TrenchReplayLoot.Dollars);
+            Debug.Log($"[Contour4 Trench] Replay sample={item.name}, initial=${TrenchReplayLoot.Dollars}, " +
+                $"seed={module.LootSeed}, local={site.transform.localPosition:F3}.");
+        }
+        return sites.Length;
+    }
+
+    private static void PlanPopulation(ValuableDirector director, NativeRaidModule module, int[] maximums,
+        List<ValuableVolume>[] volumes, List<PrefabRef>[] pools, int replayCount)
     {
         var candidates = new List<RaidLootBudget.Candidate>();
         var all = new List<ValuableVolume>();
@@ -178,8 +215,9 @@ internal static class NativeRaidLoot
             }
         }
         bool preparedCatalog = module.Loot.Values.Any(slot => slot.FloorId != null);
-        var plan = RaidLootBudget.Select(candidates, maximums, MaximumCount(director),
-            Mathf.RoundToInt(MaximumValue(director) * 1000), averageDollars, module.LootSeed, preparedCatalog);
+        int replayDollars = replayCount * TrenchReplayLoot.Dollars;
+        var plan = RaidLootBudget.Select(candidates, maximums, Mathf.Max(0, MaximumCount(director) - replayCount),
+            Mathf.Max(0, Mathf.RoundToInt(MaximumValue(director) * 1000) - replayDollars), averageDollars, module.LootSeed, preparedCatalog);
         var chosen = plan.Picks.Select(index => all[index]).ToLookup(volume => (int)volume.VolumeType);
         var equipmentFallbacks = new Dictionary<ValuableVolume, ValuableVolume>();
         for (int type = 0; type < volumes.Length; type++)
@@ -193,9 +231,9 @@ internal static class NativeRaidLoot
             volumes[type].AddRange(first);
             volumes[type].AddRange(rest);
         }
-        MaximumCount(director) = plan.Count;
-        MaximumValue(director) = plan.Dollars / 1000.0f;
-        Populating.Add(director, (plan, pools, equipmentFallbacks));
+        MaximumCount(director) = plan.Count + replayCount;
+        MaximumValue(director) = (plan.Dollars + replayDollars) / 1000.0f;
+        Populating.Add(director, (plan, pools, equipmentFallbacks, replayCount));
         var firstFloor = plan.Picks.Select(index => all[index])
             .FirstOrDefault(volume => volume.TryGetComponent<RaidAuthoredLoot>(out var site) && site.Kind == LootSurfaceKind.Floor);
         if (firstFloor)
@@ -206,8 +244,8 @@ internal static class NativeRaidLoot
                 if (type != floorCategory) maximums[type] = 0;
             PendingFloor.Add(director, (firstFloor, maximums, originalLimits));
         }
-        Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, candidates={all.Count}, allocated={plan.Count}, " +
-            $"capacity by size={string.Join("/", maximums)}, target=${plan.Dollars}.");
+        Debug.Log($"[Contour4 Loot] seed={module.LootSeed}, candidates={all.Count + replayCount}, allocated={plan.Count + replayCount}, " +
+            $"capacity by size={string.Join("/", maximums)}, target=${plan.Dollars + replayDollars}.");
     }
 
     private static ValuableVolume[] ReplaceWithEquipmentPockets(ValuableVolume[] ordinary,
@@ -313,7 +351,8 @@ internal static class NativeRaidLoot
                 Debug.Log($"[Contour4 Loot] equipment spawn {__1.name}; prefab={__result.name}; position={__result.transform.position:F3}.");
             NativeRaidGravity.TrackRibbonSpawn(__1, __result);
             ref int maximum = ref MaximumCount(__instance);
-            maximum = population.Plan.ContinueUntil(SpawnCount(__instance), maximum);
+            maximum = population.ReplayCount + population.Plan.ContinueUntil(SpawnCount(__instance) - population.ReplayCount,
+                maximum - population.ReplayCount);
         }
     }
 }

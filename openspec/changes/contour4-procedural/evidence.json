@@ -532,6 +532,100 @@
           "sha256": "4998b97553bb4631ade1ae033a2204154c6e88c9d04649bc3eaf8f11db37f1c4"
         }
       ]
+    },
+    {
+      "criterion": "AC-2151",
+      "status": "passed",
+      "subject": "ea3ef5ae2bb90e85e822b64939b5af4e06238db81b871b35707eb4c5f0148617",
+      "recordedAt": "2026-11-27T18:55:49.074Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "R.E.P.O. 0.5.2, seed −32, 5 и 9 пройденных уровней. В точной 0.3.5 D9E0B7BF перенесли штатные игрушку и деньги через два ряда досок на обоих мостах, штатно нажали кнопку, получили $797 и $455 и вернулись. Три полных сечения настилов по ходу движения показали опору на ±0,39 м и открытый провал на ±0,41 м. Сколотый торец поддерживает ±0,35 м.",
+      "files": [
+        {
+          "path": "build/evidence/plank-routes-035/straight-stock/bridge-journey.ndjson",
+          "sha256": "75e6caa84795b1da5c0a8a42d36018ddaa5fd8afc97614138b9290d0c8677186"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/straight-stock/launch.json",
+          "sha256": "d8f58964f4e193b2d4cb2f07c4ca1081246904b7d8a51996c501786f31d21fc1"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/straight-stock/run.json",
+          "sha256": "f94b260b037b0d28ba88d3af9863029527d65f95557b404ce089fa0d7ab42b0a"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/bent-stock/bridge-journey.ndjson",
+          "sha256": "9cf7fc7b4db1d5ca7fb891f19cdb02f0031e91c8f487e47613dac6b6b994713f"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/bent-stock/launch.json",
+          "sha256": "f7c5a65bd1b5d86ebfe907b4cd519fd1e23f972c4e4b6861eee979f2049a9898"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/bent-stock/run.json",
+          "sha256": "7e8e3df89ffe94f6dd08449d2dd9e6c2fd8b342616eaa6151f294146d7ec639e"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/live-gallery/bridge-journey.ndjson",
+          "sha256": "87841a651555ddeb47c9b0f71dc51b6f34cebf0d146274350997b66deb494ebb"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/live-gallery/launch.json",
+          "sha256": "bf60b0a56acff83bdf30d6ab142aa66d91446eeab6b89b0b1ddf325e3a6be64c"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/live-gallery/run.json",
+          "sha256": "666fd77d7394b9f2b37898f2e88dfb1f57dfbe81d32c077c89bc0fccc3d5bdd3"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/bridges-and-hand-cargo.png",
+          "sha256": "22ac3a2ace3f5757bda834cfded14d6e54729877cfa76ebc4f2632cad0a38448"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/three-to-two-rows.png",
+          "sha256": "9f0317e33b5a6774977fc5519e0e047eef2d539ebc4d746827981cb55b3fefb8"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2152",
+      "status": "passed",
+      "subject": "ea3ef5ae2bb90e85e822b64939b5af4e06238db81b871b35707eb4c5f0148617",
+      "recordedAt": "2026-11-27T18:55:49.109Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "Test-PreparedPackage.ps1 -ExtractionBridges на ZIP 0.3.5 D9E0B7BF. В Unity 6000.3.17f1 проверили 18 раскладок на seed −32, 42, 1499861616 и стадиях 1/4/5/8/9/14. Два физических ряда, открытые края, поворот, карта Tab и обратимый путь малого агента подтверждены. Код выхода 0.",
+      "files": [
+        {
+          "path": "build/evidence/plank-routes-035/unity-prepared-package.log",
+          "sha256": "960a1378f2c31e52fd8ad3f925138241fc5a7fe36a310c5b5aea8b0b4b7e0b87"
+        },
+        {
+          "path": "build/evidence/plank-routes-035/unity-vox025-focused.log",
+          "sha256": "b21151da0b885ff77be16f56db83a80efa6285cac322f65ecf2919b77fe3bac2"
+        },
+        {
+          "path": "build/feature/final-035/package-pair.json",
+          "sha256": "87d79e49049cb9715d48e3239180337d6957db3d6d771a3e96a170a6532a0d5e"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "ea3ef5ae2bb90e85e822b64939b5af4e06238db81b871b35707eb4c5f0148617",
+      "recordedAt": "2026-11-27T18:55:49.119Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "Игровой ZIP 0.3.5 D9E0B7BF проверен в паре с Contour4Valuables 0.2.4. Чистая сборка из ZIP исходников EA3FB6FB с закреплённым REPOLib совпала по всем девяти записям.",
+      "files": [
+        {
+          "path": "build/feature/final-035/cold-replay-result.json",
+          "sha256": "8044c80c2fded8772f2275106c3293889b512223d49d05669e3fac111ef6f834"
+        },
+        {
+          "path": "build/feature/final-035/package-pair.json",
+          "sha256": "87d79e49049cb9715d48e3239180337d6957db3d6d771a3e96a170a6532a0d5e"
+        }
+      ]
     }
   ]
 }

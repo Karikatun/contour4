@@ -713,10 +713,11 @@ namespace SpaceJourney
         {
             if (moduleId is not (RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId)) return;
             int[] triangles = shown.CoverTriangles(out _);
-            Require(Covered(new Vector2(8f, 0)) && !Covered(new Vector2(8f, .70f)),
+            Require(Covered(new Vector2(8f, .35f)) && !Covered(new Vector2(8f, .45f)),
                 "The Tab footprint follows the width of the timber, leaving the shaft visible.");
             if (moduleId == RaidExtraction.BentBridgeId)
-                Require(Covered(new Vector2(RaidExtractionBridge.BentAxis, 3f)) &&
+                Require(Covered(new Vector2(RaidExtractionBridge.BentAxis + .35f, 3f)) &&
+                    !Covered(new Vector2(RaidExtractionBridge.BentAxis + .45f, 3f)) &&
                     !Covered(new Vector2(8.2f, 2.5f)), "The Tab footprint bends without filling the inside corner.");
 
             bool Covered(Vector2 local)

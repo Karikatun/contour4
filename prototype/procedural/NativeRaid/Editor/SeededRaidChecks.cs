@@ -661,16 +661,18 @@ namespace Contour4.NativeRaid.Editor
                 StringComparison.Ordinal)).ToArray();
             var fragments = room.Colliders.Where(part => part.name.StartsWith(RaidExtractionBridge.FracturePrefix,
                 StringComparison.Ordinal)).ToArray();
-            Require(planks.Length >= 9 && planks.Concat(fragments).All(part => part is MeshCollider mesh &&
+            Require(planks.Length > 0 && planks.Concat(fragments).All(part => part is MeshCollider mesh &&
                 !mesh.attachedRigidbody && mesh.TryGetComponent(out MeshFilter filter) && mesh.sharedMesh == filter.sharedMesh) &&
                 fragments.Length >= 3 && !room.Colliders.Any(part =>
                     part.name.Contains("bridge-rail", StringComparison.Ordinal) || part.name.StartsWith("hanging-", StringComparison.Ordinal)),
                 "Visible timber and ragged masonry use their actual meshes, without suspended fixtures over the pit.");
+            CheckRows(bent ? "incoming" : "long", acrossX: false);
             // Check both physical edges, including points covered by the former broad turn pad.
             for (float x = 5.15f; x < (bent ? 10f : 12f); x += .34f)
                 CheckWidth(new Vector3(x, 0, 0), Vector3.forward);
             if (bent)
             {
+                CheckRows("outgoing", acrossX: true);
                 for (float z = .95f; z < 6; z += .32f)
                     CheckWidth(new Vector3(RaidExtractionBridge.BentAxis, 0, z), Vector3.right);
                 Require(!HitsDeck(new Vector3(8.2f, 0, 2.5f)) && HitsDeck(new Vector3(RaidExtractionBridge.BentAxis, 0, 0)),
@@ -680,13 +682,28 @@ namespace Contour4.NativeRaid.Editor
             bool HitsDeck(Vector3 local) =>
                 Physics.Raycast(root.TransformPoint(local) + root.up * .3f, -root.up, .44f, 1, QueryTriggerInteraction.Ignore);
 
+            void CheckRows(string span, bool acrossX)
+            {
+                var pieces = planks.Where(part => part.name.StartsWith(RaidExtractionBridge.TimberPrefix + span + "-",
+                    StringComparison.Ordinal)).Cast<MeshCollider>().ToArray();
+                var rows = pieces.GroupBy(part => part.name[part.name.Length - 1]).ToArray();
+                Require(rows.Length == 2 && rows.All(row => row.Count() >= 2),
+                    "Each span must contain exactly two rows of separate planks.");
+                foreach (var part in pieces)
+                {
+                    Vector3 size = part.sharedMesh.bounds.size;
+                    Require(Mathf.Abs((acrossX ? size.x : size.z) - .40f) < .010f,
+                        "Each plank keeps its nominal 0.40 m width: " + part.name);
+                }
+            }
+
             void CheckWidth(Vector3 center, Vector3 across)
             {
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    Require(HitsDeck(center + side * .54f * across),
+                    Require(HitsDeck(center + side * .35f * across),
                         "Timber remains walkable out to the visibly worn edge at " + center);
-                    Require(!HitsDeck(center + side * .64f * across),
+                    Require(!HitsDeck(center + side * .44f * across),
                         "The pit begins at the visible timber edge without concealed support at " + center);
                 }
             }

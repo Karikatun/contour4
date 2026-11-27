@@ -76,7 +76,8 @@ namespace Contour4.Procedural.Navigation
                         localSettings.agentHeight = floor.NarrowDeck ? settings.agentHeight : 1.80f;
                         localSettings.agentClimb = .30f;
                         localSettings.agentSlope = 45f;
-                        localSettings.voxelSize = .08f;
+                        // On the 0.80 m timber the 0.04 m grid loses continuity after radius erosion.
+                        localSettings.voxelSize = floor.NarrowDeck ? .025f : .08f;
                         referenceSurfaces.Add(floor, Bake(floor, localSettings));
                     }
                     outgoing.Add(floor, new List<Edge>());

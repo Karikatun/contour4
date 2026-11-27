@@ -400,7 +400,6 @@ namespace Contour4.NativeRaid.Runtime
                 {
                     NamedMaterial(floor.shader, new Color(.48f, .34f, .22f), "Contour-4 bridge timber weathered"),
                     NamedMaterial(floor.shader, new Color(.59f, .43f, .29f), "Contour-4 bridge timber unpainted"),
-                    NamedMaterial(floor.shader, new Color(.40f, .28f, .19f), "Contour-4 bridge timber dark"),
                 }
                 : null;
             var nails = timber != null

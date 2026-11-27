@@ -9,7 +9,10 @@ namespace Contour4.Procedural.Catalog
     {
         internal const float GapStart = 4.8f;
         internal const float StraightGapEnd = 12.3f;
-        internal const float BridgeHalfWidth = .60f;
+        private const float PlankWidth = .40f;
+        private const int PlankRows = 2;
+        private const float BridgeHalfWidth = PlankWidth * PlankRows / 2;
+        private const float ApronOpeningHalfWidth = .55f;
         internal const float BentLanding = 6.15f;
         internal const float BentAxis = 10.8f;
         internal const float NearWall = -6f;
@@ -39,8 +42,8 @@ namespace Contour4.Procedural.Catalog
 
             chamber.Deck("safe-entry-apron", 0, GapStart, 0, NearWall, apronFar);
             chamber.Box("cart-cover", BlockRole.Obstacle, 3.0f, 3.45f, 0, 2.45f, 2.55f, 4.50f);
-            chamber.Box("apron-shaft-guard", BlockRole.Shell, GapStart - .23f, GapStart, 0, .88f, NearWall, -BridgeHalfWidth);
-            chamber.Box("apron-return-guard", BlockRole.Shell, GapStart - .23f, GapStart, 0, .88f, BridgeHalfWidth, apronFar);
+            chamber.Box("apron-shaft-guard", BlockRole.Shell, GapStart - .23f, GapStart, 0, .88f, NearWall, -ApronOpeningHalfWidth);
+            chamber.Box("apron-return-guard", BlockRole.Shell, GapStart - .23f, GapStart, 0, .88f, ApronOpeningHalfWidth, apronFar);
             if (bent)
                 chamber.Box("entry-pit-side-guard", BlockRole.Shell, 0, GapStart, 0, .88f, apronFar - .23f, apronFar);
 
@@ -101,11 +104,11 @@ namespace Contour4.Procedural.Catalog
 
         private static void AddTimber(GrayBuilder chamber, string name, ModulePose frame, float length, int pattern)
         {
-            // Three continuous rows, with the butt joints staggered like a patched walkway.
-            for (int row = 0; row < 3; row++)
+            // Two independent rows with staggered butt joints and a shallow, supported seam.
+            for (int row = 0; row < PlankRows; row++)
             {
-                float left = -BridgeHalfWidth + row * .40f + (row == 0 ? 0 : .006f);
-                float right = -BridgeHalfWidth + (row + 1) * .40f - (row == 2 ? 0 : .006f);
+                float left = -BridgeHalfWidth + row * PlankWidth;
+                float right = left + PlankWidth;
                 int piece = 0;
                 for (float start = 0; start < length; piece++)
                 {
@@ -115,7 +118,7 @@ namespace Contour4.Procedural.Catalog
                     // Edge splinters are cut out of the collision mesh too.
                     float nick = .013f + (piece + pattern) % 3 * .013f;
                     float leftCut = row == 0 ? nick : 0;
-                    float rightCut = row == 2 ? nick : 0;
+                    float rightCut = row == PlankRows - 1 ? nick : 0;
                     var points = new[]
                     {
                         new Vector2(start, left + leftCut), new Vector2(start + .15f, left),
@@ -125,7 +128,7 @@ namespace Contour4.Procedural.Catalog
                     };
                     string pieceId = $"{name}-{piece}-{row}";
                     chamber.Module.Geometry.Add(FacetedPrism(TimberPrefix + pieceId, BlockRole.Floor, frame,
-                        points, 0, -.165f, 0, 0));
+                        points, 0, -.165f, 0, 0, seamDepth: .009f));
                     for (int tip = 0; tip < 2; tip++)
                     {
                         float along = tip == 0 ? start + .096f : end - .091f;
@@ -159,7 +162,7 @@ namespace Contour4.Procedural.Catalog
         }
 
         private static Block FacetedPrism(string id, BlockRole role, ModulePose frame, Vector2[] outline,
-            float top, float bottom, float taper, float relief)
+            float top, float bottom, float taper, float relief, float seamDepth = 0)
         {
             var mesh = new CurvedRoomMesh();
             var upper = new int[outline.Length];
@@ -169,7 +172,8 @@ namespace Contour4.Procedural.Catalog
             {
                 Vector2 p = outline[i];
                 center += p;
-                upper[i] = mesh.Add(frame.Point(p.X, top + (i % 3 - 1) * relief * .45f, p.Y));
+                float seam = p.Y == 0 ? seamDepth : 0;
+                upper[i] = mesh.Add(frame.Point(p.X, top - seam + (i % 3 - 1) * relief * .45f, p.Y));
                 float contraction = 1f - taper * (i % 2 == 0 ? 1f : .45f);
                 lower[i] = mesh.Add(frame.Point(p.X * contraction, bottom - ((i + 1) % 3) * relief, p.Y * contraction));
             }

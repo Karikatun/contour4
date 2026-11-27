@@ -82,9 +82,9 @@ namespace Contour4.NativeRaid.Runtime
             room.Box("ring-facade-left-inner", BlockRole.Shell, faceStart, faceEnd, 1.40f, 4.8f, -4.05f, -3.25f);
             room.Box("ring-facade-left-over-hole", BlockRole.Shell, faceStart, faceEnd, 2.50f, 4.8f, -4.85f, -4.05f);
             room.Box("ring-facade-right-base", BlockRole.Shell, faceStart, faceEnd, 0, 1.15f, 3.25f, 5.5f);
-            room.Box("ring-facade-right-inner", BlockRole.Shell, faceStart, faceEnd, 1.15f, 4.8f, 3.25f, 4.05f);
-            room.Box("ring-facade-right-outer", BlockRole.Shell, faceStart, faceEnd, 1.15f, 4.45f, 4.85f, 5.5f);
-            room.Box("ring-facade-right-over-hole", BlockRole.Shell, faceStart, faceEnd, 2.25f, 4.45f, 4.05f, 4.85f);
+            room.Box("ring-facade-right-inner", BlockRole.Shell, faceStart, faceEnd, 1.15f, 4.8f, 3.25f, 4.12f);
+            room.Box("ring-facade-right-outer", BlockRole.Shell, faceStart, faceEnd, 1.15f, 4.45f, 5.02f, 5.5f);
+            room.Box("ring-facade-right-over-hole", BlockRole.Shell, faceStart, faceEnd, 2.05f, 4.45f, 4.12f, 5.02f);
             room.Box("ring-facade-crown", BlockRole.Shell, faceStart, faceEnd, 4.86f, 5.65f, -5.5f, 5.5f);
             room.Box("ring-facade-crown-left", BlockRole.Shell, faceStart, faceEnd, 5.65f, 6.25f, -5.5f, -1.25f);
             room.Box("ring-facade-crown-right", BlockRole.Shell, faceStart, faceEnd, 5.65f, 6.0f, 1.6f, 5.5f);
@@ -97,6 +97,16 @@ namespace Contour4.NativeRaid.Runtime
             room.Box("near-cover-right-high", BlockRole.Obstacle, 4.6f, 5.05f, .33f, .96f, 4.35f, 5.0f);
             room.Box("near-cover-right-mid", BlockRole.Obstacle, 4.6f, 5.05f, .33f, .63f, 3.55f, 4.35f);
             room.Box("near-cover-right-low", BlockRole.Obstacle, 4.6f, 5.05f, .33f, .46f, 2.75f, 3.55f);
+            // Two maintenance screens shelter a crouching person on opposite sides of
+            // the approach. Their enameled housings stand beyond the cart's central lane.
+            room.Box("left-service-cabinet-housing", BlockRole.Obstacle, 3.22f, 3.63f, .53f, 1.58f, -4.85f, -3.10f);
+            room.Box("right-service-cabinet-housing", BlockRole.Obstacle, 4.62f, 5.03f, .46f, 1.48f, 3.05f, 4.95f);
+            // Recessed panel seams and kick plates identify the barriers as service
+            // equipment rather than detached blocks of masonry.
+            room.Box("left-service-cabinet-kick-plate", BlockRole.Fixture, 3.17f, 3.22f, .08f, .30f, -4.80f, -3.15f);
+            room.Box("left-service-cabinet-panel", BlockRole.Fixture, 3.17f, 3.22f, .76f, 1.37f, -4.61f, -3.35f);
+            room.Box("right-service-cabinet-kick-plate", BlockRole.Fixture, 4.55f, 4.62f, .07f, .26f, 3.10f, 4.90f);
+            room.Box("right-service-cabinet-panel", BlockRole.Fixture, 4.55f, 4.62f, .70f, 1.29f, 3.32f, 4.68f);
             // Loose-looking static fragments sit off the cargo approach.
             room.Box("ruin-fragment-left-a", BlockRole.Obstacle, 2.65f, 3.05f, -.18f, .19f, -5.15f, -4.68f);
             room.Box("ruin-fragment-left-b", BlockRole.Obstacle, 5.25f, 5.83f, -.18f, .24f, -5.12f, -4.7f);

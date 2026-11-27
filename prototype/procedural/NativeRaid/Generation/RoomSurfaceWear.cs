@@ -152,6 +152,12 @@ namespace Contour4.NativeRaid.Runtime
                 else if (painted)
                 {
                     projection.Apply(block);
+                    // Flat wall projection stores distance along the wall in p.x,
+                    // regardless of its original world axis. The rotary facade
+                    // runs along Z, so the unprojected bounds-based choice would
+                    // sample its plaster at constant depth across the whole face.
+                    if (room == RaidQuotaRotaryRoom.Id)
+                        block.SetVector(WearProfile, new Vector4(use, service, StablePhase(room), 1));
                     HideLegacyWallCladding(renderer.transform);
                 }
                 renderer.SetPropertyBlock(block);

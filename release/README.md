@@ -1,4 +1,4 @@
-# «Контур‑4» 0.3.2 · ветка сложности рейда
+# «Контур‑4» 0.3.3 · ветка сложности рейда
 
 Для сборки распакуйте архив исходников и откройте PowerShell 7 в его корне. Используйте .NET SDK 10.0.404 и локальные зависимости из R.E.P.O. 0.5.2, BepInExPack 5.4.2305, REPOLib 4.5.1 и Contour4Valuables 0.2.4. Контрольные суммы зависимостей и ресурсов перечислены в release/input-lock.json.
 
@@ -17,18 +17,22 @@ $bundles = './release/bundles'
 $project = './prototype/ring/Plugin/Contour4.csproj'
 $revision = (Get-Content ./release/input-lock.json -Raw | ConvertFrom-Json).sourceRevisionId
 dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4" "-p:SourceRevisionId=$revision" "-p:DebugType=None"
-./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.3.2.zip
+./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.3.3.zip
 ~~~
 
-Перед сборкой сверьте хеш `REPOLib.dll` с `localReferences` в `release/input-lock.json`: игровая копия после перенаправления имеет тот же MVID, но другие байты и не подходит как исходная зависимость. Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. `SourceRevisionId` воспроизводит метку базовой ревизии в метаданных обеих DLL при сборке из распакованного ZIP. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей. Для 0.3.2 эта метка указывает на базовый коммит `9243ca613cbda28fd1b35298fd5224dc72986b7d`; изменения кандидата содержатся в ZIP исходников и не обозначают отдельный коммит.
+Перед сборкой сверьте хеш `REPOLib.dll` с `localReferences` в `release/input-lock.json`: игровая копия после перенаправления имеет тот же MVID, но другие байты и не подходит как исходная зависимость. Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. `SourceRevisionId` воспроизводит метку базовой ревизии в метаданных обеих DLL при сборке из распакованного ZIP. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей. Для 0.3.3 эта метка указывает на базовый коммит `485b0684c7cf09248eb324904d6d301d71eaffb7`; изменения кандидата содержатся в ZIP исходников и не обозначают отдельный коммит.
 
 Для проверки новых маршрутов запустите `prototype/ring/Test-PreparedPackage.ps1 -MapPackage <архив карты> -Output <новый каталог> -ExtractionBridges`. Проверка загружает бандлы из указанного ZIP и собирает рейды на трёх seed при 1, 4, 5, 8, 9 и 14 пройденных уровнях. Она проверяет грузовой габарит и опору колёс в обоих направлениях, открытый провал и ориентацию подхода к штатной рампе.
 
-Для проверки поворотной кабины подготовьте отдельный проект командой `prototype/procedural/NativeRaid/Test-NativeRaid.ps1 -Output <новый каталог> -PrepareOnly`. Откройте вложенный проект `Unity` в редакторе 6000.3.27f1 с параметрами `-batchmode -nographics -quit -executeMethod Contour4.NativeRaid.Editor.RaidQuotaRotaryChecks.Run`. В журнале ищите `CONTOUR4 ROTARY QUOTA PASSED`. Стенд проверяет стыковку, вызов с обеих площадок, возврат и восстановление после потери контроллера. В этом же проекте `Contour4.NativeRaid.Editor.RaidRotaryRuinsChecks.Run` проверяет свободный объём шахты, уклоны и стыки опор. Видимость, штатный ввод и сдачу груза проверяют в отдельной копии R.E.P.O. на seed −31, −30 и −29.
+Для проверки поворотной кабины подготовьте отдельный проект командой `prototype/procedural/NativeRaid/Test-NativeRaid.ps1 -Output <новый каталог> -PrepareOnly`. Откройте вложенный проект `Unity` в редакторе 6000.3.17f1 с параметрами `-batchmode -nographics -quit -executeMethod Contour4.NativeRaid.Editor.RaidQuotaRotaryChecks.Run`. В журнале ищите `CONTOUR4 ROTARY QUOTA PASSED`. Стенд проверяет стыковку, вызов с обеих площадок, возврат и восстановление после потери контроллера. В этом же проекте `Contour4.NativeRaid.Editor.RaidRotaryRuinsChecks.Run` проверяет свободный объём шахты, уклоны и стыки опор. Видимость, штатный ввод и сдачу груза проверяют в отдельной копии R.E.P.O. на seed −31, −30 и −29.
+
+Отделку ближней площадки проверяйте в одиночном рейсе на seed −31 после первого уровня. Сравните входной кадр при том же FOV с базовым и сделайте боковой кадр при штатном свете. Для каждого укрытия проверьте проход с удержанием приседания в обе стороны и линии обзора с соответствующего конца пандуса.
+
+При добавлении плоской секции стены проверяйте блок свойств каждого рендера в игре. После `Projection.Flat` расстояние вдоль стены лежит в координате `p.x`, даже если в комнате стена тянется по оси Z. Для такой проекции профиль должен выбирать `p.xy`. У накладок вокруг кольца одна ссылка на материал `Contour-4 painted plaster dado` оставляла блок проекции пустым. Сверяйте карту `_WearMap`, локальный кадр, `_WallAcross` и `_WearProfile.w` на фасаде и на его накладках, затем снимайте их штатной камерой. [Наблюдения по версии 0.3.3](../build/evidence/rotary-lift-033-native/REPORT.md)
 
 ## Пересобрать ассеты
 
-Проекты Unity используются в редакторе 6000.3.27f1 (cf0352b38e81). Работайте с отдельной распакованной копией каждого проекта.
+Проекты Unity используются в редакторе 6000.3.17f1 (cf0352b38e81). Работайте с отдельной распакованной копией каждого проекта.
 
 Проект release/room-authoring содержит оформленные префабы и исходники процедурного декора, включая восемь вариантов сферической камеры. Для пересборки двух бандлов выполните по очереди BuildRoomPrefabs.Build и BuildRoomPrefabs.BuildPrepared. Первый метод добавляет шейдер износа и три карты Poly Haven из папки Materials/SurfaceTextures. Их лицензии, авторы и контрольные суммы перечислены в [surface-textures.json](surface-textures.json). Чтобы заново сгенерировать сферические префабы из каталога, запустите `prototype/procedural/NativeRaid/Build-PreparedModules.ps1` с параметром `-Module spherical-chamber-variants` и отдельным каталогом вывода. Для зала Мёбиуса используйте `-Module mobius-hall`. Его перила входят в каталог коллизий. Переносите сгенерированные ассеты вместе с их `.meta`.
 

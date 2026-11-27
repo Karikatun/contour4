@@ -60,7 +60,9 @@ namespace Contour4.NativeRaid.Runtime
             foreach (Block block in module.Geometry)
             {
                 if (walls.ContainsKey(block.Id)) continue;
-                if (block.Role == BlockRole.Shell && IsRoomWall(block.Id))
+                if (block.Role == BlockRole.Shell && (IsRoomWall(block.Id) ||
+                    module.Id == RaidQuotaRotaryRoom.Id && (block.Id.StartsWith("approach-", StringComparison.Ordinal) ||
+                    block.Id.StartsWith("ring-facade-", StringComparison.Ordinal) || block.Id == "near-rupture-left")))
                 {
                     Frame floor = WallFloor(module, block);
                     var (min, max) = block.Bounds;

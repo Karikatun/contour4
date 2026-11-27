@@ -43,6 +43,21 @@ namespace Contour4.NativeRaid.Editor
                 }
             }
             Physics.SyncTransforms();
+            // Check both the occupiable space and the sight obstruction. A solid
+            // housing by itself does not establish that a player can shelter behind it.
+            foreach (var hide in new[] {
+                (new Vector3(4.05f, 0, -3.8f), Vector3.left),
+                (new Vector3(4.10f, 0, 3.8f), Vector3.right) })
+            {
+                Vector3 feet = hide.Item1;
+                Require(!Physics.CheckCapsule(feet + Vector3.up * .32f, feet + Vector3.up * .90f, .25f),
+                    "Crouched shelter has unobstructed body space");
+                Require(Physics.Raycast(feet + Vector3.up * .8f, hide.Item2, .95f),
+                    "Shelter housing obstructs sight from the approach");
+                Require(Physics.Raycast(feet + Vector3.up, Vector3.down, 1.3f), "Shelter has floor support");
+            }
+            Require(!Physics.CheckBox(new Vector3(4.15f, .8f, 0), new Vector3(1.60f, .70f, 1.25f)),
+                "Central cart lane stays clear of added fixtures");
             foreach (float x in new[] { 3.5f, 5.7f })
             {
                 Require(Physics.Raycast(new Vector3(x, 1, 0), Vector3.down, out var hit, 2), "Ramp has support");

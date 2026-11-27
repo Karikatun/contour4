@@ -40,12 +40,38 @@ namespace Contour4.NativeRaid.Runtime
             Floor("west-deck-near", 2.30f, -5.83f, .14f, .33f, 24, DragB, .36f)
         };
 
+        // A worker was dragged from the damaged service wall toward the entrance.
+        // The marks are projected onto the actual support, with the same worn atlas
+        // and support checks as the other rooms.
+        private static readonly Mark[] Rotary =
+        {
+            Wall("approach-left-return", new Vector3(1.60f, 1.13f, -5.25f), Vector3.right, .30f, .39f, 19, RightHand, .87f),
+            Wall("approach-left-return", new Vector3(1.27f, .78f, -5.25f), Vector3.right, .28f, .43f, -12, DragB, .66f),
+            Floor("ground", 1.76f, -4.35f, .52f, 1.18f, -12, DragA, .87f),
+            Floor("ground", 1.34f, -3.34f, .40f, .88f, -22, DragB, .72f),
+            Floor("ground", .94f, -2.53f, .27f, .65f, -8, DragA, .50f),
+            Floor("ground", .67f, -1.92f, .17f, .38f, -16, DragB, .33f),
+            Wall("left-service-cabinet-panel", new Vector3(3.17f, 1.06f, -3.90f), Vector3.forward, .38f, .43f, 17, RightHand, 1f),
+            // Follow the physical ramp plane from the cabinet towards the aisle.
+            // A broad leading deposit and broken overlapping drags remain legible
+            // at normal player height without placing geometry over the floor.
+            new Mark("approach-ramp-down", new Vector3(3.06f, -.0336f, -3.45f),
+                new Vector3(.9982f, -.0599f, 0), Vector3.back, .82f, 1.06f, 9, DragA, 1.28f),
+            new Mark("approach-ramp-down", new Vector3(3.10f, -.036f, -2.82f),
+                new Vector3(.9982f, -.0599f, 0), Vector3.back, .67f, 1.20f, -12, DragB, 1.25f),
+            new Mark("approach-ramp-down", new Vector3(3.17f, -.0402f, -2.05f),
+                new Vector3(.9982f, -.0599f, 0), Vector3.back, .56f, 1.00f, 8, DragA, 1.18f),
+            new Mark("approach-ramp-down", new Vector3(3.29f, -.0474f, -1.48f),
+                new Vector3(.9982f, -.0599f, 0), Vector3.back, .36f, .62f, -14, DragB, 1.05f)
+        };
+
         internal void Apply(BakedRoom room)
         {
             Mark[] marks = room.Plan.Module.Id switch
             {
                 "service-cupboard" => Cupboard,
                 MaintenanceTrench.Id => Trench,
+                RaidQuotaRotaryRoom.Id => Rotary,
                 _ => null
             };
             if (marks == null) return;

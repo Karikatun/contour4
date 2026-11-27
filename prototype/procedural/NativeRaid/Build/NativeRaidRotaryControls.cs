@@ -182,6 +182,23 @@ internal sealed class NativeRaidRotaryControls : MonoBehaviour
         holeEdges.WallTriangle(new Vector3(-4.85f, .60f, -3.88f), new Vector3(-4.36f, .60f, -3.88f), new Vector3(-4.85f, .23f, -3.88f));
         ownedMeshes.Add(holeEdges.Render(cabin.transform, "Broken hole edges", wall, layer));
 
+        // These two meshes share the room's painted material but are created
+        // after the room finish pass. Supply the same room-space projection as
+        // the surrounding facade so the plaster does not sample a fixed texel.
+        foreach (string name in new[] { "Concrete ring spandrels", "Broken hole edges" })
+        {
+            var surface = cabin.transform.Find(name).GetComponent<MeshRenderer>();
+            var properties = new MaterialPropertyBlock();
+            Matrix4x4 frame = cabin.transform.parent.worldToLocalMatrix * surface.transform.localToWorldMatrix;
+            properties.SetMatrix("_WearFrame", frame);
+            properties.SetMatrix("_WearInverseFrame", frame.inverse);
+            properties.SetVector("_WearProfile", new Vector4(.71f, .23f, 0f, 1f));
+            properties.SetVector("_WallUpA", new Vector4(0, 1, 0, 0));
+            properties.SetVector("_WallUpB", new Vector4(0, 1, 0, 0));
+            properties.SetVector("_WallAcross", new Vector4(0, 0, 1, 0));
+            surface.SetPropertyBlock(properties);
+        }
+
         // Old steel seams and brackets break up the otherwise flat facade.
         var seams = new MeshParts();
         foreach (int side in new[] { -1, 1 })
@@ -212,8 +229,75 @@ internal sealed class NativeRaidRotaryControls : MonoBehaviour
         ownedMeshes.Add(bars.Render(cabin.transform, "Exposed reinforcement", dark, layer));
 
         // Modest contrasting fills illuminate the exposed ring without a backing wall.
-        WorkLight("Left facade worklight", new Vector3(3.4f, 1.1f, -6.1f), new Color(1f, .86f, .69f), 9f, 2.5f);
-        WorkLight("Right facade worklight", new Vector3(-3.4f, 1.1f, -6.1f), new Color(.75f, .84f, 1f), 9f, 2.5f);
+        // The repair cabinet is fixed to the solid left shelter. Its door hangs
+        // open toward the wall, exposing a dark instrument panel and cable runs.
+        var repair = new MeshParts();
+        // Leave the actual enameled cabinet face visible, including its contact trace.
+        repair.Box(new Vector3(4.00f, .40f, -6.88f), new Vector3(1.50f, .10f, .16f));
+        repair.Box(new Vector3(3.31f, -.28f, -6.88f), new Vector3(.09f, 1.42f, .16f));
+        repair.Box(new Vector3(4.69f, -.28f, -6.88f), new Vector3(.09f, 1.42f, .16f));
+        repair.Box(new Vector3(4.0f, -.14f, -6.93f), new Vector3(.93f, .12f, .04f));
+        repair.Box(new Vector3(3.68f, .65f, -6.72f), new Vector3(.08f, .50f, .08f));
+        repair.Box(new Vector3(4.16f, .65f, -6.72f), new Vector3(.08f, .50f, .08f));
+        repair.Box(new Vector3(3.92f, .88f, -6.72f), new Vector3(.56f, .08f, .08f));
+        ownedMeshes.Add(repair.Render(cabin.transform, "Open lift service switchboard", dark, layer));
+        Transform door = Node(cabin.transform, "Hanging service cabinet door", new Vector3(4.69f, -.27f, -6.91f),
+            Quaternion.Euler(0, -32f, 0), layer);
+        var doorParts = new MeshParts();
+        doorParts.Box(new Vector3(.55f, 0, 0), new Vector3(1.10f, 1.30f, .075f));
+        doorParts.Box(new Vector3(.95f, 0, -.06f), new Vector3(.055f, .36f, .06f));
+        ownedMeshes.Add(doorParts.Render(door, "Bent open panel and handle", steel, layer));
+        var lamps = MakeMaterial(steel, new Color(.20f, .45f, .32f));
+        lamps.EnableKeyword("_EMISSION");
+        if (lamps.HasProperty("_EmissionColor")) lamps.SetColor("_EmissionColor", new Color(.025f, .09f, .04f));
+        var indicators = new MeshParts();
+        indicators.Cylinder(new Vector3(3.72f, .12f, -7.00f), .055f, .04f, 10);
+        indicators.Cylinder(new Vector3(3.92f, .12f, -7.00f), .055f, .04f, 10);
+        ownedMeshes.Add(indicators.Render(cabin.transform, "Service panel dim indicators", lamps, layer));
+
+        // Two old conduits run above the damaged left return and turn down to
+        // the repair cabinet. All parts are visual and stay outside the lane.
+        void Conduit(string name, Vector3 position, Quaternion rotation, float length, float radius)
+        {
+            Transform node = Node(cabin.transform, name, position, rotation, layer);
+            var tube = new MeshParts();
+            tube.Cylinder(Vector3.zero, radius, length, 12);
+            foreach (float sign in new[] { -1f, 1f })
+                tube.Cylinder(new Vector3(0, 0, sign * (length * .5f - .09f)), radius * 1.38f, .10f, 12);
+            ownedMeshes.Add(tube.Render(node, name + " pipe and collars", steel, layer));
+        }
+        Conduit("Upper service conduit", new Vector3(5.05f, 1.30f, -7.65f), Quaternion.identity, 4.45f, .105f);
+        Conduit("Lower service conduit", new Vector3(5.05f, .96f, -7.65f), Quaternion.identity, 4.45f, .075f);
+        Conduit("Cabinet conduit cross feed", new Vector3(4.72f, 1.30f, -6.72f), Quaternion.Euler(0, 90, 0), .66f, .105f);
+        Conduit("Cabinet conduit down feed", new Vector3(4.39f, 1.06f, -6.72f), Quaternion.Euler(90, 0, 0), .50f, .105f);
+        var pipeMounts = new MeshParts();
+        foreach (float z in new[] { -9.40f, -8.10f, -6.72f, -5.65f })
+        {
+            pipeMounts.Box(new Vector3(5.16f, 1.13f, z), new Vector3(.12f, .62f, .11f));
+            pipeMounts.Box(new Vector3(5.05f, 1.30f, z), new Vector3(.30f, .26f, .09f));
+            pipeMounts.Box(new Vector3(5.05f, .96f, z), new Vector3(.24f, .20f, .09f));
+        }
+        pipeMounts.Box(new Vector3(5.05f, 1.30f, -6.72f), new Vector3(.26f, .26f, .26f));
+        pipeMounts.Box(new Vector3(4.39f, 1.30f, -6.72f), new Vector3(.26f, .26f, .26f));
+        // Armoured, low-output service lamp at the conduit junction.
+        pipeMounts.Box(new Vector3(5.06f, .61f, -6.72f), new Vector3(.18f, .30f, .42f));
+        ownedMeshes.Add(pipeMounts.Render(cabin.transform, "Conduit clamps elbows and lamp guard", dark, layer));
+        var serviceLens = new MeshParts();
+        serviceLens.Box(new Vector3(4.96f, .61f, -6.72f), new Vector3(.025f, .18f, .28f));
+        ownedMeshes.Add(serviceLens.Render(cabin.transform, "Protected service light lens", lamps, layer));
+        WorkLight("Conduit junction service light", new Vector3(4.82f, .64f, -6.72f), new Color(.82f, .93f, .77f), 2.7f, .65f);
+
+        // A retired drive sits on the other shelter, visually distinct from the
+        // cabinet while retaining a clear path to its protected side.
+        var drive = new MeshParts();
+        drive.Box(new Vector3(-4.05f, -.03f, -5.48f), new Vector3(1.10f, .33f, .18f));
+        drive.Cylinder(new Vector3(-4.05f, .10f, -5.59f), .32f, .12f, 16);
+        drive.Cylinder(new Vector3(-4.05f, .10f, -5.67f), .13f, .06f, 12);
+        ownedMeshes.Add(drive.Render(cabin.transform, "Retired drive casing and shaft", steel, layer));
+        WorkLight("Left facade worklight", new Vector3(3.4f, 1.1f, -6.1f), new Color(1f, .86f, .69f), 9f, 1.05f);
+        WorkLight("Right facade worklight", new Vector3(-3.4f, 1.1f, -6.1f), new Color(.75f, .84f, 1f), 9f, 1.05f);
+        WorkLight("Service switchboard light", new Vector3(4.0f, .65f, -7.55f), new Color(1f, .83f, .60f), 3.4f, 1.1f);
+        WorkLight("Retired drive light", new Vector3(-4.0f, .65f, -6.25f), new Color(.70f, .82f, 1f), 3.3f, .9f);
         WorkLight("Warm ring worklight", new Vector3(-3.4f, 1.6f, -4.8f), new Color(1f, .72f, .44f), 10f, 1.45f);
         WorkLight("Cool void fill", new Vector3(3.8f, 2f, 1.5f), new Color(.36f, .55f, .78f), 13f, 1.7f);
     }

@@ -398,6 +398,54 @@
           "sha256": "823cabc7f810b5ad772cef42e0f1aba254de0bc2ab14c74edbe9a38f34e6f50c"
         }
       ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "363df200cb1031508b03c1077c46acd9b06669622004c7ddc7a3a27c115b72fb",
+      "recordedAt": "2026-11-27T19:56:20.8236794+03:00",
+      "recordedBy": "Codex native playtest and package worker",
+      "observed": "Точные ZIP 0.3.3 и Contour4Valuables 0.2.4 сверены. Чистая сборка с исходной REPOLib 4.5.1 воспроизвела SHA-256 всех девяти записей игрового ZIP.",
+      "files": [
+        {
+          "path": "build/feature/final-033/cold-replay-result.json",
+          "sha256": "298afe53732de6d722a7dd19fdb354f3a20621deaacb1da433a5c2ed8a2744eb"
+        },
+        {
+          "path": "build/feature/final-033/package-pair.json",
+          "sha256": "a75db0714f63e1fdc6d6efadf1c1180551bf907af845786c9729a380f1819583"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2144",
+      "status": "passed",
+      "subject": "363df200cb1031508b03c1077c46acd9b06669622004c7ddc7a3a27c115b72fb",
+      "recordedAt": "2026-11-27T19:56:20.8236794+03:00",
+      "recordedBy": "Codex native playtest and package worker",
+      "observed": "При seed −31 лист штатных кадров показал квоту за кольцом, трубы и след на пандусе. Игрок присел за обоими укрытиями и вышел. Коллайдеры перекрыли восемь контрольных линий обзора. Пройдены поездка, возврат и оба вызова. Unity сверила грузовой габарит центральной части пандуса.",
+      "files": [
+        {
+          "path": "build/evidence/rotary-lift-033-native/game-witnesses.json",
+          "sha256": "2b89b8cdff28c709fbdae9309ff78a1cbf0a82fda8ae2a7ba102a0866bd5afd9"
+        },
+        {
+          "path": "build/evidence/rotary-lift-033-native/wall-materials.json",
+          "sha256": "8cf10457eef445aa70e0c4e2c4e5f58a6653d2346e716f6b4c8bdf54fbdbbf83"
+        },
+        {
+          "path": "build/evidence/rotary-lift-033-native/rotary-lift-033-gameplay.png",
+          "sha256": "29007413a866d1e1bcd49daa6da802d5fe7b988eea77fc6cf3651b383865ce8b"
+        },
+        {
+          "path": "build/evidence/rotary-lift-033-native/run-final-033.json",
+          "sha256": "eccc7fc0927045664db112bfe90006dadb7055a400a4cf0704928231035b4a60"
+        },
+        {
+          "path": "build/evidence/rotary-lift-033-native/unity-geometry.json",
+          "sha256": "5bfb450397998496e7cb968dfa45206270db3bc113c9f750115870a7c2408dff"
+        }
+      ]
     }
   ]
 }

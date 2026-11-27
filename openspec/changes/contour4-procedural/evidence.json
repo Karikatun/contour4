@@ -778,6 +778,76 @@
           "sha256": "3bd77138d3dd9a8f56876083ddffab2c94a659cd5b3cea8cdbfabed421a22759"
         }
       ]
+    },
+    {
+      "criterion": "AC-2155",
+      "status": "passed",
+      "subject": "901b9294120b53d79e90db6dacbfe8ceb33d7eaeb361d0cd511fa88200b85525",
+      "recordedAt": "2026-11-27T19:56:11.060Z",
+      "recordedBy": "Codex, изолированный Unity Editor",
+      "observed": "Точная сборка 0.3.8 6B6F6BF7. В Unity Editor обе комнаты дважды построены и проверены. Пройдены 12 проверок материалов и 34 проверки UV0. Сопоставлены общие виды и крупные планы.",
+      "files": [
+        {
+          "path": "build/evidence/bridge-materials-038/entrance-vistas.png",
+          "sha256": "394ea0455bfed7a8931df89b20b548581047191ec8b4b1dd6f97c6aafc76ee5b"
+        },
+        {
+          "path": "build/evidence/bridge-materials-038/materials-near.png",
+          "sha256": "b7be96854f1b74b7584fcd271a1d7342e2c5bf8949df39cc3d4d27082d951973"
+        },
+        {
+          "path": "build/evidence/bridge-materials-038/current-038/unity-offline-render.log",
+          "sha256": "ba1bede38b9795604b3c36b79c26f9042fff0387d218e33213bfe9e9181ed2e6"
+        },
+        {
+          "path": "build/evidence/bridge-materials-038/current-038/render-receipt.json",
+          "sha256": "6361f0d374965a595d337ce453bad813934d3c4e6a2f3662fbeb16adaa487e49"
+        },
+        {
+          "path": "build/evidence/bridge-materials-038/materials-payload-editor.json",
+          "sha256": "7924a181c1a56aca46ea9ddc3d9b98f6bc082716a42139d04a759fd63a8781d7"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2152",
+      "status": "passed",
+      "subject": "901b9294120b53d79e90db6dacbfe8ceb33d7eaeb361d0cd511fa88200b85525",
+      "recordedAt": "2026-11-27T19:56:11.066Z",
+      "recordedBy": "Codex, изолированный Unity Editor",
+      "observed": "Из распакованных исходников точной 0.3.8 6B6F6BF7 проверены 18 из 18 раскладок в Unity 6000.3.17f1, exit 0. Проверки включают физическую опору, открытые кромки, Tab и путь малого агента.",
+      "files": [
+        {
+          "path": "build/evidence/bridge-materials-038/unity-prepared-package.log",
+          "sha256": "9d69d0c0b09dc2cb078814be94d0dfb6b29f4126698469b8bbae7ea7a3b6b065"
+        },
+        {
+          "path": "build/feature/final-038/package-pair.json",
+          "sha256": "8330e9fe7ba0d106e1b8722c841e29b9aaebe730b5f776f2d3ca59d61a8ae114"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "901b9294120b53d79e90db6dacbfe8ceb33d7eaeb361d0cd511fa88200b85525",
+      "recordedAt": "2026-11-27T19:56:11.072Z",
+      "recordedBy": "Codex, изолированный Unity Editor",
+      "observed": "Чистая сборка из ZIP исходников точной 0.3.8 воспроизвела все девять записей. Все четыре JPEG совпадают в источниках, ZIP, игровой DLL и обеих редакторских копиях. Девять записей совпадают с input-lock.",
+      "files": [
+        {
+          "path": "build/feature/final-038/cold-replay-result.json",
+          "sha256": "2fd47cb09360ee5f8b110ca34abfb44f6bb41706b67ca174e11028fc3018c939"
+        },
+        {
+          "path": "build/feature/final-038/texture-payload.json",
+          "sha256": "863b9080b7ae0da9a895d24af5a4b7c9655a4ec0e48fa33333c46337b6f4cffa"
+        },
+        {
+          "path": "build/feature/final-038/input-lock-match.json",
+          "sha256": "afaf8fb283065ea0bac20af6fe7509c14e5771ff188c628945beee8a340067bd"
+        }
+      ]
     }
   ]
 }

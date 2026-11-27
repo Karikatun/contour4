@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Contour4.Procedural.Catalog;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -13,39 +12,54 @@ namespace Contour4.NativeRaid.Runtime
     internal sealed class ExtractionBridgeVista
     {
         private const string RootName = "Ruptured shaft";
-        private const string PanoramaResource = "Contour4.BridgePanorama.jpg";
         private const int PanelPixels = 256;
         private const int PanelCount = 3;
+        internal const float ConcreteTileMeters = 1.7f;
+        internal const float SteelTileMeters = 1.3f;
         private const float Bottom = -7.73f;
         private const float Top = 7.98f;
         private static readonly Color LampColor = new(1f, .74f, .41f);
         private readonly List<Mesh> meshes;
+        private readonly ExtractionBridgeTextures textures;
         private readonly Material concrete, spall, gunmetal, rust, distant, middle, footing, aperture, pilot, sky;
-        private readonly Texture2D surface, atmosphere;
+        private readonly Material timber, weatheredTimber;
+        private readonly Texture2D atmosphere;
+        internal Material EdgeSteel => gunmetal;
+        internal Material DeckConcrete { get; }
+        internal Material WornDeckConcrete { get; }
+        internal Material Fastener { get; }
 
         internal ExtractionBridgeVista(Shader standard, List<Material> materials, List<Mesh> meshes)
         {
             this.meshes = meshes;
             Shader unlit = Shader.Find("Unlit/Color");
             Shader unlitTexture = Shader.Find("Unlit/Texture");
-            surface = MakeTexture("Ruptured shaft aggregate", 128, 128, false, (x, y) =>
+            textures = new ExtractionBridgeTextures();
+            try
             {
-                float u = x / 127f, v = y / 127f;
-                float grain = Mathf.PerlinNoise(u * 76f + 2.7f, v * 76f + 8.6f);
-                float cloud = Mathf.PerlinNoise(u * 5f + .81f, v * 7f + 9.1f);
-                float edge = Mathf.Abs(Mathf.PerlinNoise(u * 22f + 11.8f, v * 22f + 2.5f) - .5f);
-                float value = .66f + .16f * cloud + .14f * grain - .12f * Mathf.SmoothStep(.76f, 1f, 1f - edge * 15f);
-                return new Color(value, value * .984f, value * .958f);
-            });
-            atmosphere = BuildPanorama();
+                atmosphere = BuildPanorama();
+            }
+            catch
+            {
+                textures.Release();
+                throw;
+            }
 
-            concrete = Lit("Stained aggregate", new Color(.37f, .337f, .309f), .14f, .33f);
-            spall = Lit("Exposed aggregate", new Color(.47f, .425f, .374f), .09f, .29f);
-            gunmetal = Lit("Oxidized steel", new Color(.27f, .244f, .221f), .24f, .25f);
-            rust = Lit("Weathered reinforcement", new Color(.33f, .233f, .145f), .20f, .27f);
+            concrete = Lit("Stained aggregate", textures.Concrete, new Color(.83f, .77f, .72f), .15f, .47f, .65f);
+            spall = Lit("Exposed aggregate", textures.Concrete, new Color(.68f, .62f, .56f), .09f, .47f, .79f,
+                textureScale: 1.55f);
+            DeckConcrete = Lit("Landing concrete", textures.Concrete, new Color(.74f, .72f, .69f), .13f, .37f, .58f);
+            WornDeckConcrete = Lit("Worn landing concrete", textures.Concrete, new Color(.64f, .60f, .54f), .11f, .37f, .61f);
+            gunmetal = Lit("Oxidized steel", textures.Steel, new Color(.80f, .77f, .73f), .32f, .45f, .49f, metallic: .21f);
+            rust = Lit("Weathered reinforcement", textures.Steel, new Color(.92f, .66f, .43f), .23f, .49f, .52f, metallic: .15f);
+            timber = Lit("Contour-4 bridge timber unpainted", textures.Timber, new Color(.95f, .88f, .78f), .18f, .49f, .49f);
+            weatheredTimber = Lit("Contour-4 bridge timber weathered", textures.Timber, new Color(.72f, .66f, .58f),
+                .14f, .41f, .52f);
+            Fastener = Material("Contour-4 bridge fastener", standard, new Color(.22f, .18f, .13f));
+            Fastener.SetFloat("_Glossiness", .32f);
             footing = Flat("Shaft bed shadow", new Color(.026f, .025f, .040f));
             distant = Flat("Steel behind the haze", new Color(.071f, .077f, .112f));
-            middle = Flat("Steel in the haze", new Color(.050f, .054f, .074f));
+            middle = Lit("Steel in the haze", textures.Steel, new Color(.42f, .49f, .64f), .13f, .41f, .34f);
             aperture = Flat("Amber work light", new Color(1f, .77f, .47f) * 1.55f);
             pilot = Flat("Distant service indicator", new Color(.58f, .212f, .059f));
             sky = Material("Shaft horizon", unlitTexture ? unlitTexture : standard, Color.white);
@@ -65,11 +79,18 @@ namespace Contour4.NativeRaid.Runtime
                 return material;
             }
 
-            Material Lit(string name, Color color, float gloss, float bounce)
+            Material Lit(string name, (Texture2D Albedo, Texture2D Relief) tile, Color color, float gloss,
+                float bounce, float bump, float textureScale = 1f, float metallic = 0f)
             {
                 var material = Material(name, standard, color);
-                material.mainTexture = surface;
+                material.mainTexture = tile.Albedo;
+                material.mainTextureScale = Vector2.one * textureScale;
                 material.SetFloat("_Glossiness", gloss);
+                material.SetFloat("_Metallic", metallic);
+                material.SetTexture("_BumpMap", tile.Relief);
+                material.SetFloat("_BumpScale", bump);
+                material.EnableKeyword("_NORMALMAP");
+                material.SetTexture("_EmissionMap", tile.Albedo);
                 material.SetColor("_EmissionColor", color * bounce);
                 material.EnableKeyword("_EMISSION");
                 return material;
@@ -86,6 +107,8 @@ namespace Contour4.NativeRaid.Runtime
                 return material;
             }
         }
+
+        internal Material Timber(int row) => row == 0 ? weatheredTimber : timber;
 
         internal void Apply(Transform room, bool bent)
         {
@@ -119,9 +142,9 @@ namespace Contour4.NativeRaid.Runtime
             Publish(root, bed, "Deep shaft shadow", footing);
 
             var rearSteel = new MeshBatch();
-            var middleSteel = new MeshBatch();
-            var girders = new MeshBatch();
-            var rods = new MeshBatch();
+            var middleSteel = new MeshBatch(SteelTileMeters);
+            var girders = new MeshBatch(SteelTileMeters);
+            var rods = new MeshBatch(SteelTileMeters);
             var ruin = new MeshBatch();
             var exposed = new MeshBatch();
             var indicators = new MeshBatch();
@@ -147,9 +170,9 @@ namespace Contour4.NativeRaid.Runtime
             girders.Beam(new Vector3(8.31f, 6.47f, bent ? 3.18f : far - .72f),
                 new Vector3(10.38f, 5.08f, bent ? 2.40f : far - 2.62f), .19f, .23f);
             ruin.Slab(new Vector3(4.24f, 6.99f, near + 1.32f), new Vector3(3.64f, .69f, 2.2f),
-                Quaternion.Euler(13f, -18f, -8f), 13);
+                Quaternion.Euler(13f, -18f, -8f), 13, exposeCuts: true);
             ruin.Slab(new Vector3(7.55f, 7.19f, bent ? 3.39f : far - 1.18f), new Vector3(3.08f, .56f, 1.53f),
-                Quaternion.Euler(-13f, 17f, 8f), 5);
+                Quaternion.Euler(-13f, 17f, 8f), 5, exposeCuts: true);
             rods.Beam(new Vector3(6.09f, 6.83f, -4.03f), new Vector3(6.49f, 6.07f, -3.68f), .027f, .027f);
             rods.Beam(new Vector3(5.83f, 6.74f, -3.91f), new Vector3(6.04f, 5.78f, -3.67f), .028f, .027f);
 
@@ -157,18 +180,16 @@ namespace Contour4.NativeRaid.Runtime
             Publish(root, middleSteel, "Broken secondary gantries", middle);
             Publish(root, girders, "Exposed load-bearing girders", gunmetal);
             Publish(root, rods, "Torn reinforcement", rust);
-            Publish(root, ruin, "Fractured concrete structure", concrete);
+            Publish(root, ruin, "Fractured concrete structure", concrete, spall);
             Publish(root, exposed, "Exposed fracture faces", spall);
             Publish(root, indicators, "Service lights below the crossing", pilot);
 
-            foreach (Transform part in room)
-                if (part.name.StartsWith(RaidExtractionBridge.FracturePrefix, StringComparison.Ordinal))
-                    FinishPhysicalFragment(part);
+            ApplyRoomSurfaces(room);
 
             if (bent) BentDebris();
             else StraightDebris();
 
-            var lampFrames = new MeshBatch();
+            var lampFrames = new MeshBatch(SteelTileMeters);
             var lenses = new MeshBatch();
             Practical("Apron left work light", new Vector3(4.0f, .41f, -4.64f), new Vector3(-.21f, -.42f, 1f));
             Practical("Apron right work light", new Vector3(4.12f, .46f, 4.12f), new Vector3(-.25f, -.46f, -1f));
@@ -390,12 +411,12 @@ namespace Contour4.NativeRaid.Runtime
                 float height = distantBank ? 7.45f : 7.2f;
                 ruin.Slab(new Vector3(x - .58f, 3.54f, z), new Vector3(2.18f, height, .78f),
                     Quaternion.Euler(3.2f * inward, -8f * inward, distantBank ? 4.5f : -3.5f), distantBank ? 11 : 4,
-                    vertical: true);
+                    vertical: true, exposeCuts: true);
                 ruin.Slab(new Vector3(x + .69f, 5.97f, z + inward * .12f), new Vector3(2.2f, 2.75f, .76f),
-                    Quaternion.Euler(-5f * inward, 6f * inward, -11f), distantBank ? 9 : 3, vertical: true);
+                    Quaternion.Euler(-5f * inward, 6f * inward, -11f), distantBank ? 9 : 3, vertical: true, exposeCuts: true);
                 if (!distantBank)
                     ruin.Slab(new Vector3(x + .63f, .65f, z + inward * .1f), new Vector3(2.88f, 1.78f, .86f),
-                        Quaternion.Euler(5f * inward, 7f * inward, -21f), 8, vertical: true);
+                        Quaternion.Euler(5f * inward, 7f * inward, -21f), 8, vertical: true, exposeCuts: true);
                 girders.Beam(new Vector3(x - 1.02f, -1.36f, z + inward * .45f),
                     new Vector3(x - 1.1f, 7.68f, z + inward * .49f), .26f, .33f);
                 rods.Beam(new Vector3(x + 1.03f, 4.89f, z + inward * .16f),
@@ -437,8 +458,8 @@ namespace Contour4.NativeRaid.Runtime
             void Fragment(float x, float y, float z, float width, float height, float depth, float pitch, float yaw, float roll, int kind)
             {
                 var shape = new MeshBatch();
-                shape.Slab(Vector3.zero, new Vector3(width, height, depth), Quaternion.identity, kind);
-                var fragment = Publish(root, shape, $"Drifting slab {kind:00}", kind % 3 == 0 ? spall : concrete);
+                shape.Slab(Vector3.zero, new Vector3(width, height, depth), Quaternion.identity, kind, exposeCuts: true);
+                var fragment = Publish(root, shape, $"Drifting slab {kind:00}", concrete, spall);
                 fragment.localPosition = new Vector3(x, y, z);
                 fragment.localRotation = Quaternion.Euler(pitch, yaw, roll);
                 fragment.gameObject.AddComponent<ExtractionSlabDrift>().Initialize(kind);
@@ -455,6 +476,66 @@ namespace Contour4.NativeRaid.Runtime
             }
         }
 
+        private void ApplyRoomSurfaces(Transform room)
+        {
+            foreach (Transform part in room)
+            {
+                if (part.name.StartsWith(RaidExtractionBridge.TimberPrefix, StringComparison.Ordinal))
+                    FinishTimber(part);
+                else if (part.name.StartsWith(RaidExtractionBridge.FracturePrefix, StringComparison.Ordinal))
+                    FinishPhysicalFragment(part);
+                else if (part.name is "safe-entry-apron" or "extraction-landing" or "entry-roof" or
+                    "west-wall-left" or "west-wall-right" or "west-wall-lintel")
+                    FinishBox(part, DeckConcrete, ConcreteTileMeters);
+                else if (part.name == "cart-cover")
+                    FinishBox(part, gunmetal, SteelTileMeters);
+            }
+        }
+
+        private static void FinishTimber(Transform part)
+        {
+            const string outgoing = RaidExtractionBridge.TimberPrefix + "outgoing-";
+            bool alongZ = part.name.StartsWith(outgoing, StringComparison.Ordinal);
+            bool weatheredRow = part.name[part.name.Length - 1] == '0';
+            var mesh = part.GetComponent<MeshFilter>().sharedMesh;
+            // Restart the grain at each staggered joint while keeping the same direction and scale.
+            float start = alongZ ? mesh.bounds.min.z : mesh.bounds.min.x;
+            float phase = Mathf.Repeat(start * .2317f, 1f);
+            float uOffset = (weatheredRow ? .28f : .66f) + phase * .32f;
+            float vOffset = (weatheredRow ? .24f : .67f) + phase * .83f;
+            var points = mesh.vertices;
+            var uv = new Vector2[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                Vector3 p = points[i];
+                float across = alongZ ? p.x - RaidExtractionBridge.BentAxis : p.z;
+                float along = alongZ ? p.z : p.x - RaidExtractionBridge.GapStart;
+                uv[i] = new Vector2(across * 1.17f + p.y * .82f + uOffset, along * .385f + p.y * .09f + vOffset);
+            }
+            mesh.uv = uv;
+            mesh.RecalculateTangents();
+        }
+
+        private void FinishBox(Transform part, Material material, float tileMeters)
+        {
+            var filter = part.GetComponent<MeshFilter>();
+            var mesh = Object.Instantiate(filter.sharedMesh);
+            mesh.name = part.name + " texture projection";
+            var points = mesh.vertices;
+            var normals = mesh.normals;
+            var uv = new Vector2[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                Vector3 point = part.localPosition + part.localRotation * Vector3.Scale(points[i], part.localScale);
+                uv[i] = MeshBatch.Project(point, part.localRotation * normals[i]) / tileMeters;
+            }
+            mesh.uv = uv;
+            mesh.RecalculateTangents();
+            meshes.Add(mesh);
+            filter.sharedMesh = mesh;
+            part.GetComponent<MeshRenderer>().sharedMaterial = material;
+        }
+
         private void FinishPhysicalFragment(Transform part)
         {
             // Share the original geometry with the collider. Only the texture coordinates change.
@@ -464,20 +545,22 @@ namespace Contour4.NativeRaid.Runtime
             for (int i = 0; i < points.Length; i++)
             {
                 Vector3 p = points[i];
-                uv[i] = new Vector2(p.x + p.y * .36f, p.z + p.y * .61f) * .67f;
+                uv[i] = new Vector2(p.x + p.y * .36f, p.z + p.y * .61f) / ConcreteTileMeters;
             }
             mesh.uv = uv;
+            mesh.RecalculateTangents();
             part.GetComponent<MeshRenderer>().sharedMaterial = concrete;
         }
 
-        private Transform Publish(Transform root, MeshBatch batch, string name, Material material)
+        private Transform Publish(Transform root, MeshBatch batch, string name, Material material, Material cuts = null)
         {
             var child = RaidAssembly.Child(root, name);
             var mesh = batch.Finish(name);
             meshes.Add(mesh);
             child.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = child.gameObject.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
+            if (mesh.subMeshCount == 2) renderer.sharedMaterials = new[] { material, cuts };
+            else renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             return child;
@@ -500,29 +583,9 @@ namespace Contour4.NativeRaid.Runtime
 
         private static Texture2D BuildPanorama()
         {
-            byte[] jpeg;
-            using (Stream stream = typeof(ExtractionBridgeVista).Assembly.GetManifestResourceStream(PanoramaResource))
-            {
-                if (stream != null)
-                {
-                    using var bytes = new MemoryStream();
-                    stream.CopyTo(bytes);
-                    jpeg = bytes.ToArray();
-                }
-                else
-                {
-                    // Unity's source-based editor checks stage the canonical JPEG as a TextAsset.
-                    var resource = Resources.Load<TextAsset>("Contour4/BridgePanorama");
-                    jpeg = resource ? resource.bytes : throw new InvalidOperationException($"Missing {PanoramaResource}.");
-                }
-            }
-
-            var matte = new Texture2D(2, 2, TextureFormat.RGB24, false);
+            Texture2D matte = ExtractionBridgeTextures.DecodeJpeg("BridgePanorama", "Ruptured shaft original panorama");
             try
             {
-                if (!ImageConversion.LoadImage(matte, jpeg))
-                    throw new InvalidOperationException($"Could not decode {PanoramaResource}.");
-
                 return MakeTexture("Ruptured shaft industrial panorama", PanelCount * PanelPixels, PanelPixels,
                     true, (x, y) =>
                 {
@@ -546,7 +609,7 @@ namespace Contour4.NativeRaid.Runtime
             }
             finally
             {
-                DestroyTexture(matte);
+                ExtractionBridgeTextures.DestroyTexture(matte);
             }
         }
 
@@ -568,17 +631,11 @@ namespace Contour4.NativeRaid.Runtime
 
         internal void Release()
         {
-            DestroyTexture(surface);
-            DestroyTexture(atmosphere);
+            textures.Release();
+            ExtractionBridgeTextures.DestroyTexture(atmosphere);
         }
 
-        private static void DestroyTexture(Texture2D texture)
-        {
-            if (Application.isPlaying) Object.Destroy(texture);
-            else Object.DestroyImmediate(texture);
-        }
-
-        private sealed class MeshBatch
+        internal sealed class MeshBatch
         {
             private static readonly Vector2[] BreakLine =
             {
@@ -588,8 +645,15 @@ namespace Contour4.NativeRaid.Runtime
             private readonly List<Vector3> vertices = new();
             private readonly List<Vector2> uv = new();
             private readonly List<int> triangles = new();
+            private readonly List<int> fractureTriangles = new();
+            private readonly float tileMeters;
 
-            internal void Box(Vector3 center, Vector3 size, Quaternion? rotation = null)
+            internal MeshBatch(float tileMeters = ConcreteTileMeters)
+            {
+                this.tileMeters = tileMeters;
+            }
+
+            internal void Box(Vector3 center, Vector3 size, Quaternion? rotation = null, int quarterTurns = 0)
             {
                 Quaternion q = rotation ?? Quaternion.identity;
                 Vector3 x = q * (Vector3.right * size.x / 2f), y = q * (Vector3.up * size.y / 2f);
@@ -600,7 +664,7 @@ namespace Contour4.NativeRaid.Runtime
 
                 void Face(Vector3 normal, Vector3 u, Vector3 v) =>
                     Quad(center + normal - u - v, center + normal + u - v, center + normal + u + v,
-                        center + normal - u + v, normal, mapped: true);
+                        center + normal - u + v, normal, mapped: true, quarterTurns: quarterTurns);
             }
 
             internal void Beam(Vector3 a, Vector3 b, float width, float height)
@@ -610,7 +674,7 @@ namespace Contour4.NativeRaid.Runtime
                 Box((a + b) / 2f, new Vector3(width, height, axis.magnitude), Quaternion.LookRotation(axis, up));
             }
 
-            internal void Slab(Vector3 center, Vector3 size, Quaternion rotation, int kind, bool vertical = false)
+            internal void Slab(Vector3 center, Vector3 size, Quaternion rotation, int kind, bool vertical = false, bool exposeCuts = false)
             {
                 var upper = new Vector3[BreakLine.Length];
                 var lower = new Vector3[BreakLine.Length];
@@ -634,8 +698,8 @@ namespace Contour4.NativeRaid.Runtime
                     Triangle(upper[i], upper[next], crown, outwards);
                     Triangle(lower[i], lower[next], underside, -outwards);
                     Vector3 radial = Vector3.ProjectOnPlane((upper[i] + upper[next]) * .5f - center, outwards);
-                    Triangle(upper[i], lower[i], upper[next], radial);
-                    Triangle(lower[i], lower[next], upper[next], radial);
+                    Triangle(upper[i], lower[i], upper[next], radial, exposeCuts);
+                    Triangle(lower[i], lower[next], upper[next], radial, exposeCuts);
                 }
 
                 Vector3 Point(float u, float v, float thickness) =>
@@ -644,14 +708,16 @@ namespace Contour4.NativeRaid.Runtime
             }
 
             internal void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 outward, bool mapped = false,
-                int panel = -1, float topV = 1f)
+                int panel = -1, float topV = 1f, int quarterTurns = 0)
             {
                 int start = vertices.Count;
                 vertices.Add(a); vertices.Add(b); vertices.Add(c); vertices.Add(d);
                 if (mapped)
                 {
-                    uv.Add(Project(a, outward)); uv.Add(Project(b, outward));
-                    uv.Add(Project(c, outward)); uv.Add(Project(d, outward));
+                    uv.Add(RotateTile(Project(a, outward), quarterTurns) / tileMeters);
+                    uv.Add(RotateTile(Project(b, outward), quarterTurns) / tileMeters);
+                    uv.Add(RotateTile(Project(c, outward), quarterTurns) / tileMeters);
+                    uv.Add(RotateTile(Project(d, outward), quarterTurns) / tileMeters);
                 }
                 else if (panel >= 0)
                 {
@@ -669,35 +735,48 @@ namespace Contour4.NativeRaid.Runtime
                 Face(start, start + 2, start + 3, outward);
             }
 
-            private void Triangle(Vector3 a, Vector3 b, Vector3 c, Vector3 outward)
+            private void Triangle(Vector3 a, Vector3 b, Vector3 c, Vector3 outward, bool cut = false)
             {
                 int start = vertices.Count;
                 vertices.Add(a); vertices.Add(b); vertices.Add(c);
                 Vector3 normal = Vector3.Cross(b - a, c - a);
-                uv.Add(Project(a, normal)); uv.Add(Project(b, normal)); uv.Add(Project(c, normal));
-                Face(start, start + 1, start + 2, outward);
+                uv.Add(Project(a, normal) / tileMeters); uv.Add(Project(b, normal) / tileMeters);
+                uv.Add(Project(c, normal) / tileMeters);
+                Face(start, start + 1, start + 2, outward, cut);
             }
 
-            private void Face(int a, int b, int c, Vector3 outward)
+            private void Face(int a, int b, int c, Vector3 outward, bool cut = false)
             {
                 bool direct = Vector3.Dot(Vector3.Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]), outward) >= 0;
-                triangles.Add(a); triangles.Add(direct ? b : c); triangles.Add(direct ? c : b);
+                var indices = cut ? fractureTriangles : triangles;
+                indices.Add(a); indices.Add(direct ? b : c); indices.Add(direct ? c : b);
             }
 
-            private static Vector2 Project(Vector3 v, Vector3 normal)
+            internal static Vector2 Project(Vector3 v, Vector3 normal)
             {
                 float x = Mathf.Abs(normal.x), y = Mathf.Abs(normal.y), z = Mathf.Abs(normal.z);
-                if (y >= x && y >= z) return new Vector2(v.x, v.z) * .67f;
-                return (x >= z ? new Vector2(v.z, v.y) : new Vector2(v.x, v.y)) * .67f;
+                if (y >= x && y >= z) return new Vector2(v.x, v.z);
+                return x >= z ? new Vector2(v.z, v.y) : new Vector2(v.x, v.y);
             }
+
+            private static Vector2 RotateTile(Vector2 uv, int quarterTurns) => quarterTurns switch
+            {
+                1 => new Vector2(-uv.y, uv.x),
+                2 => -uv,
+                3 => new Vector2(uv.y, -uv.x),
+                _ => uv,
+            };
 
             internal Mesh Finish(string name)
             {
                 var mesh = new Mesh { name = name };
                 mesh.SetVertices(vertices);
                 mesh.SetUVs(0, uv);
+                mesh.subMeshCount = fractureTriangles.Count == 0 ? 1 : 2;
                 mesh.SetTriangles(triangles, 0);
+                if (mesh.subMeshCount == 2) mesh.SetTriangles(fractureTriangles, 1);
                 mesh.RecalculateNormals();
+                mesh.RecalculateTangents();
                 mesh.RecalculateBounds();
                 return mesh;
             }

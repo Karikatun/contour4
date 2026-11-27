@@ -26,7 +26,16 @@ Copy-Item -LiteralPath "$PSScriptRoot/Enemies/StockPortalPursuit.cs" -Destinatio
 Copy-Item -Path "$PSScriptRoot/Editor/*.cs" -Destination "$assets/Editor"
 $artResources = Join-Path $project 'Assets/Resources/Contour4'
 New-Item -ItemType Directory -Path $artResources -Force | Out-Null
-Copy-Item -LiteralPath "$PSScriptRoot/Assets/ruined-shaft-backdrop-037.jpg" -Destination (Join-Path $artResources 'BridgePanorama.bytes')
+$bridgeTextures = @{
+    BridgePanorama = 'ruined-shaft-backdrop-037.jpg'
+    BridgeConcrete = 'ruined-concrete-tile.jpg'
+    BridgeSteel = 'ruined-steel-tile.jpg'
+    BridgeTimber = 'ruined-wood-tile.jpg'
+}
+foreach ($name in $bridgeTextures.Keys) {
+    $source = Join-Path "$PSScriptRoot/Assets" $bridgeTextures[$name]
+    Copy-Item -LiteralPath $source -Destination (Join-Path $artResources "$name.bytes")
+}
 '[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Assembly-CSharp-Editor")]' |
     Set-Content -LiteralPath "$assets/OfflineEditorAccess.cs" -Encoding utf8
 

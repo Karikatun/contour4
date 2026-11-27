@@ -27,6 +27,17 @@
       }
     ]
   },
+  "bridgeMaterials038": {
+    "mapZip": "../../../build/feature/final-038/Contour4-0.3.8.zip",
+    "sha256": "6B6F6BF7592B4723D05C36444C0152C38A36AB4A838C9E7CDB4E65633737A45D",
+    "observedCriteria": [
+      "AC-2155",
+      "AC-2152",
+      "AC-2143"
+    ],
+    "results": "implementation.md#дерево-сталь-и-бетон-двух-мостов-038",
+    "verificationMode": "Unity Editor в режиме редактирования и обзор кадров."
+  },
   "bridgeVistas037": {
     "mapZip": "../../../build/feature/final-037/Contour4-0.3.7.zip",
     "sha256": "0CA6ACBAEAE5D652181A35251F84411DDA9454BF1414A4D027597E3914BDEE8A",

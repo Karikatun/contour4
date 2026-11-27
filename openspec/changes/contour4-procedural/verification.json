@@ -9,11 +9,14 @@
       "reason": "Для серой пары нужны измеримые габариты и коллизии. Разрез и 3D-вид снимаются с проверяемой геометрии после сборки.",
       "selectedFiles": [
         "prototype/room-concepts/30-spherical-chamber-v3.png",
-        "prototype/room-concepts/31-mobius-hall.png"
+        "prototype/room-concepts/31-mobius-hall.png",
+        "build/evidence/broken-vistas-037/reference.png"
       ]
     }
   },
   "subjectPaths": [
+    "build/feature/final-037/Contour4-0.3.7.zip",
+    "build/feature/final-037/Contour4-0.3.7-source.zip",
     "build/feature/final-036/Contour4-0.3.6.zip",
     "build/feature/final-036/Contour4-0.3.6-source.zip",
     "build/feature/final-035/Contour4-0.3.5.zip",
@@ -28,6 +31,11 @@
     "prototype/ring/Editor/PreparedModulePackageChecks.cs",
     "prototype/procedural/NativeRaid/Editor/SeededRaidChecks.cs",
     "prototype/procedural/NativeRaid/Generation/RaidAssembly.cs",
+    "prototype/procedural/NativeRaid/Generation/ExtractionBridgeLandingArt.cs",
+    "prototype/procedural/NativeRaid/Generation/ExtractionBridgeVista.cs",
+    "prototype/procedural/NativeRaid/Assets/ruined-shaft-backdrop-037.jpg",
+    "prototype/procedural/NativeRaid/Generation/Contour4NativeRaidRuntime.csproj",
+    "prototype/procedural/NativeRaid/Test-NativeRaid.ps1",
     "prototype/procedural/NativeRaid/Generation/RaidExtractionBridge.cs",
     "prototype/procedural/NativeRaid/Generation/RoomSurfaceWear.cs",
     "prototype/procedural/Navigation/Runtime/RaidLayout.cs",
@@ -53,6 +61,12 @@
     "profile": "Автономный стенд Unity Editor и отдельная копия R.E.P.O. 0.5.2 с собственной userdata и зафиксированными сборочными зависимостями."
   },
   "assets": [
+    {
+      "path": "prototype/procedural/NativeRaid/Assets/ruined-shaft-backdrop-037.jpg",
+      "source": "ImageGen. Фон заброшенной индустриальной шахты без переднего плана и надписей, уменьшен и сохранён как JPEG 1536 × 768 для двух квотных комнат.",
+      "license": "Оригинальный ресурс проекта, созданный на заказ",
+      "redistributionAllowed": true
+    },
     {
       "path": "prototype/procedural/NativeRaid/Authored/Assets/Contour4/Rooms/Materials/SurfaceTextures/painted_plaster_wall_diff_1k.jpg",
       "source": "https://polyhaven.com/a/painted_plaster_wall",
@@ -87,7 +101,7 @@
       "requirement": "REQ-215",
       "mode": "unity",
       "required": true,
-      "procedure": "Запустить Test-PreparedPackage.ps1 -ExtractionBridges на точном ZIP 0.3.6. Проверить границы настилов, опору на повороте, входные кромки и выход в шахту по обе стороны от входа на доски.",
+      "procedure": "Запустить Test-PreparedPackage.ps1 -ExtractionBridges на точном ZIP 0.3.7. Проверить границы настилов, опору на повороте, входные кромки и выход в шахту по обе стороны от входа на доски.",
       "expected": "Мосты появляются на стадиях 5 и 9. Два ряда по 0,40 м дают опору по прямым участкам и на повороте. Коллизии у бывших бортиков отсутствуют, под площадкой есть пол вплоть до обрыва. Квоты и запасная расстановка проходят проверку.",
       "evidence": "Журнал проверки собранной карты в Unity и SHA-256 пакета."
     },
@@ -99,6 +113,15 @@
       "procedure": "В R.E.P.O. 0.5.2 на seed −32 после 9 пройденных уровней снять с одинаковых точек входные площадки 0.3.5 и 0.3.6. Повторить проходы сферой через 5 бывших объёмов бортиков и проверить лучами опору, открытый край и стык с досками.",
       "expected": "В 0.3.5 сфера задевает физические бортики, в 0.3.6 проходит свободно во всех пяти местах. За краем открыт провал. Пол, укрытие у входа и подход к настилу остаются на своих местах.",
       "evidence": "Два ряда снимков с одинаковой камеры, журналы коллизий и опоры обоих архивов, SHA-256 пакетов и квитанции изоляции."
+    },
+    {
+      "id": "AC-2154",
+      "requirement": "REQ-215",
+      "mode": "unity",
+      "required": true,
+      "procedure": "Из точных бандлов и исходников карты снять в Unity Editor перспективы 0.3.6 и 0.3.7 с уровня глаз и с боковой площадки. Использовать одинаковый окружающий свет и расположение камеры. Сверить новые кадры с визуальным референсом, затем проверить коллизии вдоль досок.",
+      "expected": "В обеих комнатах вокруг двухрядного моста видно разрушение с несколькими планами глубины, парящие обломки и освещённое место квоты. Открытый край и весь путь читаются в перспективе. Разрушенные детали не перекрывают ближний и дальний подходы.",
+      "evidence": "Офлайн-кадры и журнал редактора с привязкой исходников и бандлов к ZIP. Штатная машина обозначена в офлайн-кадре макетом габарита."
     },
     {
       "id": "AC-2141",

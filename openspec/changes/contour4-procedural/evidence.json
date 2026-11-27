@@ -704,6 +704,80 @@
           "sha256": "e3383fd04f55f930ba06093e2c23a6dcd32a0822b13dec6021e6c699fd39d6b8"
         }
       ]
+    },
+    {
+      "criterion": "AC-2154",
+      "status": "passed",
+      "subject": "546fdd816b51d62350ffe0b735b4bf28e56a977c08ab787ee1da41aa18ab86a2",
+      "recordedAt": "2026-11-27T19:34:35.853Z",
+      "recordedBy": "Codex, изолированный Unity Editor и обзор кадров",
+      "observed": "Для 0.3.6 и точной 0.3.7 сняты одинаковые офлайн-перспективы в Unity Editor. На обоих новых маршрутах видно открытый край, два ряда досок, повреждённый каркас, парящие обломки и многоуровневый фон. Один редакторский макет обозначает расположение штатной машины на обеих версиях. Декор шахты имеет 0 коллайдеров и не выходит за конверт. Художественный обзор принят для локального коммита.",
+      "files": [
+        {
+          "path": "build/evidence/broken-vistas-037/entrance-vistas.png",
+          "sha256": "7f492a196e3cdfcff116d2663877b1be141952919371e8f7d9c948f6fcbf78b0"
+        },
+        {
+          "path": "build/evidence/broken-vistas-037/diagonal-vistas.png",
+          "sha256": "115e7729679d461b262426a0e06ef0e94a0b2ef688896ebae8d20116a6432364"
+        },
+        {
+          "path": "build/evidence/broken-vistas-037/before-and-after.png",
+          "sha256": "4b3f0633f876a1910d6f1d551a57791f6b0e88dea14d3b6ca1c782fff4bae18b"
+        },
+        {
+          "path": "build/evidence/broken-vistas-037/current-037/unity-offline-render.log",
+          "sha256": "21cfd2bc4535ccd8843aabc82acfb5f5a9e06e2ef447980224ccbbd7a6a5172f"
+        },
+        {
+          "path": "build/evidence/broken-vistas-037/current-037/render-receipt.json",
+          "sha256": "546901370be022f564ba0dc07e54b8c867c77210057f588098f920448e0862c0"
+        },
+        {
+          "path": "build/evidence/broken-vistas-037/panorama-embedded-and-editor.json",
+          "sha256": "3bd77138d3dd9a8f56876083ddffab2c94a659cd5b3cea8cdbfabed421a22759"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2152",
+      "status": "passed",
+      "subject": "546fdd816b51d62350ffe0b735b4bf28e56a977c08ab787ee1da41aa18ab86a2",
+      "recordedAt": "2026-11-27T19:34:35.866Z",
+      "recordedBy": "Codex, изолированный Unity Editor и обзор кадров",
+      "observed": "Из распакованного ZIP исходников точной 0.3.7 0CA6ACBA Test-PreparedPackage.ps1 -ExtractionBridges завершил 18 раскладок в Unity 6000.3.17f1, exit 0. Проверены коллизии настилов, открытые кромки, стыки, Tab и путь малого агента.",
+      "files": [
+        {
+          "path": "build/evidence/broken-vistas-037/unity-prepared-package.log",
+          "sha256": "0ff7c5132c88eec4b963fcaef1a9a02372901dc140a8aaa13a4515d84fabebb6"
+        },
+        {
+          "path": "build/feature/final-037/package-pair.json",
+          "sha256": "52d0c7a63191a535abe5f795bf2047dba6e98c25d9d17843f166c66dd228a2a9"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "546fdd816b51d62350ffe0b735b4bf28e56a977c08ab787ee1da41aa18ab86a2",
+      "recordedAt": "2026-11-27T19:34:35.871Z",
+      "recordedBy": "Codex, изолированный Unity Editor и обзор кадров",
+      "observed": "Чистая сборка из ZIP исходников A00FD1E9 с закреплёнными зависимостями воспроизвела все девять записей карты 0.3.7. SHA-256 JPEG совпал между рабочим файлом, исходным ZIP, встроенным ресурсом DLL и обеими копиями редактора.",
+      "files": [
+        {
+          "path": "build/feature/final-037/cold-replay-result.json",
+          "sha256": "a5f1c7396ea8cf236757b845f6ab54fc3443fd24cfa9ec79cf593d66ac23410f"
+        },
+        {
+          "path": "build/feature/final-037/panorama-payload.json",
+          "sha256": "0b59c43d707c429fb0bd5ba246487dcb8e1e98fe23cf7185c5db4c5fb534c463"
+        },
+        {
+          "path": "build/evidence/broken-vistas-037/panorama-embedded-and-editor.json",
+          "sha256": "3bd77138d3dd9a8f56876083ddffab2c94a659cd5b3cea8cdbfabed421a22759"
+        }
+      ]
     }
   ]
 }

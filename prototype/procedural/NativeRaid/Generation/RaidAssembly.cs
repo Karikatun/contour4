@@ -59,6 +59,7 @@ namespace Contour4.NativeRaid.Runtime
         private readonly List<Material> materials = new();
         private readonly List<Mesh> meshes = new();
         private RoomLighting roomLighting;
+        private ExtractionBridgeVista bridgeVista;
         private readonly RaidInteriorDetails details = new();
         private readonly RoomBloodTraces bloodTraces = new();
         private readonly BrokenEquipment brokenEquipment = new();
@@ -481,10 +482,19 @@ namespace Contour4.NativeRaid.Runtime
             bake.Expand(.20f);
             var raidFloor = new RaidFloor($"{room.Module.Id}-{room.Index}", "ground", room.Module.Id,
                 room.Frame, bake, colliders, support, root) { NarrowDeck = timber != null };
-            Lighting.Apply(room.Module, root, prefab);
             DressCappedTransit(room, root, worldLayer);
             var baked = new BakedRoom(room, root, raidFloor, colliders, floorBounds, prefab);
-            details.Room(baked);
+            if (timber != null)
+            {
+                bridgeVista ??= new ExtractionBridgeVista(floor.shader, materials, meshes);
+                bridgeVista.Apply(root, room.Module.Id == RaidExtraction.BentBridgeId);
+                ExtractionBridgeLandingArt.Apply(root, room.Module.Id);
+            }
+            else
+            {
+                Lighting.Apply(room.Module, root, prefab);
+                details.Room(baked);
+            }
             return baked;
         }
 
@@ -895,6 +905,7 @@ namespace Contour4.NativeRaid.Runtime
             details.Release();
             bloodTraces.Release();
             brokenEquipment.Release();
+            bridgeVista?.Release();
             foreach (var material in materials)
                 if (Application.isPlaying) Object.Destroy(material); else Object.DestroyImmediate(material);
             foreach (var mesh in meshes)

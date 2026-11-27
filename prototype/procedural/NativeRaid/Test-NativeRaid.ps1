@@ -24,12 +24,16 @@ Copy-Item -Path "$PSScriptRoot/../Navigation/Runtime/*.cs", "$PSScriptRoot/../Ca
     "$PSScriptRoot/../Source/*.cs", "$PSScriptRoot/Generation/*.cs" -Destination $assets
 Copy-Item -LiteralPath "$PSScriptRoot/Enemies/StockPortalPursuit.cs" -Destination $assets
 Copy-Item -Path "$PSScriptRoot/Editor/*.cs" -Destination "$assets/Editor"
+$artResources = Join-Path $project 'Assets/Resources/Contour4'
+New-Item -ItemType Directory -Path $artResources -Force | Out-Null
+Copy-Item -LiteralPath "$PSScriptRoot/Assets/ruined-shaft-backdrop-037.jpg" -Destination (Join-Path $artResources 'BridgePanorama.bytes')
 '[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Assembly-CSharp-Editor")]' |
     Set-Content -LiteralPath "$assets/OfflineEditorAccess.cs" -Encoding utf8
 
 @{
     dependencies = @{
         'com.unity.modules.ai' = '1.0.0'
+        'com.unity.modules.imageconversion' = '1.0.0'
         'com.unity.nuget.newtonsoft-json' = '3.2.1'
         'com.unity.modules.physics' = '1.0.0'
     }

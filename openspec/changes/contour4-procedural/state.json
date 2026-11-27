@@ -27,6 +27,17 @@
       }
     ]
   },
+  "bridgeVistas037": {
+    "mapZip": "../../../build/feature/final-037/Contour4-0.3.7.zip",
+    "sha256": "0CA6ACBAEAE5D652181A35251F84411DDA9454BF1414A4D027597E3914BDEE8A",
+    "observedCriteria": [
+      "AC-2154",
+      "AC-2152",
+      "AC-2143"
+    ],
+    "results": "implementation.md#разрушенные-шахты-у-мостов-037",
+    "verificationMode": "Редакторская проверка и согласование локального коммита."
+  },
   "openAprons036": {
     "mapZip": "../../../build/feature/final-036/Contour4-0.3.6.zip",
     "sha256": "3A1D18BCF1853B607C8C1A07DED829007D07FC9611AD6E3CEE4BBB2B443E2622",

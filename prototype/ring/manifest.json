@@ -1,6 +1,6 @@
 {
   "name": "Contour4",
-  "version_number": "0.3.6",
+  "version_number": "0.3.7",
   "website_url": "",
   "description": "A solo gravity ring and seeded procedural raid for R.E.P.O. 0.5.2.",
   "dependencies": [

@@ -395,6 +395,17 @@ namespace Contour4.NativeRaid.Runtime
             var localGeometry = new List<Bounds>();
             var authored = prefab ? AuthoredBlocks(root, room.Module) : null;
             var offlineParts = RoomLighting.OfflineFixtureParts(room.Module);
+            var timber = room.Module.Id is RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId
+                ? new[]
+                {
+                    NamedMaterial(floor.shader, new Color(.48f, .34f, .22f), "Contour-4 bridge timber weathered"),
+                    NamedMaterial(floor.shader, new Color(.59f, .43f, .29f), "Contour-4 bridge timber unpainted"),
+                    NamedMaterial(floor.shader, new Color(.40f, .28f, .19f), "Contour-4 bridge timber dark"),
+                }
+                : null;
+            var nails = timber != null
+                ? NamedMaterial(floor.shader, new Color(.18f, .14f, .11f), "Contour-4 bridge fastener")
+                : null;
             foreach (var block in room.Module.Geometry)
             {
                 if (block.Role == BlockRole.Free) continue;
@@ -411,8 +422,20 @@ namespace Contour4.NativeRaid.Runtime
                 var (minimum, maximum) = block.Bounds;
                 Vector3 low = RaidPlan.Vector(minimum), high = RaidPlan.Vector(maximum);
                 var bounds = new Bounds((low + high) / 2, high - low);
-                BoxCollider collider;
+                Collider collider;
                 if (authored != null) collider = authored[block.Id];
+                else if (timber != null && block.Id.StartsWith(RaidExtractionBridge.FastenerPrefix, StringComparison.Ordinal))
+                {
+                    PlaceVisualPiece(root, block, worldLayer, nails);
+                    continue;
+                }
+                else if (timber != null && block.Id.StartsWith(RaidExtractionBridge.TimberPrefix, StringComparison.Ordinal))
+                {
+                    int row = block.Id[block.Id.Length - 1] - '0';
+                    collider = PlacePiece(root, block, worldLayer, timber[row]);
+                }
+                else if (timber != null && block.Id.StartsWith(RaidExtractionBridge.FracturePrefix, StringComparison.Ordinal))
+                    collider = PlacePiece(root, block, worldLayer, floor);
                 else
                 {
                     var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -458,7 +481,7 @@ namespace Contour4.NativeRaid.Runtime
             Bounds bake = volume;
             bake.Expand(.20f);
             var raidFloor = new RaidFloor($"{room.Module.Id}-{room.Index}", "ground", room.Module.Id,
-                room.Frame, bake, colliders, support, root);
+                room.Frame, bake, colliders, support, root) { NarrowDeck = timber != null };
             Lighting.Apply(room.Module, root, prefab);
             DressCappedTransit(room, root, worldLayer);
             var baked = new BakedRoom(room, root, raidFloor, colliders, floorBounds, prefab);

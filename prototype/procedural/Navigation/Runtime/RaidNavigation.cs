@@ -70,10 +70,10 @@ namespace Contour4.Procedural.Navigation
                         localSettings.voxelSize = floor.RoomId.StartsWith("mobius-hall-", StringComparison.Ordinal) ? .075f : .12f;
                     }
                     surfaces.Add(floor, Bake(floor, localSettings));
-                    if (floor.Prepared)
+                    if (floor.Prepared || floor.NarrowDeck)
                     {
                         localSettings.agentRadius = .35f;
-                        localSettings.agentHeight = 1.80f;
+                        localSettings.agentHeight = floor.NarrowDeck ? settings.agentHeight : 1.80f;
                         localSettings.agentClimb = .30f;
                         localSettings.agentSlope = 45f;
                         localSettings.voxelSize = .08f;
@@ -285,7 +285,7 @@ namespace Contour4.Procedural.Navigation
         }
 
         private RaidNavSurface Surface(RaidFloor floor, RaidEnemyProfile profile) =>
-            profile != null && profile.Radius <= .35f && profile.Height <= 1.80f &&
+            profile != null && profile.Radius <= .35f && (floor.NarrowDeck || profile.Height <= 1.80f) &&
                 referenceSurfaces.TryGetValue(floor, out var reference) ? reference : surfaces[floor];
 
         // Player feet can stand inside the baked capsule's margin along a wall. Only pursuit goals use this projection.

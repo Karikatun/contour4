@@ -17,6 +17,7 @@ namespace Contour4.Procedural.Navigation
         internal Collider[] Geometry { get; }
         internal HashSet<Collider> Support { get; }
         internal bool Prepared { get; }
+        internal bool NarrowDeck { get; set; }
         public Vector3 Up => Frame.rotation * Vector3.up;
 
         public RaidFloor(string roomId, string floorId, string islandId, Pose frame,

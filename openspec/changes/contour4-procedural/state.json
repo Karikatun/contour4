@@ -27,6 +27,17 @@
       }
     ]
   },
+  "plankRoutes034": {
+    "mapZip": "../../../build/feature/final-034/Contour4-0.3.4.zip",
+    "sha256": "A30229A3157B37A0367A0506EC347FD9208E70738F5A7B6ECF72E3B10CFBA146",
+    "observedCriteria": [
+      "AC-2151",
+      "AC-2152",
+      "AC-2143"
+    ],
+    "results": "implementation.md#узкие-настилы-для-ручного-груза-034",
+    "nextAction": "Приёмка владельцем точной 0.3.4 в одиночном профиле."
+  },
   "materialComparisonInUnity": "implementation.md#менее-пятнистые-материалы-в-0247",
   "decisions": {
     "specification": {

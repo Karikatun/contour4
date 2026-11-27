@@ -14,6 +14,20 @@
     }
   },
   "subjectPaths": [
+    "build/feature/final-034/Contour4-0.3.4.zip",
+    "build/feature/final-034/Contour4-0.3.4-source.zip",
+    "prototype/ring/Plugin/Contour4.cs",
+    "prototype/ring/Plugin/Contour4.csproj",
+    "prototype/ring/manifest.json",
+    "prototype/ring/Test-PreparedPackage.ps1",
+    "prototype/ring/Test-PackagePair.ps1",
+    "prototype/ring/Editor/PreparedModulePackageChecks.cs",
+    "prototype/procedural/NativeRaid/Editor/SeededRaidChecks.cs",
+    "prototype/procedural/NativeRaid/Generation/RaidAssembly.cs",
+    "prototype/procedural/NativeRaid/Generation/RaidExtractionBridge.cs",
+    "prototype/procedural/NativeRaid/Generation/RoomSurfaceWear.cs",
+    "prototype/procedural/Navigation/Runtime/RaidLayout.cs",
+    "prototype/procedural/Navigation/Runtime/RaidNavigation.cs",
     "build/feature/final-033/Contour4-0.3.3.zip",
     "build/feature/final-033/Contour4-0.3.3-source.zip",
     "build/feature/final-032/Contour4-0.3.2.zip",
@@ -32,7 +46,7 @@
     "unityEditor": "6000.3.17f1 (cf0352b38e81), метаданные установленного редактора",
     "bepInEx": "BepInExPack 5.4.2305, метаданные локальной сборки",
     "repoLib": "4.5.1, метаданные локальной сборки",
-    "profile": "Для 0.2.36 используются автономные стенды Unity Editor и закреплённые сборочные ссылки R.E.P.O. 0.5.2. Игровые проверки проводят в отдельной копии R.E.P.O. с собственной userdata после фиксации её состава."
+    "profile": "Автономный стенд Unity Editor и отдельная копия R.E.P.O. 0.5.2 с собственной userdata и зафиксированными сборочными зависимостями."
   },
   "assets": [
     {
@@ -55,6 +69,24 @@
     }
   ],
   "criteria": [
+    {
+      "id": "AC-2151",
+      "requirement": "REQ-215",
+      "mode": "game",
+      "required": true,
+      "procedure": "Загрузить обычный сольный рейс в изолированной копии R.E.P.O. 0.5.2 с seed −32. Снять оба моста камерой игрока и с высоты. Пройти настилы в обе стороны, удерживая штатную небольшую ценность на пути к квоте, засчитать её штатной машиной.",
+      "expected": "На каждом настиле виден узкий проход и открытые края; шипов на обломках нет. Штатное движение и хват позволяют доставить ценность и вернуться на входную площадку.",
+      "evidence": "Кадры и журнал движения, удержания груза, начисления и возврата по обоим маршрутам с точным SHA-256 пакета."
+    },
+    {
+      "id": "AC-2152",
+      "requirement": "REQ-215",
+      "mode": "unity",
+      "required": true,
+      "procedure": "Запустить Test-PreparedPackage.ps1 -ExtractionBridges на точном ZIP 0.3.4. Проверить границы обоих настилов, непрерывную опору на повороте, открытое падение и площадки по обе стороны.",
+      "expected": "Мосты появляются на стадиях 5 и 9; опора шириной 1,20 м сохраняется по прямым участкам и на повороте. Квоты в штатных помещениях и повтор раскладки работают при прежних условиях.",
+      "evidence": "Журнал проверки собранной карты в Unity и SHA-256 пакета."
+    },
     {
       "id": "AC-2141",
       "requirement": "REQ-214",

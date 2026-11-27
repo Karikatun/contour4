@@ -215,7 +215,8 @@ namespace Contour4.NativeRaid.Runtime
                 return Finish.Keep;
             if (source == "contour-4 interior woodedge")
                 return Finish.WoodEdge;
-            if (source is "contour-4 interior wood" or "v2_wood" or "furniture_plywood")
+            if (source is "contour-4 interior wood" or "v2_wood" or "furniture_plywood" ||
+                source.StartsWith("contour-4 bridge timber ", StringComparison.Ordinal))
                 return Finish.Wood;
             if (source is "v2_floor" or "institute-floor" or "deck" or "painted-deck" || role == BlockRole.Floor ||
                 Has(name, "apron surface", "__floor", "__walkable_deck", "roof deck", "upper gallery deck", "collar floor"))

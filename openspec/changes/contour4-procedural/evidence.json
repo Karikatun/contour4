@@ -446,6 +446,92 @@
           "sha256": "5bfb450397998496e7cb968dfa45206270db3bc113c9f750115870a7c2408dff"
         }
       ]
+    },
+    {
+      "criterion": "AC-2151",
+      "status": "passed",
+      "subject": "fd71c5dbcc1015a615f5d866492dc6036e5d7f25950563a54fca8140b4823204",
+      "recordedAt": "2026-11-27T18:11:43.895Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "В обычном сольном рейсе R.E.P.O. 0.5.2, seed −32, пройдено 5 и 9 уровней. Штатным хватом перенесли предмет через прямой и ломаный настилы, штатной кнопкой открыли сдачу, получили $1 426 и $483 и вернулись на входные площадки. На живых объектах 2 из 37 этажей имеют NarrowDeck, найдено 0 шипов и спиц. Кадры камеры игрока и широкие ракурсы относятся к ZIP 0.3.4 A30229A3.",
+      "files": [
+        {
+          "path": "build/evidence/plank-routes-034/straight-stock/bridge-journey.ndjson",
+          "sha256": "e20eebc3619a5f038773d51a48676211f3dc87f58481fbcc2dd9a29e5871db46"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/straight-stock/launch.json",
+          "sha256": "6e655ddc22c5ddd748f9c9a45e0dc890c2ab89c13f7aec9302cd58a8a7e4cd30"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/straight-stock/run.json",
+          "sha256": "2d9c357363cce66de1de0b9a2cb435c25f3a23ca1fc18e6e0d4d9300205de286"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/bent-stock/bridge-journey.ndjson",
+          "sha256": "f930920610eccf8502ea3a189c4578295754dc4b533f8ab897ca0eb8c6f8c8b3"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/bent-stock/launch.json",
+          "sha256": "e535dcca996f614aa5137b2e1c6ecdc082a4f0c70ef7e18fe0580a3012fa96da"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/bent-stock/run.json",
+          "sha256": "417f8f414dbe55044032ee41f725e7be0036e88d794ceaac4b8b0c513eb90218"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/live-nav-gallery/bridge-journey.ndjson",
+          "sha256": "d33d19c0a1ecba22a26f2fb898feb5652e6cc391708b9c01981b592630eec41b"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/live-nav-gallery/launch.json",
+          "sha256": "6692866b4848938c86d7aa93c48ce329264f5ed55fb8affae9a7a4d5b7e5fc93"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/live-nav-gallery/run.json",
+          "sha256": "566e4a522b88db47b4c8c0a88a20846ccd8d2bef9bd609bf41ec4bb3d9799ee1"
+        },
+        {
+          "path": "build/evidence/plank-routes-034/bridges-and-hand-cargo.png",
+          "sha256": "a552149757bb9161a440af44464031f45f7b4449034a7d08a0c7282ca9cf9470"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2152",
+      "status": "passed",
+      "subject": "fd71c5dbcc1015a615f5d866492dc6036e5d7f25950563a54fca8140b4823204",
+      "recordedAt": "2026-11-27T18:11:43.926Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "Test-PreparedPackage.ps1 -ExtractionBridges на точном ZIP 0.3.4 A30229A3, Unity Editor 6000.3.17f1, 18 раскладок на seed −32, 42, 1499861616 и стадиях 1/4/5/8/9/14. Проверены ширина, опора, поворот, провал, рампа, площадки, запасная раскладка и контуры Tab. Код выхода 0.",
+      "files": [
+        {
+          "path": "build/evidence/plank-routes-034/unity-prepared-package.log",
+          "sha256": "e4e0d2910fef1edba361bbb92d5f10cabd20973ac5317d19d9ce3b169e702b3b"
+        },
+        {
+          "path": "build/feature/final-034/package-pair.json",
+          "sha256": "4998b97553bb4631ade1ae033a2204154c6e88c9d04649bc3eaf8f11db37f1c4"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "fd71c5dbcc1015a615f5d866492dc6036e5d7f25950563a54fca8140b4823204",
+      "recordedAt": "2026-11-27T18:11:43.930Z",
+      "recordedBy": "Codex, изолированный игровой стенд и Unity Editor",
+      "observed": "Contour4 0.3.4 A30229A3 и Contour4Valuables 0.2.4 образуют полную пару. Чистая сборка из ZIP исходников SHA-256 69EE9D32… с точным REPOLib воспроизвела SHA-256 всех девяти записей карты.",
+      "files": [
+        {
+          "path": "build/feature/final-034/cold-replay-result.json",
+          "sha256": "46bb27d83e1469d818e5d5dbd52617bf982e61e9c19e8ce59f0fcacedc6ea4f8"
+        },
+        {
+          "path": "build/feature/final-034/package-pair.json",
+          "sha256": "4998b97553bb4631ade1ae033a2204154c6e88c9d04649bc3eaf8f11db37f1c4"
+        }
+      ]
     }
   ]
 }

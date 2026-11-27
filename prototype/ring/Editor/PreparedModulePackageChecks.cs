@@ -68,7 +68,22 @@ namespace SpaceJourney
         {
             using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
                 Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
-            Contour4.NativeRaid.Editor.SeededRaidChecks.CheckExtractionBridges(bundle.Prefabs);
+            SeededRaidChecks.CheckExtractionBridges(bundle.Prefabs, raid =>
+            {
+                var map = RaidMapPlan.Create(raid.Plan, preparedRooms: raid.Rooms.Select(room => room.Plan));
+                foreach (var room in raid.Rooms.Where(room =>
+                    room.Plan.Module.Id is RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId))
+                {
+                    var floor = map.Floors.Single(floor => floor.Owner == room.Plan && floor.Floor.Id == "ground");
+                    VerifyQuotaBridgeMap(floor, room.Plan.Module.Id);
+                    var approach = RaidExtraction.LoadingRoute(room.Plan.Module).Knots.Last();
+                    Vector3 feet = room.Root.TransformPoint(RaidPlan.Vector(approach.Position));
+                    Vector3 forward = room.Root.TransformDirection(RaidPlan.Vector(approach.Forward));
+                    Require(map.Project(feet, forward, true, out var projected, out _, out var direction) &&
+                        projected == floor && direction.sqrMagnitude > .01f,
+                        "Tab must keep the player on the same bridge layer at the far loading approach.");
+                }
+            });
         }
 
         public static void RunMobiusOutletWitnesses()
@@ -608,6 +623,7 @@ namespace SpaceJourney
                     ReferenceEquals(shown.Floor, floor) && shown.Revealed && heading.sqrMagnitude > .001f &&
                     Mathf.Abs(map.NativePoint(position).y - map.Stock.Room.position.y) < .001f,
                     $"{room.Plan.Module.Id}/{active.Dock.Id} does not reveal its arriving player on the stock-plane map.");
+                VerifyQuotaBridgeMap(shown, room.Plan.Module.Id);
                 if (SphericalChamber.IsVariant(room.Plan.Module.Id))
                 {
                     int mask = SphericalChamber.GetMask(room.Plan.Module.Id);
@@ -691,6 +707,32 @@ namespace SpaceJourney
             }
             Debug.Log($"{Log} TAB {progress},{seed}|{map.Floors.Count} floors|{map.Links.Count} physical links|" +
                 $"{pairs.Length} portal pairs|{internalPairs} internal pairs");
+        }
+
+        private static void VerifyQuotaBridgeMap(RaidMapPlan.FloorView shown, string moduleId)
+        {
+            if (moduleId is not (RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId)) return;
+            int[] triangles = shown.CoverTriangles(out _);
+            Require(Covered(new Vector2(8f, 0)) && !Covered(new Vector2(8f, .70f)),
+                "The Tab footprint follows the width of the timber, leaving the shaft visible.");
+            if (moduleId == RaidExtraction.BentBridgeId)
+                Require(Covered(new Vector2(RaidExtractionBridge.BentAxis, 3f)) &&
+                    !Covered(new Vector2(8.2f, 2.5f)), "The Tab footprint bends without filling the inside corner.");
+
+            bool Covered(Vector2 local)
+            {
+                Vector2 point = shown.Flat(local);
+                for (int i = 0; i < triangles.Length; i += 3)
+                {
+                    Vector2 a = shown.Outline[triangles[i]], b = shown.Outline[triangles[i + 1]],
+                        c = shown.Outline[triangles[i + 2]];
+                    if (Left(a, b) && Left(b, c) && Left(c, a)) return true;
+                }
+                return false;
+
+                bool Left(Vector2 a, Vector2 b) =>
+                    (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x) >= -.0001f;
+            }
         }
 
         private static void Require(bool condition, string message)

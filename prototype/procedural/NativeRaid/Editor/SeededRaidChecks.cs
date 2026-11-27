@@ -102,6 +102,7 @@ namespace Contour4.NativeRaid.Editor
                     if (reached.Add(neighbor)) pending.Enqueue(neighbor);
 
             string context = $"seed {plan.Seed}, completed {plan.CompletedLevels}";
+            int quotaStations = 0, cartStations = 0;
             foreach (var link in plan.Freight)
                 Require(reached.Contains((link.From.Room, link.From.Dock.Id)) &&
                     reached.Contains((link.To.Room, link.To.Dock.Id)),
@@ -116,10 +117,21 @@ namespace Contour4.NativeRaid.Editor
                     Require(plan.HasCartAccess(room, floor.Id) == expected,
                         $"Cart access disagrees with the catalog graph at {room.Module.Id}/{floor.Id} ({context}).");
                 }
-                if (room.Module.Landmarks.ContainsKey(RaidExtraction.Machine))
+                if (!room.Module.Landmarks.ContainsKey(RaidExtraction.Machine)) continue;
+                quotaStations++;
+                if (RaidExtraction.LoadingRoute(room.Module).Cargo == Cargo.Cart)
+                {
+                    cartStations++;
                     Require(reached.Contains((room, RaidExtraction.Machine)),
                         $"The quota in room {room.Index} has no cart route to its ramp ({context}).");
+                }
+                else
+                    Require(reached.Contains((room, RaidExtractionBridge.CartStaging)) &&
+                        !reached.Contains((room, RaidExtraction.Machine)),
+                        $"The hand quota in room {room.Index} needs a reachable cart apron and a hand-only ramp ({context}).");
             }
+            Require(quotaStations == 0 || cartStations > 0,
+                $"A raid with additional quotas must still have a cart-accessible station ({context}).");
         }
 
         private static void AddCatalogCartRoutes(RaidPlan.Room room,
@@ -305,9 +317,15 @@ namespace Contour4.NativeRaid.Editor
         private static void AssertQuotaClearance(RaidPlan plan, RaidPlan.Room quota)
         {
             var current = quota;
-            var route = current.Module.Routes.Single(route => route.To == RaidExtraction.Machine);
-            foreach (var knot in route.Samples(.13f)) CheckCart(current.Point(knot.Position),
-                current.Direction(knot.Forward), current.Direction(knot.Up), checkWheels: true);
+            var route = RaidExtraction.LoadingRoute(current.Module);
+            foreach (var knot in route.Samples(.13f))
+            {
+                var point = current.Point(knot.Position);
+                var direction = current.Direction(knot.Forward);
+                var up = current.Direction(knot.Up);
+                if (route.Cargo == Cargo.Cart) CheckCart(point, direction, up);
+                else CheckHand(point, direction, up);
+            }
             while (current != plan.Entrance.Room)
             {
                 var edge = plan.Freight.Single(link => link.To.Room == current);
@@ -340,6 +358,17 @@ namespace Contour4.NativeRaid.Editor
                     QueryTriggerInteraction.Ignore) && Vector3.Dot(contact.normal, up) > .6f,
                     "Every cart wheel has support at " + wheel);
             }
+        }
+
+        private static void CheckHand(Vector3 feet, Vector3 forward, Vector3 up)
+        {
+            Quaternion facing = Quaternion.LookRotation(forward, up);
+            Require(!Physics.CheckBox(feet + up * .96f, new Vector3(.445f, .92f, .395f), facing,
+                1, QueryTriggerInteraction.Ignore), "Hand cargo sweep must clear the bridge and approaches at " + feet);
+            // A small contact disk models a foot on the staggered planks without treating a seam as a fall.
+            Require(Physics.SphereCast(feet + up * .15f, .025f, -up, out var hit, .22f, 1,
+                    QueryTriggerInteraction.Ignore) && Vector3.Dot(hit.normal, up) > .8f,
+                "Hand cargo route must have continuous foot support at " + feet);
         }
 
         private static void AssertRebase(RaidAssembly raid)
@@ -541,7 +570,7 @@ namespace Contour4.NativeRaid.Editor
                 .All(passage => Vector3.Dot(passage.From.Room.Up, passage.To.Room.Up) > .999f);
         }
 
-        internal static void CheckExtractionBridges(RaidRoomPrefabs prefabs)
+        internal static void CheckExtractionBridges(RaidRoomPrefabs prefabs, Action<RaidAssembly> checkMap)
         {
             if (!Application.isBatchMode) throw new InvalidOperationException("Run in the dedicated batch project.");
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -558,41 +587,64 @@ namespace Contour4.NativeRaid.Editor
                         roomPrefabs: prefabs);
                     Physics.SyncTransforms();
                     CheckExtractionProgression(raid.Plan);
-                    foreach (var room in raid.Rooms.Where(candidate =>
-                        candidate.Plan.Module.Id is RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId))
+                    CheckCartAccess(raid.Plan);
+                    var bridges = raid.Rooms.Where(candidate =>
+                        candidate.Plan.Module.Id is RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId).ToArray();
+                    var hazards = bridges.Length > 0 ? RaidRoomInteractions.Attach(raid) : null;
+                    bool checkNavigation = completed is 5 or 9 && seed == -32;
+                    if (checkNavigation) raid.InstallNavigation();
+                    foreach (var room in bridges)
                     {
                         var module = room.Plan.Module;
                         var ramp = RaidExtraction.LoadingRoute(module);
                         var last = ramp.Knots.Last();
                         var root = room.Root;
-                        Vector3 turn = root.TransformPoint(new Vector3(2.4f, 0f, 0f));
+                        var cart = module.Routes.Single(route => route.To == RaidExtractionBridge.CartStaging);
+                        Require(cart.Cargo == Cargo.Cart && ramp.Cargo == Cargo.Hand,
+                            "The cart can enter the apron and the suspended route is classified for hand cargo.");
+                        Vector3 parking = root.TransformPoint(RaidPlan.Vector(cart.Knots.Last().Position));
                         for (int angle = 0; angle < 360; angle += 15)
-                            CheckCart(turn, Quaternion.AngleAxis(angle, root.up) * root.right, root.up);
+                            CheckCart(parking, Quaternion.AngleAxis(angle, root.up) * root.right, root.up);
                         foreach (var sample in ramp.Samples(.08f))
                         {
                             if (sample.Position.X < 1.3f) continue;
                             var point = root.TransformPoint(RaidPlan.Vector(sample.Position));
                             var forward = root.TransformDirection(RaidPlan.Vector(sample.Forward));
-                            CheckCart(point, forward, root.up);
-                            CheckCart(point, -forward, root.up);
+                            CheckHand(point, forward, root.up);
+                            CheckHand(point, -forward, root.up);
                         }
                         bool bent = module.Id == RaidExtraction.BentBridgeId;
-                        Vector3 abyss = root.TransformPoint(new Vector3(7f, 1f, -3.85f));
-                        Require(!Physics.Raycast(abyss, -root.up, 4.8f, 1, QueryTriggerInteraction.Ignore),
-                            "The exposed shaft has no hidden floor below the missing deck");
-                        Require(module.FallVolumes.Count == 1 &&
-                            room.Colliders.Any(part => part.name.StartsWith("hanging-", StringComparison.Ordinal) &&
-                                !part.attachedRigidbody),
-                            "The shaft has a configured fall zone and static suspended debris");
+                        CheckTimber(room, bent);
+                        Vector3 abyss = root.TransformPoint(new Vector3(7f, .1f, -3.85f));
+                        Vector3 fallen = abyss - root.up * 6f;
+                        Require(!Physics.Raycast(abyss, -root.up, 5f, 1, QueryTriggerInteraction.Ignore) &&
+                            hazards.CatchesFall(abyss, fallen) && !hazards.CatchesFall(parking, parking + root.right),
+                            "The open shaft is unsupported and catches a falling body while leaving the apron safe.");
                         CheckShaftWalls(room, bent);
                         Vector3 expected = bent ? Vector3.forward : Vector3.right;
                         Require(Vector3.Dot(RaidPlan.Vector(last.Forward), expected) > .999f &&
                             Vector3.Dot(RaidExtraction.FaceLoading(last, Vector3.left) * Vector3.left, -expected) > .999f,
                             "The native ramp faces the end of the actual approach");
-                        var machine = RaidPlan.Vector(module.Landmarks[RaidExtraction.Machine]);
-                        Require(machine.x - RaidExtractionBridge.GapStart > 5f,
-                            "The native machine remains well beyond the protected apron");
+                        Vector3 machine = RaidPlan.Vector(module.Landmarks[RaidExtraction.Machine]);
+                        Vector3 final = RaidPlan.Vector(last.Position);
+                        Require((machine - final - 4.6f * expected).sqrMagnitude < .0001f &&
+                            Physics.Raycast(root.TransformPoint(machine) + root.up * .1f, -root.up, out var landing,
+                                .2f, 1, QueryTriggerInteraction.Ignore) && landing.collider.name == "extraction-landing",
+                            "The stock machine sits on the far landing, in loading range of its supported approach.");
+                        if (checkNavigation)
+                        {
+                            var nav = raid.Context.Navigation;
+                            Vector3 approach = root.TransformPoint(final);
+                            Require(nav.TryGetRouteKind(room.Floor, parking, room.Floor, approach, RaidAssembly.Character,
+                                    out var outward) && outward == RaidRouteKind.Local &&
+                                nav.TryGetRouteKind(room.Floor, approach, room.Floor, parking, RaidAssembly.Character,
+                                    out var back) && back == RaidRouteKind.Local,
+                                "A small character has reversible navigation over the actual timber: " + module.Id);
+                            Require(!nav.TryStand(room.Floor, abyss, RaidAssembly.Character, out _),
+                                "Character navigation must leave the shaft open.");
+                        }
                     }
+                    if (bridges.Length > 0) checkMap(raid);
                     Debug.Log($"{Log} extraction bridges seed={seed} completed={completed}: " +
                         string.Join(", ", raid.Plan.Rooms.Where(room => room.Module.Landmarks.ContainsKey(RaidExtraction.Machine))
                             .Select(room => room.Module.Id)));
@@ -600,6 +652,44 @@ namespace Contour4.NativeRaid.Editor
                 finally { Object.DestroyImmediate(stage); }
             }
             Debug.Log($"{Log} EXTRACTION BRIDGES PASSED");
+        }
+
+        private static void CheckTimber(BakedRoom room, bool bent)
+        {
+            Transform root = room.Root;
+            var planks = room.Colliders.Where(part => part.name.StartsWith(RaidExtractionBridge.TimberPrefix,
+                StringComparison.Ordinal)).ToArray();
+            var fragments = room.Colliders.Where(part => part.name.StartsWith(RaidExtractionBridge.FracturePrefix,
+                StringComparison.Ordinal)).ToArray();
+            Require(planks.Length >= 9 && planks.Concat(fragments).All(part => part is MeshCollider mesh &&
+                !mesh.attachedRigidbody && mesh.TryGetComponent(out MeshFilter filter) && mesh.sharedMesh == filter.sharedMesh) &&
+                fragments.Length >= 3 && !room.Colliders.Any(part =>
+                    part.name.Contains("bridge-rail", StringComparison.Ordinal) || part.name.StartsWith("hanging-", StringComparison.Ordinal)),
+                "Visible timber and ragged masonry use their actual meshes, without suspended fixtures over the pit.");
+            // Check both physical edges, including points covered by the former broad turn pad.
+            for (float x = 5.15f; x < (bent ? 10f : 12f); x += .34f)
+                CheckWidth(new Vector3(x, 0, 0), Vector3.forward);
+            if (bent)
+            {
+                for (float z = .95f; z < 6; z += .32f)
+                    CheckWidth(new Vector3(RaidExtractionBridge.BentAxis, 0, z), Vector3.right);
+                Require(!HitsDeck(new Vector3(8.2f, 0, 2.5f)) && HitsDeck(new Vector3(RaidExtractionBridge.BentAxis, 0, 0)),
+                    "The bend is a tight elbow with no diagonal support across the old turn pad.");
+            }
+
+            bool HitsDeck(Vector3 local) =>
+                Physics.Raycast(root.TransformPoint(local) + root.up * .3f, -root.up, .44f, 1, QueryTriggerInteraction.Ignore);
+
+            void CheckWidth(Vector3 center, Vector3 across)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    Require(HitsDeck(center + side * .54f * across),
+                        "Timber remains walkable out to the visibly worn edge at " + center);
+                    Require(!HitsDeck(center + side * .64f * across),
+                        "The pit begins at the visible timber edge without concealed support at " + center);
+                }
+            }
         }
 
         private static void CheckQuotaFallback(Pose entrance, RaidRoomPrefabs prefabs)

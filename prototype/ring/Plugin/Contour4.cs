@@ -18,7 +18,7 @@ using Contour4Valuables;
 
 namespace SpaceJourney;
 
-[BepInPlugin(Id, "Contour-4", "0.2.53")]
+[BepInPlugin(Id, "Contour-4", "0.3.0")]
 [BepInDependency("REPOLib", "4.5.1")]
 [BepInDependency("spacejourney.contour4.valuables", BepInDependency.DependencyFlags.HardDependency)]
 public sealed class Contour4 : BaseUnityPlugin

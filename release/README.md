@@ -1,4 +1,4 @@
-# «Контур‑4» 0.2.53 из исходников
+# «Контур‑4» 0.3.0 · ветка сложности рейда
 
 Для сборки распакуйте архив исходников и откройте PowerShell 7 в его корне. Используйте .NET SDK 10.0.404 и локальные зависимости из R.E.P.O. 0.5.2, BepInExPack 5.4.2305, REPOLib 4.5.1 и Contour4Valuables 0.2.4. Контрольные суммы зависимостей и ресурсов перечислены в release/input-lock.json.
 
@@ -15,11 +15,16 @@ $valuables = '<Contour4Valuables.dll из Contour4Valuables 0.2.4>'
 $assembly = './build/Contour4.dll'
 $bundles = './release/bundles'
 $project = './prototype/ring/Plugin/Contour4.csproj'
-dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4" "-p:DebugType=None"
-./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.2.53.zip
+$revision = (Get-Content ./release/input-lock.json -Raw | ConvertFrom-Json).sourceRevisionId
+dotnet build $project -c Release -o ./build "-p:GameManaged=$managed" "-p:BepInExCore=$bep" "-p:RepoLibPath=$repoLib" "-p:Contour4ValuablesPath=$valuables" "-p:PathMap=$root=/_/contour4" "-p:SourceRevisionId=$revision" "-p:DebugType=None"
+./prototype/ring/Pack.ps1 -Bundle "$bundles/contour4-ring.bundle" -LoadingBundle "$bundles/contour4-loading.bundle" -RoomsBundle "$bundles/contour4-rooms.bundle" -PreparedModulesBundle "$bundles/contour4-prepared-modules.bundle" -Plugin $assembly -Output ./build/Contour4-0.3.0.zip
 ~~~
 
-Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей.
+Для воспроизведения сравните SHA‑256 записей архива по Test-PackagePair.ps1. `SourceRevisionId` воспроизводит метку базовой ревизии в метаданных обеих DLL при сборке из распакованного ZIP. SHA‑256 целого ZIP зависит также от метаданных архива, включая время записей.
+
+Для проверки новых маршрутов запустите `prototype/ring/Test-PreparedPackage.ps1 -MapPackage <архив карты> -Output <новый каталог> -ExtractionBridges`. Проверка загружает бандлы из указанного ZIP и собирает рейды на трёх seed при 1, 4, 5, 8, 9 и 14 пройденных уровнях. Она проверяет грузовой габарит и опору колёс в обоих направлениях, открытый провал и ориентацию подхода к штатной рампе.
+
+Для проверки поворотной кабины подготовьте отдельный проект командой `prototype/procedural/NativeRaid/Test-NativeRaid.ps1 -Output <новый каталог> -PrepareOnly`. Откройте вложенный проект `Unity` в редакторе 6000.3.17f1 с параметрами `-batchmode -nographics -quit -executeMethod Contour4.NativeRaid.Editor.RaidQuotaRotaryChecks.Run`. В журнале ищите `CONTOUR4 ROTARY QUOTA PASSED`. Стенд проверяет стыковку, вызов с обеих площадок, возврат и восстановление после потери контроллера.
 
 ## Пересобрать ассеты
 

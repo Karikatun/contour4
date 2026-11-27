@@ -103,13 +103,14 @@ namespace Contour4.NativeRaid.Runtime
         internal BakedRoom Room(RaidPlan.Room room) => rooms[room];
 
         internal void Place(int seed, Pose entrance, int worldLayer, int obstacles, bool catalogSites = false,
-            int completedLevels = 0, RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null)
+            int completedLevels = 0, RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null,
+            bool rotaryQuota = false)
         {
             if (plan != null) throw new InvalidOperationException("The native raid module has already been placed.");
             bool CanPrepare(RaidPlan.Room room) => roomPrefabs != null && roomPrefabs.TryGetPrepared(room, out var prefab) && prefab;
 
             var candidate = RaidPlan.Generate(seed, entrance, completedLevels, branch, MaintenanceTrench.Create,
-                canPrepare: CanPrepare);
+                canPrepare: CanPrepare, rotaryQuota: rotaryQuota);
             var portalPairs = CollectPortalPairs(candidate, CanPrepare);
             plan = candidate;
             solidMask = (1 << worldLayer) | obstacles;

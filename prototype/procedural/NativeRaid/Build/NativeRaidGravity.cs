@@ -68,18 +68,37 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         newRibbonLoot.Clear();
         nextActorScan = 0f;
         actorsReady = false;
+        rotaryWithoutController = false;
+        requestedCabin = null;
     }
 
     private void FixedUpdate()
     {
         var controller = PlayerController.instance;
-        actorsReady = raid.Context != null && controller && controller.rb && SemiFunc.LevelGenDone();
-        if (!actorsReady) { ClearNativeJump(); return; }
+        bool levelReady = raid.Context != null && SemiFunc.LevelGenDone();
+        actorsReady = levelReady && controller && controller.rb;
+        rotaryWithoutController = levelReady && !actorsReady && rotaryCabin;
+        if (!actorsReady)
+        {
+            ClearNativeJump();
+            if (rotaryWithoutController)
+            {
+                RefreshActors(null);
+                StepRotaryCabin(null);
+            }
+            return;
+        }
         var player = controller.rb;
         jumpSampled = false;
         bool onRing = raid.ContainsRing(player.position);
         if (jumpBody && (!ValidJump(controller) || onRing)) ClearNativeJump();
-        if (onRing)
+        if (StepRotaryCabin(player))
+        {
+            ClearNativeJump();
+            ClearRibbon();
+            ClearSphericalOrientation();
+        }
+        else if (onRing)
         {
             ClearRibbon();
             ClearSphericalOrientation();
@@ -110,7 +129,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
 
     internal void ApplyDeferredActorGravity()
     {
-        if (!actorsReady)
+        if (!actorsReady && !rotaryWithoutController)
         {
             foreach (Rigidbody item in newRibbonLoot) ApplyActorGravity(item, ribbonOnly: true);
             return;
@@ -281,6 +300,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
 
     private bool TryActorUp(Rigidbody actor, Vector3 point, out Vector3 up, bool allowsHandOnly)
     {
+        if (TryRotaryUp(point, out up)) return true;
         if (hasSphericalChamber && allowsHandOnly && raid.TrySphericalUp(point, Vector3.zero, out up, out _)) return true;
         if (raid.TryUp(point, out up, allowsHandOnly)) return true;
         // The truck uses the original entrance floor basis.
@@ -298,6 +318,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
 
         Vector3 center = body.worldCenterOfMass;
         if (gravity.raid.ContainsRing(center)) return false;
+        if (gravity.TryRotaryUp(center, out up)) return true;
         if (gravity.raid.TryUp(center, out up, allowsHandOnly: false)) return true;
         if (!body.transform.IsChildOf(gravity.levelRoot)) return false;
         up = gravity.raid.Room(gravity.raid.Plan.Entrance.Room).Root.up;
@@ -348,7 +369,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
     private bool InLevelGravity(Rigidbody body)
     {
         Vector3 center = body.worldCenterOfMass;
-        return body.transform.IsChildOf(levelRoot) || raid.TryUp(center, out _) || raid.ContainsRing(center) ||
+        return body.transform.IsChildOf(levelRoot) || TryRotaryUp(center, out _) || raid.TryUp(center, out _) || raid.ContainsRing(center) ||
             hasSphericalChamber && raid.TrySphericalUp(center, Vector3.zero, out _, out _);
     }
 

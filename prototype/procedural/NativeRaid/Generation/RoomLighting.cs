@@ -126,13 +126,23 @@ namespace Contour4.NativeRaid.Runtime
                     Row(room, ceiling, 0f, .72f, 2.8f, 7.5f, 12.2f);
                     AddCeiling(room, 7.5f, ceiling, 7.3f, .64f, 6.8f, alongZ: true);
                     break;
-                case "extraction-chamber":
+                case RaidExtraction.OrdinaryId:
                     AddCeiling(room, 3.4f, 8f, 0f, 1.7f, 12f);
                     // The loading-bay roof ends before the native quota shaft.
                     AddWall(room, GrayBuilder.Level, 8.9f, 4.6f, RaidExtraction.Width / 2 - GrayBuilder.Skirt,
                         .94f, 8.6f);
                     AddWall(room, GrayBuilder.Level, 12.9f, 4.6f, -RaidExtraction.Width / 2 + GrayBuilder.Skirt,
                         .94f, 8.6f);
+                    break;
+                case RaidExtraction.StraightBridgeId:
+                case RaidExtraction.BentBridgeId:
+                    AddCeiling(room, 2.65f, 8f, 0f, 1.45f, 11f);
+                    AddWall(room, GrayBuilder.Level, 7.15f, 3.85f, RaidExtractionBridge.NearWall + GrayBuilder.Skirt,
+                        1.05f, 13.5f);
+                    bool bent = module.Id == RaidExtraction.BentBridgeId;
+                    AddWall(room, GrayBuilder.Level, bent ? RaidExtractionBridge.BentAxis : 14.8f, 4.55f,
+                        (bent ? RaidExtractionBridge.BentFarWall : RaidExtractionBridge.StraightFarWall) - GrayBuilder.Skirt,
+                        1.0f, 14f);
                     break;
                 case "upper-exit-corridor":
                     Row(room, ceiling, 0f, .77f, 3.3f, 9.5f, 15.5f, 21f);

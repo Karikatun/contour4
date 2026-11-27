@@ -53,7 +53,7 @@ internal sealed class NativeRaidModule : MonoBehaviour
     }
 
     internal void Place(StockModule module, Func<int> seed, Level stockManor, Action<RaidAssembly> prepareCatalog = null,
-        RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null)
+        RaidPrefabBranch branch = null, RaidRoomPrefabs roomPrefabs = null, bool rotaryQuota = false)
     {
         if (raid) return;
         if (GameManager.Multiplayer())
@@ -74,7 +74,8 @@ internal sealed class NativeRaidModule : MonoBehaviour
         raid = gameObject.AddComponent<RaidAssembly>();
         // Cabinet fronts are moved to the stock hinge layer before the raid bakes its room colliders.
         raid.Place(seed(), entrance, LayerMask.NameToLayer("Default"), LayerMask.GetMask("PhysGrabObject", "PhysGrabObjectCart", "PhysGrabObjectHinge"),
-            catalogSites: prepareCatalog != null, completedLevels: RunManager.instance.levelsCompleted, branch: branch, roomPrefabs: roomPrefabs);
+            catalogSites: prepareCatalog != null, completedLevels: RunManager.instance.levelsCompleted, branch: branch,
+            roomPrefabs: roomPrefabs, rotaryQuota: rotaryQuota);
         NativeRaidInteractions.Attach(raid);
         InstallNativeRoomComponents();
         NativeRaidGravity.Attach(raid);

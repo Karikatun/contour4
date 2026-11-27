@@ -112,6 +112,7 @@ namespace Contour4.NativeRaid.Runtime
         private readonly Dictionary<Room, FreightLink> inbound = new();
         private readonly Pose planningSpace;
         private readonly bool drafting;
+        private readonly QuotaLayout quotaLayout;
         private readonly Func<Room, bool> canPrepare;
         private readonly int sphereBranches;
         // Reserve the entire stock starter half-space around its 15 m native module width,
@@ -150,20 +151,21 @@ namespace Contour4.NativeRaid.Runtime
             EntireLayout,
         }
 
-        private sealed class PlacementException : InvalidOperationException
+        internal sealed class PlacementException : InvalidOperationException
         {
             internal PlacementException(string message) : base(message) { }
         }
 
         private RaidPlan(int seed, Pose start, int completedLevels, int attempt, RaidPrefabBranch branch,
             Func<GrayModule> maintenance, DiversityScope diversity, Func<Room, bool> canPrepare, bool drafting, bool spreadQuotas = false,
-            int sphereBranches = BothSphereBranches)
+            int sphereBranches = BothSphereBranches, QuotaLayout quotaLayout = QuotaLayout.Ordinary)
         {
             Seed = seed;
             CompletedLevels = completedLevels;
             Attempt = attempt;
             this.diversity = diversity;
             this.drafting = drafting;
+            this.quotaLayout = quotaLayout;
             this.canPrepare = canPrepare;
             this.sphereBranches = sphereBranches;
             planningSpace = start;
@@ -352,6 +354,11 @@ namespace Contour4.NativeRaid.Runtime
                 .Concat(layout.RingRoom == null ? Array.Empty<Room>() : new[] { layout.RingRoom })
                 .OrderBy(room => room.Index).ToArray();
             var quotaSlots = originals.Where(room => room.Module.Landmarks.ContainsKey(RaidExtraction.Machine)).ToArray();
+            var quotaApproaches = quotaSlots.Select(room =>
+            {
+                var ramp = RaidExtraction.LoadingRoute(room.Module);
+                return (Length: RouteLength(ramp), Anchor: ramp.Knots.Last().Position);
+            }).ToArray();
             var destinations = originals.Except(quotaSlots).ToArray();
             var occupiedDocks = destinations.Select(room => layout.inbound[room].From)
                 .Select(from => (from.Room.Index, from.Dock.Id)).ToHashSet();
@@ -360,11 +367,6 @@ namespace Contour4.NativeRaid.Runtime
             var reservations = new List<FreightLink>(quotaSlots.Length);
             int reserveAt = quotaSlots[0].Index - reservedTransit;
             const float spacingTolerance = .01f;
-            var extraction = quotaSlots[0].Module;
-            var entry = layout.Arrival(quotaSlots[0]).Dock;
-            var ramp = QuotaRamp(extraction);
-            var anchor = ramp.Knots.Last().Position;
-            float approach = RouteLength(ramp);
             int reservationsLeft = 800;
             int transitPlacementsLeft = 1800;
             bool catalogRelocated = false;
@@ -458,6 +460,9 @@ namespace Contour4.NativeRaid.Runtime
             {
                 if (reservations.Count == target) return Place(index);
                 if (reservationsLeft <= 0 || transitPlacementsLeft <= 0) return false;
+                Room slot = quotaSlots[reservations.Count];
+                var entry = layout.Arrival(slot).Dock;
+                var (approach, anchor) = quotaApproaches[reservations.Count];
                 string usedArm = reservations.Count == 1 ? Arm(reservations[0].From) : null;
                 var options = new List<(End From, Room Room, Room Fold, float World, float Cart)>();
                 foreach (End from in Exits())
@@ -465,15 +470,17 @@ namespace Contour4.NativeRaid.Runtime
                     if (from.Room == root || (usedArm != null && Arm(from) == usedArm) ||
                         occupiedDocks.Contains((from.Room.Index, from.Dock.Id))) continue;
                     float toTruck = TreeDistance(from, Entrance, cartOnly: true) + approach;
-                    float toQuotas = reservations.Select(link => TreeDistance(from, link.To, cartOnly: true) + 2f * approach)
+                    float toQuotas = reservations.Select((link, i) => TreeDistance(from, link.To, cartOnly: true) +
+                            approach + quotaApproaches[i].Length)
                         .DefaultIfEmpty(float.PositiveInfinity).Min();
                     if (!float.IsFinite(toTruck) || (reservations.Count > 0 && !float.IsFinite(toQuotas))) continue;
-                    foreach (var placement in Attachments(from, extraction, entry, initialUp: false, longLink: false,
-                        roomIndex: quotaSlots[reservations.Count].Index))
+                    foreach (var placement in Attachments(from, slot.Module, entry, initialUp: false, longLink: false,
+                        roomIndex: slot.Index))
                     {
                         float foldLength = placement.Fold == null ? 0f : RouteLength(placement.Fold.Module.Routes[0]);
                         Vector3 pad = placement.Target.Point(anchor);
-                        float worldDistance = reservations.Select(link => Vector3.Distance(pad, link.To.Room.Point(anchor)))
+                        float worldDistance = reservations.Select((link, i) => Vector3.Distance(pad,
+                                link.To.Room.Point(quotaApproaches[i].Anchor)))
                             .DefaultIfEmpty(Vector3.Distance(pad, Entrance.Sill)).Min();
                         if (worldDistance <= originalSpacing + spacingTolerance) continue;
                         options.Add((from, placement.Target, placement.Fold, worldDistance,
@@ -500,9 +507,10 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         internal static RaidPlan Generate(int seed, Pose start, int completedLevels = 0, RaidPrefabBranch branch = null,
-            Func<GrayModule> maintenance = null, Func<Room, bool> canPrepare = null)
+            Func<GrayModule> maintenance = null, Func<Room, bool> canPrepare = null, bool rotaryQuota = false)
         {
-            var layout = GenerateLayoutWithReservedQuotas(seed, start, completedLevels, branch, maintenance, canPrepare);
+            var layout = GenerateWithQuotaFallback(seed, completedLevels, rotaryQuota,
+                selection => GenerateLayoutWithReservedQuotas(seed, start, completedLevels, branch, maintenance, canPrepare, selection));
             if (layout.HasEnemyStartRoom()) return layout;
             try
             {
@@ -528,6 +536,22 @@ namespace Contour4.NativeRaid.Runtime
             catch (PlacementException) { return layout; }
         }
 
+        internal static RaidPlan GenerateWithQuotaFallback(int seed, int completedLevels, bool rotaryQuota,
+            Func<QuotaLayout, RaidPlan> generate)
+        {
+            bool progression = completedLevels >= RaidExtraction.StraightBridgeUnlock;
+            QuotaLayout selection = rotaryQuota ? QuotaLayout.Rotary : progression ? QuotaLayout.Progressive : QuotaLayout.Ordinary;
+            while (true)
+            {
+                try { return generate(selection); }
+                catch (PlacementException error) when (selection != QuotaLayout.Ordinary)
+                {
+                    Debug.LogWarning($"[Contour4 Procedural] {selection} quotas could not fit seed {seed}. {error.Message}");
+                    selection = selection == QuotaLayout.Rotary && progression ? QuotaLayout.Progressive : QuotaLayout.Ordinary;
+                }
+            }
+        }
+
         private bool HasEnemyStartRoom() => rooms.Any(room => Vector3.Dot(room.Up, Vector3.up) > .9999f &&
             IsEnemyStartInterior(room.Module) && inbound[room].From.Room != Entrance.Room);
 
@@ -536,10 +560,10 @@ namespace Contour4.NativeRaid.Runtime
                 "shaft-plant" or "sample-storage" or "sample-storage-narrow" or
                 FreightServiceRoom.InstrumentService or FreightServiceRoom.SampleReceiving;
 
-        private static RaidPlan GenerateLayoutWithReservedQuotas(int seed, Pose start, int completedLevels,
-            RaidPrefabBranch branch, Func<GrayModule> maintenance, Func<Room, bool> canPrepare)
+        internal static RaidPlan GenerateLayoutWithReservedQuotas(int seed, Pose start, int completedLevels,
+            RaidPrefabBranch branch, Func<GrayModule> maintenance, Func<Room, bool> canPrepare, QuotaLayout quotaLayout)
         {
-            var baseline = GenerateLayoutWithQuotaSpacing(seed, start, completedLevels, branch, maintenance, canPrepare);
+            var baseline = GenerateLayoutWithQuotaSpacing(seed, start, completedLevels, branch, maintenance, canPrepare, quotaLayout);
             if (baseline.QuotaCount < 2) return baseline;
 
             var spacing = baseline.MeasureQuotaSpacing();
@@ -568,13 +592,13 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         private static RaidPlan GenerateLayoutWithQuotaSpacing(int seed, Pose start, int completedLevels,
-            RaidPrefabBranch branch, Func<GrayModule> maintenance, Func<Room, bool> canPrepare)
+            RaidPrefabBranch branch, Func<GrayModule> maintenance, Func<Room, bool> canPrepare, QuotaLayout quotaLayout)
         {
-            var baseline = GenerateLayout(seed, start, completedLevels, branch, maintenance, canPrepare);
+            var baseline = GenerateLayout(seed, start, completedLevels, branch, maintenance, canPrepare, quotaLayout);
             if (baseline.QuotaCount < 2) return baseline;
 
             var spacing = baseline.MeasureQuotaSpacing();
-            float approach = RouteLength(QuotaRamp(RaidExtraction.Create()));
+            float approach = RouteLength(RaidExtraction.LoadingRoute(RaidExtraction.Create()));
             // Only revisit a layout when loading pads are crowded by the scale of their own chambers.
             if (Mathf.Min(spacing.World, spacing.Map) >= RaidExtraction.Width &&
                 spacing.PairCart >= 2f * (RaidExtraction.Length + approach)) return baseline;
@@ -587,9 +611,9 @@ namespace Contour4.NativeRaid.Runtime
                 {
                     var candidate = baseline.Planar == null
                         ? new RaidPlan(seed, start, completedLevels, baseline.Attempt, branch, maintenance,
-                            diversity, canPrepare, drafting: false, spreadQuotas: true)
+                            diversity, canPrepare, drafting: false, spreadQuotas: true, quotaLayout: quotaLayout)
                         : GeneratePlanar(seed, start, completedLevels, baseline.Attempt, branch, maintenance,
-                            diversity, canPrepare, spreadQuotas: true);
+                            diversity, canPrepare, spreadQuotas: true, quotaLayout: quotaLayout);
                     if (candidate.QuotaCount != baseline.QuotaCount || candidate.Rooms.Count < baseline.Rooms.Count ||
                         candidate.catalogBranchesPlaced < baseline.catalogBranchesPlaced ||
                         candidate.PortalPairCount < baseline.PortalPairCount ||
@@ -607,10 +631,10 @@ namespace Contour4.NativeRaid.Runtime
             return baseline;
         }
 
-        private static RaidPlan GenerateLayout(int seed, Pose start, int completedLevels = 0, RaidPrefabBranch branch = null,
-            Func<GrayModule> maintenance = null, Func<Room, bool> canPrepare = null)
+        private static RaidPlan GenerateLayout(int seed, Pose start, int completedLevels, RaidPrefabBranch branch,
+            Func<GrayModule> maintenance, Func<Room, bool> canPrepare, QuotaLayout quotaLayout)
         {
-            var baseline = GenerateBaseline(seed, start, completedLevels, branch, maintenance, canPrepare);
+            var baseline = GenerateBaseline(seed, start, completedLevels, branch, maintenance, canPrepare, quotaLayout);
             int bestRepeats = baseline.RepeatedRooms();
             RaidPlan best = baseline;
             var alternatives = CatalogBranchTarget(completedLevels) == 0
@@ -630,8 +654,10 @@ namespace Contour4.NativeRaid.Runtime
                 {
                     // Rank alternatives within the generation path that produced the baseline.
                     var candidate = baseline.Planar == null
-                        ? new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare, drafting: false)
-                        : GeneratePlanar(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare);
+                        ? new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare,
+                            drafting: false, quotaLayout: quotaLayout)
+                        : GeneratePlanar(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare,
+                            quotaLayout: quotaLayout);
                     if (candidate.Rooms.Count != baseline.Rooms.Count || candidate.QuotaCount != baseline.QuotaCount ||
                         candidate.PortalPairCount < baseline.PortalPairCount || candidate.catalogBranchesPlaced < baseline.catalogBranchesPlaced)
                         continue;
@@ -647,10 +673,10 @@ namespace Contour4.NativeRaid.Runtime
 
         private static RaidPlan GeneratePlanar(int seed, Pose start, int completedLevels, int attempt,
             RaidPrefabBranch branch, Func<GrayModule> maintenance, DiversityScope diversity, Func<Room, bool> canPrepare,
-            bool spreadQuotas = false)
+            bool spreadQuotas = false, QuotaLayout quotaLayout = QuotaLayout.Ordinary)
         {
             var draft = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity, canPrepare,
-                drafting: true, spreadQuotas: spreadQuotas);
+                drafting: true, spreadQuotas: spreadQuotas, quotaLayout: quotaLayout);
             try
             {
                 return new RaidPlan(draft);
@@ -664,7 +690,7 @@ namespace Contour4.NativeRaid.Runtime
                     try
                     {
                         var reduced = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, diversity,
-                            canPrepare, drafting: true, spreadQuotas: spreadQuotas, sphereBranches: branches);
+                            canPrepare, drafting: true, spreadQuotas: spreadQuotas, sphereBranches: branches, quotaLayout: quotaLayout);
                         return new RaidPlan(reduced);
                     }
                     catch (PlacementException) { }
@@ -681,7 +707,7 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         private static RaidPlan GenerateBaseline(int seed, Pose start, int completedLevels, RaidPrefabBranch branch,
-            Func<GrayModule> maintenance, Func<Room, bool> canPrepare)
+            Func<GrayModule> maintenance, Func<Room, bool> canPrepare, QuotaLayout quotaLayout)
         {
             const int planarLayouts = 4;
             const int layouts = 48;
@@ -693,7 +719,8 @@ namespace Contour4.NativeRaid.Runtime
             {
                 try
                 {
-                    var plan = GeneratePlanar(seed, start, completedLevels, attempt, branch, maintenance, DiversityScope.None, canPrepare);
+                    var plan = GeneratePlanar(seed, start, completedLevels, attempt, branch, maintenance, DiversityScope.None, canPrepare,
+                        quotaLayout: quotaLayout);
                     if (desired <= 1 || plan.catalogBranchesPlaced == desired) return plan;
                     if (best == null || plan.catalogBranchesPlaced > best.catalogBranchesPlaced) best = plan;
                 }
@@ -707,7 +734,8 @@ namespace Contour4.NativeRaid.Runtime
             {
                 try
                 {
-                    var plan = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, DiversityScope.None, canPrepare, drafting: false);
+                    var plan = new RaidPlan(seed, start, completedLevels, attempt, branch, maintenance, DiversityScope.None, canPrepare,
+                        drafting: false, quotaLayout: quotaLayout);
                     if (desired <= 1 || plan.catalogBranchesPlaced == desired) return plan;
                     if (best == null) lastAttempt = Math.Min(lastAttempt, attempt + additionalLayouts);
                     if (best == null || plan.catalogBranchesPlaced > best.catalogBranchesPlaced) best = plan;
@@ -895,7 +923,8 @@ namespace Contour4.NativeRaid.Runtime
                 .Select(end => (End: end, Separation: OriginalQuotaSeparation(end, quotas), Tie: Next(int.MaxValue)))
                 .OrderByDescending(entry => entry.Separation).ThenBy(entry => entry.Tie)
                 .Select(entry => entry.End).ToArray();
-            return TryAttach(candidates, RaidExtraction.Create(), RaidExtraction.Entry, out _, placeNext: room =>
+            return TryAttach(candidates, RaidExtraction.CreateForSlot(CompletedLevels, quotas.Count, quotaLayout),
+                RaidExtraction.Entry, out _, placeNext: room =>
             {
                 quotas.Add(room);
                 if (TryAttachOriginalQuotas(count, quotas)) return true;
@@ -938,11 +967,13 @@ namespace Contour4.NativeRaid.Runtime
             if (count == 0) return true;
 
             const int improvementPlacements = 24;
-            var module = RaidExtraction.Create();
-            var entry = module.ExternalDocks.Single(dock => dock.Id == RaidExtraction.Entry);
-            var ramp = QuotaRamp(module);
-            float rampLength = RouteLength(ramp);
-            var localAnchor = ramp.Knots.Last().Position;
+            var slots = Enumerable.Range(0, count).Select(slot =>
+            {
+                var module = RaidExtraction.CreateForSlot(CompletedLevels, slot, quotaLayout);
+                var ramp = RaidExtraction.LoadingRoute(module);
+                return (Module: module, Entry: module.ExternalDocks.Single(dock => dock.Id == RaidExtraction.Entry),
+                    Length: RouteLength(ramp), Anchor: ramp.Knots.Last().Position);
+            }).ToArray();
             var chosen = new List<FreightLink>(count);
             (float Cart, float Spatial) bestSpacing = (float.NegativeInfinity, float.NegativeInfinity);
             FreightLink[] best = null;
@@ -966,13 +997,14 @@ namespace Contour4.NativeRaid.Runtime
                 }
 
                 // The first two extractions reserve one station on each starter arm.
+                var slot = slots[chosen.Count];
                 string usedArm = chosen.Count == 1 ? Arm(chosen[0].To.Room) : null;
                 var candidates = Exits().Where(end => end.Room != Entrance.Room && Arm(end) != usedArm)
-                    .Select(end => (End: end, Cart: DistanceToStations(end), Tie: Next(int.MaxValue)))
+                    .Select(end => (End: end, Cart: DistanceToStations(end, slot.Length), Tie: Next(int.MaxValue)))
                     .OrderByDescending(candidate => candidate.Cart).ThenBy(candidate => candidate.Tie).ToArray();
                 uint nextRandom = random;
                 foreach (var candidate in candidates)
-                foreach (var placement in Attachments(candidate.End, module, entry, initialUp: false, longLink: false))
+                foreach (var placement in Attachments(candidate.End, slot.Module, slot.Entry, initialUp: false, longLink: false))
                 {
                     if (best != null && improvementsLeft-- <= 0) return;
                     float fold = placement.Fold == null ? 0f : RouteLength(placement.Fold.Module.Routes[0]);
@@ -980,15 +1012,15 @@ namespace Contour4.NativeRaid.Runtime
                     float nearestSpatial = spatial;
                     if (!drafting)
                     {
-                        var anchor = placement.Target.Point(localAnchor);
-                        foreach (FreightLink link in chosen)
+                        var anchor = placement.Target.Point(slot.Anchor);
+                        for (int i = 0; i < chosen.Count; i++)
                             nearestSpatial = Mathf.Min(nearestSpatial,
-                                Vector3.Distance(anchor, link.To.Room.Point(localAnchor)));
+                                Vector3.Distance(anchor, chosen[i].To.Room.Point(slots[i].Anchor)));
                     }
                     if (CompareQuotaSpacing((nearestCart, nearestSpatial), bestSpacing) <= 0) continue;
 
                     random = nextRandom;
-                    Room room = Commit(candidate.End, new End(placement.Target, entry), placement.Fold);
+                    Room room = Commit(candidate.End, new End(placement.Target, slot.Entry), placement.Fold);
                     chosen.Add(inbound[room]);
                     Search(nearestCart, nearestSpatial);
                     chosen.RemoveAt(chosen.Count - 1);
@@ -998,13 +1030,13 @@ namespace Contour4.NativeRaid.Runtime
                 }
             }
 
-            float DistanceToStations(End end)
+            float DistanceToStations(End end, float approach)
             {
                 // The native truck connects at Entrance. Its interior is beyond the planned route.
                 float nearest = TreeDistance(end, Entrance, cartOnly: true);
-                foreach (FreightLink link in chosen)
-                    nearest = Mathf.Min(nearest, TreeDistance(end, link.To, cartOnly: true) + rampLength);
-                return nearest + rampLength;
+                for (int i = 0; i < chosen.Count; i++)
+                    nearest = Mathf.Min(nearest, TreeDistance(end, chosen[i].To, cartOnly: true) + slots[i].Length);
+                return nearest + approach;
             }
         }
 
@@ -1014,16 +1046,20 @@ namespace Contour4.NativeRaid.Runtime
                 .Select(room =>
                 {
                     var entry = Arrival(room);
-                    var ramp = QuotaRamp(room.Module);
-                    var anchor = ramp.Knots.Last().Position;
+                    var ramp = RaidExtraction.LoadingRoute(room.Module);
+                    var last = ramp.Knots.Last();
+                    var anchor = last.Position;
+                    var loadingFloor = room.Module.Floors.First(floor => Numerics.Vector3.Dot(floor.Pose.Up, last.Up) > .999f);
                     Vector2? map = null;
-                    if (Planar != null && Planar.TryGetPose(room.Index, entry.Dock.FloorId, out var floor))
+                    if (Planar != null && Planar.TryGetPose(room.Index, loadingFloor.Id, out var floor))
                     {
+                        var local = anchor - loadingFloor.Pose.Position;
+                        float x = Numerics.Vector3.Dot(local, loadingFloor.Pose.Forward);
+                        float z = Numerics.Vector3.Dot(local, loadingFloor.Pose.Right);
                         float angle = floor.Angle * Mathf.Deg2Rad;
                         float sine = Mathf.Sin(angle);
                         float cosine = Mathf.Cos(angle);
-                        map = floor.Position + new Vector2(anchor.X * cosine - anchor.Z * sine,
-                            anchor.X * sine + anchor.Z * cosine);
+                        map = floor.Position + new Vector2(x * cosine - z * sine, x * sine + z * cosine);
                     }
                     return (Entry: entry, Approach: RouteLength(ramp), World: room.Point(anchor), Map: map);
                 }).ToArray();
@@ -1048,9 +1084,6 @@ namespace Contour4.NativeRaid.Runtime
             }
             return (pairCart, stockCart, world, mapDistance);
         }
-
-        private static HaulRoute QuotaRamp(GrayModule module) =>
-            module.Routes.Single(route => route.To == RaidExtraction.Machine);
 
         private static int CompareQuotaSpacing((float Cart, float Spatial) candidate, (float Cart, float Spatial) current)
         {

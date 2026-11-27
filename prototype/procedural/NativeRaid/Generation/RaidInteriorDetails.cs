@@ -83,7 +83,7 @@ namespace Contour4.NativeRaid.Runtime
                 case "right-angle-chambers":
                     TransferRooms(batch, module);
                     break;
-                case "extraction-chamber":
+                case RaidExtraction.OrdinaryId:
                     QuotaApron(batch, built.Plan);
                     break;
                 case "straight-corridor-short":
@@ -257,7 +257,7 @@ namespace Contour4.NativeRaid.Runtime
             "right-angle-chambers" => ("T03", Design.Controls),
             "niche-chamber" => ("T04", Design.Storage),
             "mobius-hall" => ("MOB", Design.Controls),
-            "extraction-chamber" => ("QUO", Design.Dispatch),
+            RaidExtraction.OrdinaryId or RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId => ("QUO", Design.Dispatch),
             _ when id == SphericalChamber.Id || id.StartsWith(SphericalChamber.Id + "-", StringComparison.Ordinal) => ("SPH", Design.Controls),
             _ => ("NR4", Design.Service)
         };

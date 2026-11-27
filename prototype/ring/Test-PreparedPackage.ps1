@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)] [string] $MapPackage,
     [Parameter(Mandatory)] [string] $Output,
-    [string] $Unity = 'C:/Program Files/Unity/Hub/Editor/6000.3.17f1/Editor/Unity.exe'
+    [string] $Unity = 'C:/Program Files/Unity/Hub/Editor/6000.3.17f1/Editor/Unity.exe',
+    [switch] $ExtractionBridges
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,15 +35,17 @@ try {
 } finally { $archive.Dispose() }
 Get-FileHash -LiteralPath $package,$receiving,$prepared -Algorithm SHA256
 
+$method = if ($ExtractionBridges) { 'RunExtractionBridges' } else { 'Run' }
+$success = if ($ExtractionBridges) { 'CONTOUR4 NATIVE RAID EXTRACTION BRIDGES PASSED' } else { 'CONTOUR4 PREPARED PACKAGE PASSED' }
 $unityArgs = @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'),
-    '-executeMethod', 'SpaceJourney.PreparedModulePackageChecks.Run', '-logFile', ('"' + $log + '"'))
+    '-executeMethod', "SpaceJourney.PreparedModulePackageChecks.$method", '-logFile', ('"' + $log + '"'))
 $editor = Start-Process -FilePath $Unity -ArgumentList $unityArgs -Wait -PassThru -WindowStyle Hidden `
     -Environment @{ CONTOUR4_ROOMS_BUNDLE = $receiving; CONTOUR4_PREPARED_BUNDLE = $prepared;
         CONTOUR4_PREPARED_EVIDENCE = $outPath }
 if (!(Test-Path -LiteralPath $log -PathType Leaf)) { throw "Unity produced no log. Exit $($editor.ExitCode)." }
-Select-String -LiteralPath $log -Pattern 'CONTOUR4 (PREPARED PACKAGE (RAID|NAV|TAB|FIELD|PHYSICAL NETWORK|COMPOSITION DOCKS|SPHERE|PASSED)|SPHERE PHYSICS|PREPARED MOBIUS)|error CS\d+|Exception:|return code|No valid Unity Editor license' |
+Select-String -LiteralPath $log -Pattern 'CONTOUR4 (PREPARED PACKAGE (RAID|NAV|TAB|FIELD|PHYSICAL NETWORK|COMPOSITION DOCKS|SPHERE|PASSED)|SPHERE PHYSICS|PREPARED MOBIUS|NATIVE RAID extraction bridges)|error CS\d+|Exception:|return code|No valid Unity Editor license' |
     Select-Object -Last 65 -ExpandProperty Line
-if ($editor.ExitCode -ne 0 -or !(Select-String -LiteralPath $log -SimpleMatch 'CONTOUR4 PREPARED PACKAGE PASSED' -Quiet)) {
+if ($editor.ExitCode -ne 0 -or !(Select-String -LiteralPath $log -SimpleMatch $success -Quiet)) {
     throw "Prepared package verification failed. See $log"
 }
 "Offline Unity evidence: $log"

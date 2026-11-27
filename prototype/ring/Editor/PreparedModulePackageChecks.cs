@@ -64,6 +64,13 @@ namespace SpaceJourney
             Debug.Log($"{Log} MOBIUS SMOKE PASSED: exact installed scene 5,-32.");
         }
 
+        public static void RunExtractionBridges()
+        {
+            using var bundle = RoomPrefabBundle.Load(Environment.GetEnvironmentVariable("CONTOUR4_ROOMS_BUNDLE"),
+                Environment.GetEnvironmentVariable("CONTOUR4_PREPARED_BUNDLE"));
+            Contour4.NativeRaid.Editor.SeededRaidChecks.CheckExtractionBridges(bundle.Prefabs);
+        }
+
         public static void RunMobiusOutletWitnesses()
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);

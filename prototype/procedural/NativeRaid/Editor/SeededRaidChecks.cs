@@ -453,7 +453,7 @@ namespace Contour4.NativeRaid.Editor
             var transits = new HashSet<string>();
             bool catalogBridge = false;
             var catalogLayouts = new Dictionary<string, (int Seed, int Completed)>();
-            foreach (int completed in new[] { 0, 1, 3, 5, 6, 14 })
+            foreach (int completed in new[] { 0, 1, 3, 5, 6, 9, 14 })
             {
                 var plans = Enumerable.Range(-32, 64).Append(2133).Append(1499861616)
                     .Select(seed => RaidPlan.Generate(seed, entrance, completed,
@@ -462,6 +462,7 @@ namespace Contour4.NativeRaid.Editor
                 Require(variants > 8, $"Level {completed + 1}: seed varies actual rooms and poses ({variants})");
                 foreach (var plan in plans)
                 {
+                    CheckExtractionProgression(plan, allowFallback: true);
                     Require(plan.Rooms.Count >= RaidPlan.CatalogCapacity(completed) + plan.QuotaCount &&
                         plan.QuotaCount == RaidExtraction.AdditionalCount(RaidPlan.CatalogCapacity(completed)) &&
                         plan.Freight.Count + plan.HandPassages.Count == plan.Rooms.Count - 1,
@@ -538,6 +539,133 @@ namespace Contour4.NativeRaid.Editor
             bool HasGrayPassageFrames(int seed, int completed) => RaidPlan.Generate(seed, entrance, completed,
                     maintenance: Contour4.Procedural.Catalog.MaintenanceTrench.Create).Passages
                 .All(passage => Vector3.Dot(passage.From.Room.Up, passage.To.Room.Up) > .999f);
+        }
+
+        internal static void CheckExtractionBridges(RaidRoomPrefabs prefabs)
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Run in the dedicated batch project.");
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var entrance = new Pose(new Vector3(40, 0, -20), Quaternion.Euler(0, 90, 0));
+            CheckQuotaFallback(entrance, prefabs);
+            foreach (int completed in new[] { 1, 4, 5, 8, 9, 14 })
+            foreach (int seed in new[] { -32, 42, 1499861616 })
+            {
+                var stage = new GameObject("Live quota layout");
+                try
+                {
+                    var raid = stage.AddComponent<RaidAssembly>();
+                    raid.Place(seed, entrance, 0, 1 << ObstacleLayer, catalogSites: true, completedLevels: completed,
+                        roomPrefabs: prefabs);
+                    Physics.SyncTransforms();
+                    CheckExtractionProgression(raid.Plan);
+                    foreach (var room in raid.Rooms.Where(candidate =>
+                        candidate.Plan.Module.Id is RaidExtraction.StraightBridgeId or RaidExtraction.BentBridgeId))
+                    {
+                        var module = room.Plan.Module;
+                        var ramp = RaidExtraction.LoadingRoute(module);
+                        var last = ramp.Knots.Last();
+                        var root = room.Root;
+                        Vector3 turn = root.TransformPoint(new Vector3(2.4f, 0f, 0f));
+                        for (int angle = 0; angle < 360; angle += 15)
+                            CheckCart(turn, Quaternion.AngleAxis(angle, root.up) * root.right, root.up);
+                        foreach (var sample in ramp.Samples(.08f))
+                        {
+                            if (sample.Position.X < 1.3f) continue;
+                            var point = root.TransformPoint(RaidPlan.Vector(sample.Position));
+                            var forward = root.TransformDirection(RaidPlan.Vector(sample.Forward));
+                            CheckCart(point, forward, root.up);
+                            CheckCart(point, -forward, root.up);
+                        }
+                        bool bent = module.Id == RaidExtraction.BentBridgeId;
+                        Vector3 abyss = root.TransformPoint(new Vector3(7f, 1f, -3.85f));
+                        Require(!Physics.Raycast(abyss, -root.up, 4.8f, 1, QueryTriggerInteraction.Ignore),
+                            "The exposed shaft has no hidden floor below the missing deck");
+                        Require(module.FallVolumes.Count == 1 &&
+                            room.Colliders.Any(part => part.name.StartsWith("hanging-", StringComparison.Ordinal) &&
+                                !part.attachedRigidbody),
+                            "The shaft has a configured fall zone and static suspended debris");
+                        CheckShaftWalls(room, bent);
+                        Vector3 expected = bent ? Vector3.forward : Vector3.right;
+                        Require(Vector3.Dot(RaidPlan.Vector(last.Forward), expected) > .999f &&
+                            Vector3.Dot(RaidExtraction.FaceLoading(last, Vector3.left) * Vector3.left, -expected) > .999f,
+                            "The native ramp faces the end of the actual approach");
+                        var machine = RaidPlan.Vector(module.Landmarks[RaidExtraction.Machine]);
+                        Require(machine.x - RaidExtractionBridge.GapStart > 5f,
+                            "The native machine remains well beyond the protected apron");
+                    }
+                    Debug.Log($"{Log} extraction bridges seed={seed} completed={completed}: " +
+                        string.Join(", ", raid.Plan.Rooms.Where(room => room.Module.Landmarks.ContainsKey(RaidExtraction.Machine))
+                            .Select(room => room.Module.Id)));
+                }
+                finally { Object.DestroyImmediate(stage); }
+            }
+            Debug.Log($"{Log} EXTRACTION BRIDGES PASSED");
+        }
+
+        private static void CheckQuotaFallback(Pose entrance, RaidRoomPrefabs prefabs)
+        {
+            const int seed = -32, completed = 9;
+            bool CanPrepare(RaidPlan.Room room) => prefabs.TryGetPrepared(room, out var prefab) && prefab;
+            RaidPlan ordinary = null;
+            foreach (bool rotary in new[] { false, true })
+            {
+                var attempts = new List<QuotaLayout>();
+                var plan = RaidPlan.GenerateWithQuotaFallback(seed, completed, rotary, selection =>
+                {
+                    attempts.Add(selection);
+                    if (selection != QuotaLayout.Ordinary)
+                        throw new RaidPlan.PlacementException("Forced advanced quota placement exhaustion.");
+                    return ordinary ??= RaidPlan.GenerateLayoutWithReservedQuotas(seed, entrance, completed, null,
+                        MaintenanceTrench.Create, CanPrepare, selection);
+                });
+                var expected = rotary
+                    ? new[] { QuotaLayout.Rotary, QuotaLayout.Progressive, QuotaLayout.Ordinary }
+                    : new[] { QuotaLayout.Progressive, QuotaLayout.Ordinary };
+                Require(attempts.SequenceEqual(expected), "Exhausted quota layouts retry each applicable simpler layout once");
+                Require(plan.CompletedLevels == completed && plan.Seed == seed &&
+                    plan.QuotaCount == RaidExtraction.AdditionalCount(RaidPlan.CatalogCapacity(completed)) &&
+                    plan.Rooms.Count(room => room.Module.Id == RaidExtraction.OrdinaryId) == plan.QuotaCount,
+                    "Fallback generates an ordinary, full-size quota layout at the same run progression and seed");
+                CheckGraph(plan);
+            }
+        }
+
+        private static void CheckShaftWalls(BakedRoom room, bool bent)
+        {
+            float length = room.Plan.Module.Plan.Y;
+            float far = bent ? RaidExtractionBridge.BentFarWall : RaidExtractionBridge.StraightFarWall;
+            foreach (float height in new[] { -.2f, -2f, -4f, -6.9f })
+            {
+                var rays = new[]
+                {
+                    ("entry", new Vector3(.6f, height, 0), Vector3.left),
+                    ("back", new Vector3(length - .6f, height, 0), Vector3.right),
+                    ("near", new Vector3(8f, height, RaidExtractionBridge.NearWall + .6f), Vector3.back),
+                    ("far", new Vector3(8f, height, far - .6f), Vector3.forward),
+                };
+                foreach (var (side, point, direction) in rays)
+                {
+                    Require(Physics.Raycast(room.Root.TransformPoint(point), room.Root.TransformDirection(direction),
+                            out var hit, .55f, 1, QueryTriggerInteraction.Ignore) &&
+                        hit.collider.name == "shaft-wall-" + side && hit.collider.transform.parent == room.Root,
+                        "A falling body cannot leave the shaft through the " + side + " perimeter");
+                }
+            }
+        }
+
+        private static void CheckExtractionProgression(RaidPlan plan, bool allowFallback = false)
+        {
+            var stations = plan.Rooms.Where(room => room.Module.Landmarks.ContainsKey(RaidExtraction.Machine))
+                .Select(room => room.Module.Id).ToArray();
+            Require(stations.Length == RaidExtraction.AdditionalCount(RaidPlan.CatalogCapacity(plan.CompletedLevels)),
+                "The stock-sized quota count stays the same across difficulty variants");
+            if (allowFallback && stations.All(id => id == RaidExtraction.OrdinaryId)) return;
+            Require(stations.Count(id => id == RaidExtraction.StraightBridgeId) ==
+                (plan.CompletedLevels >= RaidExtraction.StraightBridgeUnlock ? 1 : 0), "The ruined bridge unlocks on the stated stage");
+            Require(stations.Count(id => id == RaidExtraction.BentBridgeId) ==
+                (plan.CompletedLevels >= RaidExtraction.BentBridgeUnlock ? 1 : 0), "The bent bridge unlocks on the stated stage");
+            Require(stations.Length == 0 || stations.Contains(RaidExtraction.OrdinaryId),
+                "Every generated raid with an extra quota preserves an ordinary station");
         }
 
         private static GameObject Block(Transform root, Vector3 position, Vector3 scale)

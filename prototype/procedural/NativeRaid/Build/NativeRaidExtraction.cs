@@ -40,11 +40,13 @@ internal static class NativeRaidExtraction
         foreach (var room in raid.Rooms)
         {
             if (!room.Plan.Module.Landmarks.TryGetValue(RaidExtraction.Machine, out var position)) continue;
-            var entry = room.Plan.Dock(RaidExtraction.Entry);
+            var approach = RaidExtraction.LoadingRoute(room.Plan.Module).Knots.Last();
             var machine = UnityEngine.Object.Instantiate(source, room.Root);
             machine.transform.SetLocalPositionAndRotation(RaidPlan.Vector(position),
-                RaidExtraction.FaceEntry(entry, position, loadingDirection));
+                RaidExtraction.FaceLoading(approach, loadingDirection));
             machine.name = "Contour-4 native extraction point";
+            if (room.Plan.Module.Id == RaidQuotaRotaryRoom.Id)
+                NativeRaidQuotaRotary.Install(raid, room);
         }
     }
 }

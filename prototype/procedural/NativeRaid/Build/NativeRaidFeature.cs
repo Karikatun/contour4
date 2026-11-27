@@ -28,6 +28,7 @@ internal sealed class NativeRaidFeature : IDisposable
     private Level level;
     private Level stockManor;
     private readonly ConfigEntry<string> configuredSeed;
+    private readonly ConfigEntry<bool> rotaryQuota;
     private readonly ManualLogSource logger;
     private readonly Harmony harmony;
     private readonly string additionalSoloLevel;
@@ -43,6 +44,8 @@ internal sealed class NativeRaidFeature : IDisposable
         this.additionalSoloLevel = additionalSoloLevel;
         this.bindLoadingArt = bindLoadingArt;
         configuredSeed = config.Bind("Raid", "Seed", "", "A signed 32-bit seed. Blank generates a new seed for each solo raid.");
+        rotaryQuota = config.Bind("Raid", "Rotary Quota Prototype", false,
+            "Try the rotating transfer chamber in the first additional extraction of a solo raid.");
         harmony = new Harmony(patchOwner);
     }
 
@@ -198,7 +201,7 @@ internal sealed class NativeRaidFeature : IDisposable
             if (!generator || !IsThisLevel(generator.Level) || GameManager.Multiplayer()) return;
             var entry = __instance.GetComponent<NativeRaidModule>();
             if (entry) entry.Place(__instance, instance.RaidSeed, instance.stockManor, instance.prepareCatalog,
-                instance.prefabBranch?.Invoke(), instance.roomPrefabs);
+                instance.prefabBranch?.Invoke(), instance.roomPrefabs, instance.rotaryQuota.Value);
         }
     }
 

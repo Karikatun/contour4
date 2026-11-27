@@ -63,8 +63,11 @@ internal static class NativeRaidCabinetGrab
         actor.SetActive(true);
     }
 
-    internal static float FallHeight(PhysGrabObject actor) =>
-        actor.TryGetComponent<NativeRaidCabinetMount>(out var marker) && marker.IsAnchored ? float.NegativeInfinity : StockFallHeight;
+    internal static float FallHeight(PhysGrabObject actor)
+    {
+        if (actor.TryGetComponent<NativeRaidCabinetMount>(out var marker) && marker.IsAnchored) return float.NegativeInfinity;
+        return NativeRaidGravity.FellInRotaryVoid(actor.rb) ? float.PositiveInfinity : StockFallHeight;
+    }
 
     [HarmonyPatch(typeof(PhysGrabObject), "Update")]
     internal static class FallHeightPatch
@@ -104,7 +107,7 @@ internal static class NativeRaidCabinetGrab
             }
             if (match == -1) throw new InvalidOperationException("The stock cabinet fall comparison is unavailable.");
 
-            // Replace only the threshold on the stack. Loose actors keep the stock fall path and callbacks.
+            // Replace only the threshold. Stock still decides whether to destroy or recover the object.
             code[match].opcode = OpCodes.Ldarg_0;
             code[match].operand = null;
             code.Insert(match + 1, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(NativeRaidCabinetGrab), nameof(FallHeight))));

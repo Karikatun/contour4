@@ -162,16 +162,26 @@ try {
     $eligible = Find-Call $threshold $marker.FullName 'get_IsAnchored'
     $stockHeight = @($threshold.Body.Instructions | Where-Object { $_.OpCode.Name -ceq 'ldc.r4' -and $_.Operand -eq -50 })
     $exempt = @($threshold.Body.Instructions | Where-Object { $_.OpCode.Name -ceq 'ldc.r4' -and [float]::IsNegativeInfinity($_.Operand) })
+    $lost = @($threshold.Body.Instructions | Where-Object { $_.OpCode.Name -ceq 'ldc.r4' -and [float]::IsPositiveInfinity($_.Operand) })
+    $void = Find-Call $threshold 'Contour4.NativeRaid.NativeRaidGravity' 'FellInRotaryVoid'
+    $testVoid = $void.Previous.Previous
     $mount = Find-Method $marker 'get_IsAnchored'
     $mountGuards = @($mount.Body.Instructions | Where-Object { $_.OpCode.Name -eq 'brfalse.s' })
-    Require ($localMarker -and $eligible -and $stockHeight.Count -eq 1 -and $exempt.Count -eq 1 -and
-        $localMarker.Next.OpCode.Name -eq 'brfalse.s' -and $localMarker.Next.Operand -eq $stockHeight[0] -and
-        $eligible.Next.OpCode.Name -eq 'brtrue.s' -and $eligible.Next.Operand -eq $exempt[0] -and $eligible.Next.Next -eq $stockHeight[0] -and
+    Require ($localMarker -and $eligible -and $testVoid -and $exempt.Count -eq 1 -and
+        $localMarker.Next.OpCode.Name -eq 'brfalse.s' -and $localMarker.Next.Operand -eq $testVoid -and
+        $eligible.Next.OpCode.Name -eq 'brfalse.s' -and $eligible.Next.Operand -eq $testVoid -and $eligible.Next.Next -eq $exempt[0] -and
+        $exempt[0].Next.OpCode.Name -eq 'ret' -and
         $mountGuards.Count -eq 4 -and @($mountGuards | Where-Object { $_.Operand.OpCode.Name -ne 'ldc.i4.0' }).Count -eq 0 -and
         (Find-Call $mount 'UnityEngine.Behaviour' 'get_isActiveAndEnabled') -and
         (Find-Call $mount 'UnityEngine.Rigidbody' 'get_isKinematic') -and (Find-Call $mount 'UnityEngine.Joint' 'get_connectedBody') -and
         (Find-Call $mount 'UnityEngine.Object' 'op_Equality')) `
         'Only the marked local front still connected to its original kinematic anchor may skip the stock fall path.'
+    Require ($stockHeight.Count -eq 1 -and $lost.Count -eq 1 -and
+        $testVoid.OpCode.Name -eq 'ldarg.0' -and $void.Previous.OpCode.Name -eq 'ldfld' -and
+        $void.Previous.Operand.DeclaringType.FullName -ceq 'PhysGrabObject' -and $void.Previous.Operand.Name -ceq 'rb' -and
+        $void.Next.OpCode.Name -eq 'brtrue.s' -and $void.Next.Operand -eq $lost[0] -and $void.Next.Next -eq $stockHeight[0] -and
+        $stockHeight[0].Next.OpCode.Name -eq 'ret' -and $lost[0].Next.OpCode.Name -eq 'ret') `
+        'Only a loose actor falling in the rotary void activates the stock loss branch above the stock fall height.'
 
     $feature = $candidate.MainModule.GetType('Contour4.NativeRaid.NativeRaidFeature')
     $patchTarget = $installer.NestedTypes | Where-Object Name -CEQ 'FallHeightPatch'
@@ -190,7 +200,7 @@ try {
         (Find-Call (Find-Method $feature 'Dispose') 'HarmonyLib.Harmony' 'UnpatchSelf')) `
         'The cabinet comparison patch must share the unique feature owner and its rollback and disposal paths.'
 
-    "CONTOUR4 CABINET BINDINGS PASS native first hit, grab-grid startup, held torque/release, and anchored fall scope ($gameHash)"
+    "CONTOUR4 CABINET BINDINGS PASS native first hit, grab-grid startup, held torque/release, anchored fall scope and rotary loss ($gameHash)"
 }
 finally {
     $candidate.Dispose()

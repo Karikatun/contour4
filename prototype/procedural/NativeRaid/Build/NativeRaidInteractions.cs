@@ -36,6 +36,14 @@ internal sealed class NativeRaidInteractions : MonoBehaviour
         return avatar && avatar.playerHealth && !(bool)Disabled.GetValue(avatar) && !(bool)Dead.GetValue(avatar) ? avatar : null;
     }
 
+    internal static Rigidbody FallBody(PlayerAvatar avatar, Rigidbody controllerBody, bool tumbling)
+    {
+        if (!tumbling) return controllerBody;
+        if (PlayerTumble.GetValue(avatar) is PlayerTumble tumble && tumble &&
+            TumbleBody.GetValue(tumble) is Rigidbody tumbleBody && tumbleBody) return tumbleBody;
+        return AvatarBody.GetValue(avatar) is Rigidbody visualBody && visualBody ? visualBody : controllerBody;
+    }
+
     private void OnDisable()
     {
         var grabber = PhysGrabber.instance;
@@ -58,19 +66,13 @@ internal sealed class NativeRaidInteractions : MonoBehaviour
             return;
         }
         bool tumbling = (bool)Tumbling.GetValue(avatar);
-        var body = controller.rb;
-        if (tumbling)
-        {
-            if (PlayerTumble.GetValue(avatar) is PlayerTumble tumble && tumble &&
-                TumbleBody.GetValue(tumble) is Rigidbody tumbleBody && tumbleBody) body = tumbleBody;
-            else if (AvatarBody.GetValue(avatar) is Rigidbody visualBody && visualBody) body = visualBody;
-        }
+        var body = FallBody(avatar, controller.rb, tumbling);
         Vector3 feet = body.position;
         Vector3 previous = trackedBody == body ? transform.TransformPoint(previousLocalFeet) : feet;
         trackedBody = body;
         previousLocalFeet = transform.InverseTransformPoint(feet);
 
-        if (interactions.CatchesFall(previous, feet))
+        if (interactions.CatchesFall(previous, feet) || NativeRaidGravity.FellInRotaryVoid(body))
         {
             avatar.PlayerDeath(-1);
             return;

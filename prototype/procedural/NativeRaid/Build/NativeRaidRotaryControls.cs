@@ -35,6 +35,7 @@ internal sealed class NativeRaidRotaryControls : MonoBehaviour
         art.FarRecall = art.Button(cabin.DockFrame(true), new Vector3(2.55f, 1.23f, 3.25f),
             Quaternion.LookRotation(Vector3.forward, Vector3.up), steel, dark, layer, true);
         art.Decorate(cabin, steel, rim, pinionSteel, layer);
+        art.DressRuinedApproach(cabin, steel, dark, metal, layer);
         art.SetTurning(false);
         return art;
     }
@@ -133,6 +134,90 @@ internal sealed class NativeRaidRotaryControls : MonoBehaviour
         }
     }
 
+    private void DressRuinedApproach(RaidQuotaRotaryCabin cabin, Material steel, Material dark, Material wall, int layer)
+    {
+        // Flat, non-solid edge markings follow the actual shallow inclined deck.
+        var warning = MakeMaterial(steel, new Color(.95f, .58f, .10f));
+        warning.EnableKeyword("_EMISSION");
+        if (warning.HasProperty("_EmissionColor")) warning.SetColor("_EmissionColor", new Color(.20f, .10f, .015f));
+        void RampTrim(float z, float y, float length, float angle)
+        {
+            Transform ramp = Node(cabin.transform, "Ramp edge fittings", new Vector3(0, y, z), Quaternion.Euler(angle, 0, 0), layer);
+            var rail = new MeshParts();
+            var stripe = new MeshParts();
+            foreach (int side in new[] { -1, 1 })
+            {
+                rail.Box(new Vector3(side * 2.16f, .012f, 0), new Vector3(.18f, .025f, length));
+                stripe.Box(new Vector3(side * 2.16f, .028f, 0), new Vector3(.10f, .01f, length));
+                for (float d = -length / 2 + .18f; d < length / 2; d += .50f)
+                    rail.Cylinder(new Vector3(side * 2.16f, .035f, d), .037f, .018f, 8);
+            }
+            ownedMeshes.Add(rail.Render(ramp, "Ramp metal edge and rivets", steel, layer));
+            ownedMeshes.Add(stripe.Render(ramp, "Amber safety edges", warning, layer));
+        }
+        RampTrim(-6.5f, -1.71f, 2f, 3.43f);
+        RampTrim(-4.3f, -1.71f, 2.4f, -2.86f);
+
+        void WorkLight(string name, Vector3 position, Color color, float range, float intensity)
+        {
+            Transform node = Node(cabin.transform, name, position, Quaternion.identity, layer);
+            var light = node.gameObject.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = color;
+            light.range = range;
+            light.intensity = intensity;
+            light.shadows = LightShadows.None;
+        }
+        // Fill the square facade corners up to the OUTSIDE of the toothed ring.
+        // Thin visual spandrels do not seal the rotating chamber behind the ring.
+        var shoulders = new MeshParts();
+        shoulders.RingShoulders(3.25f, 3.20f, -1.65f, 3.20f, -3.86f);
+        ownedMeshes.Add(shoulders.Render(cabin.transform, "Concrete ring spandrels", wall, layer));
+
+        // Irregular visible fracture edges partially overlap the two genuine holes.
+        var holeEdges = new MeshParts();
+        holeEdges.WallTriangle(new Vector3(4.05f, -.25f, -3.88f), new Vector3(4.52f, -.25f, -3.88f), new Vector3(4.05f, .12f, -3.88f));
+        holeEdges.WallTriangle(new Vector3(4.85f, .85f, -3.88f), new Vector3(4.40f, .85f, -3.88f), new Vector3(4.85f, .50f, -3.88f));
+        holeEdges.WallTriangle(new Vector3(-4.05f, -.50f, -3.88f), new Vector3(-4.55f, -.50f, -3.88f), new Vector3(-4.05f, -.12f, -3.88f));
+        holeEdges.WallTriangle(new Vector3(-4.85f, .60f, -3.88f), new Vector3(-4.36f, .60f, -3.88f), new Vector3(-4.85f, .23f, -3.88f));
+        ownedMeshes.Add(holeEdges.Render(cabin.transform, "Broken hole edges", wall, layer));
+
+        // Old steel seams and brackets break up the otherwise flat facade.
+        var seams = new MeshParts();
+        foreach (int side in new[] { -1, 1 })
+        {
+            seams.Box(new Vector3(side * 3.53f, .30f, -3.89f), new Vector3(.055f, 1.25f, .035f));
+            seams.Box(new Vector3(side * 3.53f, .87f, -3.90f), new Vector3(.32f, .08f, .055f));
+            seams.Box(new Vector3(side * 3.53f, -.25f, -3.90f), new Vector3(.32f, .08f, .055f));
+        }
+        ownedMeshes.Add(seams.Render(cabin.transform, "Aged wall seams and staples", dark, layer));
+
+        // Pale, irregular fracture caps sit on the low collidable masonry remnants.
+        var fracture = MakeMaterial(steel, new Color(.68f, .64f, .56f));
+        if (fracture.HasProperty("_Metallic")) fracture.SetFloat("_Metallic", 0f);
+        fracture.EnableKeyword("_EMISSION");
+        if (fracture.HasProperty("_EmissionColor")) fracture.SetColor("_EmissionColor", new Color(.09f, .08f, .065f));
+        var cuts = new MeshParts();
+        // x is the cabin-local lateral axis; z is along the entry approach.
+        cuts.Fracture(4.25f, 4.90f, -6.8f, -6.35f, 1.12f - 1.65f, .19f, .04f);
+        cuts.Fracture(3.55f, 4.25f, -6.8f, -6.35f, .72f - 1.65f, .04f, .17f);
+        cuts.Fracture(2.75f, 3.55f, -6.8f, -6.35f, .53f - 1.65f, .11f, .03f);
+        cuts.Fracture(-5f, -4.35f, -5.4f, -4.95f, .96f - 1.65f, .06f, .20f);
+        cuts.Fracture(-4.35f, -3.55f, -5.4f, -4.95f, .63f - 1.65f, .14f, .03f);
+        cuts.Fracture(-3.55f, -2.75f, -5.4f, -4.95f, .46f - 1.65f, .04f, .13f);
+        ownedMeshes.Add(cuts.Render(cabin.transform, "Exposed chipped concrete", fracture, layer));
+        var bars = new MeshParts();
+        bars.Box(new Vector3(4.20f, 1.0f - 1.65f, -6.56f), new Vector3(.045f, .73f, .045f));
+        bars.Box(new Vector3(-4.28f, .80f - 1.65f, -5.16f), new Vector3(.045f, .61f, .045f));
+        ownedMeshes.Add(bars.Render(cabin.transform, "Exposed reinforcement", dark, layer));
+
+        // Modest contrasting fills illuminate the exposed ring without a backing wall.
+        WorkLight("Left facade worklight", new Vector3(3.4f, 1.1f, -6.1f), new Color(1f, .86f, .69f), 9f, 2.5f);
+        WorkLight("Right facade worklight", new Vector3(-3.4f, 1.1f, -6.1f), new Color(.75f, .84f, 1f), 9f, 2.5f);
+        WorkLight("Warm ring worklight", new Vector3(-3.4f, 1.6f, -4.8f), new Color(1f, .72f, .44f), 10f, 1.45f);
+        WorkLight("Cool void fill", new Vector3(3.8f, 2f, 1.5f), new Color(.36f, .55f, .78f), 13f, 1.7f);
+    }
+
     private void OnDestroy()
     {
         foreach (Mesh mesh in ownedMeshes) if (mesh) Destroy(mesh);
@@ -176,6 +261,36 @@ internal sealed class NativeRaidRotaryControls : MonoBehaviour
             Vector3 f = c + new Vector3(-h.x,-h.y,h.z), g = c + new Vector3(h.x,-h.y,h.z);
             Vector3 i = c + new Vector3(-h.x,h.y,h.z), j = c + new Vector3(h.x,h.y,h.z);
             Quad(a,d,e,b); Quad(f,g,j,i); Quad(a,b,g,f); Quad(d,i,j,e); Quad(a,f,i,d); Quad(b,e,j,g);
+        }
+        internal void WallTriangle(Vector3 a, Vector3 b, Vector3 c)
+        {
+            Quad(a, b, c, c); Quad(c, b, a, a);
+        }
+        internal void RingShoulders(float outer, float radius, float bottom, float top, float z)
+        {
+            const int steps = 40;
+            for (int i = 0; i < steps; i++)
+            {
+                float y0 = Mathf.Lerp(bottom, top, (float)i / steps);
+                float y1 = Mathf.Lerp(bottom, top, (float)(i + 1) / steps);
+                float nearest = y0 <= 0 && y1 >= 0 ? 0 : Mathf.Min(Mathf.Abs(y0), Mathf.Abs(y1));
+                float inner = Mathf.Sqrt(Mathf.Max(0, radius * radius - nearest * nearest)) + .015f;
+                foreach (int side in new[] { -1, 1 })
+                {
+                    Vector3 a = new Vector3(side * inner, y0, z), b = new Vector3(side * outer, y0, z);
+                    Vector3 c = new Vector3(side * outer, y1, z), d = new Vector3(side * inner, y1, z);
+                    Quad(a, b, c, d); Quad(d, c, b, a);
+                }
+            }
+        }
+        internal void Fracture(float x0, float x1, float z0, float z1, float y, float rise0, float rise1)
+        {
+            Vector3 a = new Vector3(x0, y, z0), b = new Vector3(x1, y, z0);
+            Vector3 c = new Vector3(x1, y, z1), d = new Vector3(x0, y, z1);
+            Vector3 e = new Vector3(x0, y + rise0, z0), f = new Vector3(x1, y + rise1, z0);
+            Vector3 g = new Vector3(x1, y + rise1 * .4f, z1), h = new Vector3(x0, y + rise0 * .5f, z1);
+            Quad(e, h, g, f); Quad(a, e, f, b); Quad(b, f, g, c);
+            Quad(c, g, h, d); Quad(d, h, e, a);
         }
         internal void Cylinder(Vector3 c, float radius, float depth, int segments) => Annulus(c, 0, radius, depth, segments);
         internal void Annulus(Vector3 c, float inner, float outer, float depth, int segments)

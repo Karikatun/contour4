@@ -336,6 +336,68 @@
           "sha256": "22C4E4531E02321165D5BA9342A15DB0449933FAC646FB8B4397222F9D3F7DA5"
         }
       ]
+    },
+    {
+      "criterion": "AC-2141",
+      "status": "passed",
+      "subject": "4d243cb9193c41f0233bcc5a7cfcc864828f409215763641a40d018d5c978ef7",
+      "recordedAt": "2026-11-27T17:09:55.0155236+03:00",
+      "recordedBy": "Codex native playtest and package worker",
+      "observed": "Нативные поездки и вызовы по трём углам. Итоговый ZIP закрыл +90° и сдачу $546. −90° и 180° проверены на предыдущем ZIP с тем же фасадом и стыками. Результаты привязаны к исходным пакетам в отчёте.",
+      "files": [
+        {
+          "path": "build/evidence/rotary-lift-032-native/game-witnesses.json",
+          "sha256": "bce6d066a93fa6022982c73bb0338d8f9a312514a8e979d1bb4a95d25b3a8439"
+        },
+        {
+          "path": "build/evidence/rotary-lift-032-native/three-orientations.png",
+          "sha256": "c443a8362261c750b36892c7717765552b573570ab9a5b9634cf661eda1c0552"
+        },
+        {
+          "path": "build/evidence/rotary-lift-032-native/REPORT.md",
+          "sha256": "6ab951da35659fd21e372ea6c1c6dfeef2fb952b9ee9d308262617ef7cee725d"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2142",
+      "status": "passed",
+      "subject": "4d243cb9193c41f0233bcc5a7cfcc864828f409215763641a40d018d5c978ef7",
+      "recordedAt": "2026-11-27T17:09:55.0155236+03:00",
+      "recordedBy": "Codex native playtest and package worker",
+      "observed": "Отдельные нативные прогоны зафиксировали боковой выход штатным приседанием и проход тела через крышу после контрольного импульса. На итоговом ZIP штатные часы прошли боковину и потерялись на локальной глубине 30,054 м; наблюдалась штатная обработка игрока и предмета при 180°.",
+      "files": [
+        {
+          "path": "build/evidence/rotary-lift-032-native/game-witnesses.json",
+          "sha256": "bce6d066a93fa6022982c73bb0338d8f9a312514a8e979d1bb4a95d25b3a8439"
+        },
+        {
+          "path": "build/evidence/rotary-lift-032-native/cage-cargo-depth/run.json",
+          "sha256": "a4e07feed68db97a4d125cae107654ae9bfd7a669bb88743e84d0f1cc2b0e836"
+        },
+        {
+          "path": "build/evidence/rotary-lift-032-native/cage-deep-inverted/run.json",
+          "sha256": "9f54103e5e6411e158c7d99f5058fc3cd1d5614c168ec338fce8480657185a2a"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "4d243cb9193c41f0233bcc5a7cfcc864828f409215763641a40d018d5c978ef7",
+      "recordedAt": "2026-11-27T17:09:55.0155236+03:00",
+      "recordedBy": "Codex native playtest and package worker",
+      "observed": "Сверка карты и компаньона Contour4Valuables 0.2.4 прошла. Чистая сборка из ZIP исходников воспроизвела SHA-256 всех девяти записей игрового ZIP.",
+      "files": [
+        {
+          "path": "build/feature/final-032/cold-replay-result.json",
+          "sha256": "503727f968af3f7583c51b3cdb4995be6578cfb7aa9cb461b929b172ba27b075"
+        },
+        {
+          "path": "build/feature/final-032/package-pair.json",
+          "sha256": "823cabc7f810b5ad772cef42e0f1aba254de0bc2ab14c74edbe9a38f34e6f50c"
+        }
+      ]
     }
   ]
 }

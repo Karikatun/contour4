@@ -12,12 +12,18 @@ namespace Contour4.NativeRaid.Runtime
         internal const float Shell = .16f;
         internal const float Duration = 2.8f;
         private const float GateClearance = .25f;
+        private const float LossDepth = 30f;
+        private const float MaxContinuousStep = 6f;
+        private static readonly Vector3 CageHalfSize = new Vector3(HalfWidth, HalfHeight, HalfLength);
         private readonly HashSet<Rigidbody> passengers = new();
         private readonly List<PassengerPose> poses = new();
+        private readonly Dictionary<Rigidbody, (Vector3 Point, bool Detached)> traversals = new();
+        private readonly List<Rigidbody> inactiveTraversals = new();
+        private Collider[] cageContacts = new Collider[32];
         private Transform rotor, farDock;
         private GameObject nearGate, farGate;
         private Material shutterGlass;
-        private Bounds farField;
+        private Bounds farField, roomField;
         private Rigidbody rider;
         private float travel, turnDegrees, interruptedTurn;
         private bool atFar, turning, returning, recalling;
@@ -39,13 +45,14 @@ namespace Contour4.NativeRaid.Runtime
         }
 
         internal static RaidQuotaRotaryCabin Create(Transform room, Vector3 center, Quaternion nearRotation,
-            Bounds farField, int layer, Material frame, Material gate, float turnDegrees)
+            Bounds farField, int layer, Material frame, Material gate, float turnDegrees, Bounds roomField)
         {
             var anchor = RaidAssembly.Child(room, "Quota rotary transfer chamber");
             anchor.SetLocalPositionAndRotation(center, nearRotation);
             var cabin = anchor.gameObject.AddComponent<RaidQuotaRotaryCabin>();
             cabin.turnDegrees = turnDegrees;
             cabin.farField = farField;
+            cabin.roomField = roomField;
             cabin.rotor = RaidAssembly.Child(anchor, "Rotating cabin");
             cabin.farDock = RaidAssembly.Child(anchor, "Far landing frame");
             Pose end = Doorway(Vector3.zero, Quaternion.identity, true, turnDegrees);
@@ -54,17 +61,23 @@ namespace Contour4.NativeRaid.Runtime
             Transform rotor = cabin.rotor;
             Vector3 deckSize = new Vector3(2 * (HalfWidth + Shell), Shell, 2 * HalfLength);
             Box(rotor, "Cabin deck", Vector3.down * (HalfHeight + Shell / 2), deckSize, layer, frame);
-            Box(rotor, "Cabin canopy", Vector3.up * (HalfHeight + Shell / 2), deckSize, layer, frame);
+            // Actual open frames: perimeter and one centered cross on each exposed face.
             foreach (int side in new[] { -1, 1 })
             {
                 float x = side * (HalfWidth + Shell / 2);
-                Box(rotor, "Window guard collision", new Vector3(x, 0, 0),
-                    new Vector3(Shell, 2 * HalfHeight, 2 * HalfLength), layer, frame).GetComponent<Renderer>().enabled = false;
-                foreach (float y in new[] { -HalfHeight + .37f, -.58f, .60f, HalfHeight - .28f })
-                    Box(rotor, "Guard rail", new Vector3(x, y, 0), new Vector3(Shell, .11f, 2 * HalfLength), layer, frame, false);
-                foreach (float z in new[] { -HalfLength + .09f, 0f, HalfLength - .09f })
-                    Box(rotor, "Cabin post", new Vector3(x, 0, z), new Vector3(Shell, 2 * HalfHeight, .18f), layer, frame, false);
+                foreach (float y in new[] { -HalfHeight - Shell / 2, 0f, HalfHeight })
+                    Box(rotor, "Side horizontal frame", new Vector3(x, y, 0),
+                        new Vector3(Shell, Shell, 2 * HalfLength), layer, frame);
+                foreach (float z in new[] { -HalfLength + Shell / 2, 0f, HalfLength - Shell / 2 })
+                    Box(rotor, "Side vertical frame", new Vector3(x, 0, z),
+                        new Vector3(Shell, 2 * HalfHeight, Shell), layer, frame);
             }
+            foreach (float x in new[] { -HalfWidth, 0f, HalfWidth })
+                Box(rotor, "Roof longitudinal frame", new Vector3(x, HalfHeight + Shell / 2, 0),
+                    new Vector3(Shell, Shell, 2 * HalfLength), layer, frame);
+            foreach (float z in new[] { -HalfLength + Shell / 2, 0f, HalfLength - Shell / 2 })
+                Box(rotor, "Roof transverse frame", new Vector3(0, HalfHeight + Shell / 2, z),
+                    new Vector3(2 * HalfWidth, Shell, Shell), layer, frame);
             Shader standard = Shader.Find("Standard");
             if (standard) cabin.shutterGlass = RaidSightStrips.Glazing(standard, "Contour-4 rotary shutter glazing",
                 new Color(.32f, .48f, .53f, .085f));
@@ -156,13 +169,13 @@ namespace Contour4.NativeRaid.Runtime
             passengers.Clear();
             // The shutters close only on clear thresholds. A hand-held object must be aboard.
             if (!GateClear(atFar, player, eligible)) return false;
-            foreach (Collider hit in Physics.OverlapBox(rotor.position, new Vector3(HalfWidth, HalfHeight, HalfLength),
+            foreach (Collider hit in Physics.OverlapBox(rotor.position, CageHalfSize,
                 rotor.rotation, ~0, QueryTriggerInteraction.Ignore))
             {
                 var body = hit.attachedRigidbody;
                 if (!body || body == player || !eligible(body)) continue;
                 if (!CanClearGate(hit.bounds)) return false;
-                passengers.Add(body);
+                if (ContainsCabin(body.worldCenterOfMass)) passengers.Add(body);
             }
             if (held && !passengers.Contains(held)) return false;
             rider = recall ? null : player;
@@ -194,12 +207,26 @@ namespace Contour4.NativeRaid.Runtime
             return Mathf.Abs(z) + reach <= HalfLength - GateClearance;
         }
 
+        internal void TrackEntrants(List<Rigidbody> actors, Func<Rigidbody, bool> eligible)
+        {
+            int count;
+            while ((count = Physics.OverlapBoxNonAlloc(rotor.position, CageHalfSize, cageContacts, rotor.rotation,
+                ~0, QueryTriggerInteraction.Ignore)) == cageContacts.Length)
+                Array.Resize(ref cageContacts, cageContacts.Length * 2);
+            for (int i = 0; i < count; i++)
+            {
+                Rigidbody body = cageContacts[i].attachedRigidbody;
+                if (body && !actors.Contains(body) && eligible(body)) actors.Add(body);
+            }
+            Array.Clear(cageContacts, 0, count);
+        }
+
         internal bool Step(float deltaTime, Rigidbody player, Action<Vector3, Quaternion, ISet<Rigidbody>> rebase,
-            Action<Vector3, Quaternion, ISet<Rigidbody>> moveCartHistory = null)
+            Action<Vector3, Quaternion, ISet<Rigidbody>> moveCartHistory = null, IEnumerable<Rigidbody> nearbyActors = null)
         {
             if (!turning || deltaTime <= 0f) return false;
-            bool observerAboard = !recalling && player && ContainsCabin(player.position);
-            if (!recalling && !returning && (!observerAboard || player != rider))
+            bool observerAboard = player && ContainsCabin(player.position);
+            if (!recalling && !returning && (!player || player != rider))
             {
                 // Keep the last accessible dock. A rider who lost control inside can be
                 // transported with the cargo, while a replacement outside stays put.
@@ -208,20 +235,12 @@ namespace Contour4.NativeRaid.Runtime
                 interruptedTurn = Mathf.SmoothStep(0, 1, travel);
                 travel = 0f;
             }
-            if (observerAboard && Vector3.Dot(rotor.up, Vector3.up) < .999999f)
-            {
-                // A controller can return during an unattended roll. Relevel the whole
-                // deck and its load once before using the upright rider frame again.
-                Quaternion level = LevelFrom(rotor.up);
-                Vector3 velocity = player.linearVelocity;
-                Vector3 spin = player.angularVelocity;
-                rebase(player.position, level, null);
-                if (!player.isKinematic)
-                {
-                    player.linearVelocity = level * velocity;
-                    player.angularVelocity = level * spin;
-                }
-            }
+            // Update the load before rotating any body so a crossing takes effect this tick.
+            passengers.RemoveWhere(body => !IsPassenger(body, player));
+            if (nearbyActors != null)
+                foreach (var body in nearbyActors)
+                    if (IsPassenger(body, player)) passengers.Add(body);
+            if (observerAboard) LevelObserver(player, rotor.up, rebase);
 
             float duration = returning ? Duration * Mathf.Max(.15f, interruptedTurn) : Duration;
             travel = Mathf.Min(travel + deltaTime / duration, 1f);
@@ -231,8 +250,8 @@ namespace Contour4.NativeRaid.Runtime
             Quaternion worldTurn = transform.rotation * localTarget * Quaternion.Inverse(rotor.rotation);
             Vector3 pivot = transform.position;
 
-            // With an observer aboard, the inverse world rebase keeps both the stock
-            // controller and the load upright. Otherwise only the cabin and load move.
+            // With an observer aboard, the inverse rebase keeps the controller upright.
+            // Detached bodies move only with that change of coordinates.
             Quaternion passengerTurn = observerAboard ? Quaternion.identity : worldTurn;
             foreach (var body in passengers)
                 if (body && body != player) poses.Add(new PassengerPose(body, pivot, passengerTurn));
@@ -263,21 +282,27 @@ namespace Contour4.NativeRaid.Runtime
             farGate.SetActive(turning || !atFar);
         }
 
-        private bool ContainsCabin(Vector3 point)
+        private bool IsPassenger(Rigidbody body, Rigidbody observer) =>
+            body && body != observer && ContainsCabin(body == rider ? body.position : body.worldCenterOfMass);
+
+        internal bool ContainsCabin(Vector3 point)
         {
             Vector3 local = rotor.InverseTransformPoint(point);
             return Mathf.Abs(local.x) <= HalfWidth && Mathf.Abs(local.z) <= HalfLength &&
                 local.y >= -HalfHeight - .10f && local.y <= HalfHeight;
         }
 
-        internal bool TryUp(Vector3 point, out Vector3 up)
+        internal bool TryUp(Vector3 point, out Vector3 up) =>
+            TryCabinOrDockUp(point, out up) || TryRoomUp(point, out up);
+
+        internal bool TryCabinOrDockUp(Vector3 point, out Vector3 up)
         {
             if (ContainsCabin(point))
             {
                 up = rotor.up;
                 return true;
             }
-            if (farField.Contains(farDock.InverseTransformPoint(point)))
+            if (InFarField(point))
             {
                 up = farDock.up;
                 return true;
@@ -286,9 +311,104 @@ namespace Contour4.NativeRaid.Runtime
             return false;
         }
 
+        internal void ObserveBody(Rigidbody body, Vector3 point)
+        {
+            if (!body) return;
+            if (body.isKinematic || !body.useGravity)
+            {
+                ForgetBody(body);
+                return;
+            }
+            Vector3 local = transform.parent.InverseTransformPoint(point);
+            if (ContainsCabin(point)) traversals[body] = (local, false);
+            else if (traversals.TryGetValue(body, out var previous))
+            {
+                if (InFarField(point) || !Continuous(previous.Point, local))
+                    ForgetBody(body);
+                else traversals[body] = (local, true);
+            }
+            else if (local.y < -HalfHeight - Shell && roomField.Contains(local) &&
+                Mathf.Abs(transform.InverseTransformPoint(point).z) <= HalfLength &&
+                Vector3.Dot(body.linearVelocity, transform.up) < 0f)
+                traversals[body] = (local, true);
+        }
+
+        internal bool TracksBody(Rigidbody body) => body && traversals.ContainsKey(body);
+
+        internal void TransferObserverBody(Rigidbody previous, Rigidbody current)
+        {
+            if (!previous || !current || !traversals.TryGetValue(previous, out var traversal)) return;
+            ForgetBody(previous);
+            Vector3 local = transform.parent.InverseTransformPoint(current.position);
+            if (!Continuous(traversal.Point, local)) return;
+            traversals[current] = (local, traversal.Detached);
+            if (rider == previous) rider = current;
+        }
+
+        internal void ForgetBody(Rigidbody body)
+        {
+            if (!ReferenceEquals(body, null)) traversals.Remove(body);
+        }
+
+        internal void ClearTraversals() => traversals.Clear();
+
+        internal void PruneTraversals()
+        {
+            foreach (var body in traversals.Keys)
+                if (!body || !body.gameObject.activeInHierarchy) inactiveTraversals.Add(body);
+            foreach (var body in inactiveTraversals) ForgetBody(body);
+            inactiveTraversals.Clear();
+        }
+
+        private static bool Continuous(Vector3 previous, Vector3 current) =>
+            (current - previous).sqrMagnitude <= MaxContinuousStep * MaxContinuousStep;
+
+        private bool DetachedInRoom(Rigidbody body, Vector3 local) =>
+            body && traversals.TryGetValue(body, out var traversal) && traversal.Detached &&
+            Continuous(traversal.Point, local);
+
+        internal bool TryRoomUp(Vector3 point, out Vector3 up, Rigidbody body = null)
+        {
+            Vector3 local = transform.parent.InverseTransformPoint(point);
+            if (roomField.Contains(local) || DetachedInRoom(body, local))
+            {
+                up = transform.up;
+                return true;
+            }
+            up = default;
+            return false;
+        }
+
+        private bool InFarField(Vector3 point)
+        {
+            Vector3 dockPoint = farDock.InverseTransformPoint(point);
+            return dockPoint.z >= 0f && farField.Contains(dockPoint);
+        }
+
+        internal bool FellInVoid(Vector3 point, Vector3 velocity, Rigidbody body = null)
+        {
+            Vector3 local = transform.parent.InverseTransformPoint(point);
+            if (local.y > -LossDepth || Vector3.Dot(velocity, transform.up) >= 0f || InFarField(point)) return false;
+            // A delayed stock Update can miss the band. Only a fall tracked here
+            // can still be lost after it has passed below the room.
+            return roomField.Contains(local) || DetachedInRoom(body, local);
+        }
+
         internal Quaternion LevelFrom(Vector3 up) => Vector3.Dot(up, Vector3.up) < -.999999f
             ? Quaternion.AngleAxis(180f, transform.forward)
             : Quaternion.FromToRotation(up, Vector3.up);
+
+        internal void LevelObserver(Rigidbody player, Vector3 up, Action<Vector3, Quaternion, ISet<Rigidbody>> rebase)
+        {
+            if (Vector3.Dot(up, Vector3.up) >= .999999f) return;
+            Quaternion level = LevelFrom(up);
+            Vector3 velocity = player.linearVelocity;
+            Vector3 spin = player.angularVelocity;
+            rebase(player.position, level, null);
+            if (player.isKinematic) return;
+            player.linearVelocity = level * velocity;
+            player.angularVelocity = level * spin;
+        }
 
         private readonly struct PassengerPose
         {

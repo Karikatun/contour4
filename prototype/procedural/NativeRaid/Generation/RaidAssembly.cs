@@ -420,6 +420,18 @@ namespace Contour4.NativeRaid.Runtime
                     box.transform.SetParent(root, false);
                     box.transform.localPosition = bounds.center;
                     box.transform.localScale = bounds.size;
+                    if (room.Module.Id == RaidQuotaRotaryRoom.Id &&
+                        (block.Id == "approach-ramp-down" || block.Id == "approach-ramp-up"))
+                    {
+                        // Generic room placement uses an AABB; keep this ramp's true slope.
+                        Vector3 a = RaidPlan.Vector(block.Vertices[0]);
+                        Vector3 along = RaidPlan.Vector(block.Vertices[4]) - a;
+                        Vector3 up = RaidPlan.Vector(block.Vertices[1]) - a;
+                        Vector3 across = RaidPlan.Vector(block.Vertices[3]) - a;
+                        box.transform.localPosition = (a + RaidPlan.Vector(block.Vertices[6])) * .5f;
+                        box.transform.localRotation = Quaternion.LookRotation(across, up);
+                        box.transform.localScale = new Vector3(along.magnitude, up.magnitude, across.magnitude);
+                    }
                     box.GetComponent<Renderer>().sharedMaterial = block.Role switch
                     {
                         BlockRole.Floor => floor,

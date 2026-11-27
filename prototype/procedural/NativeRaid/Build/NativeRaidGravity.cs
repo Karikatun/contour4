@@ -70,6 +70,9 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         actorsReady = false;
         rotaryWithoutController = false;
         requestedCabin = null;
+        rotaryObserver = null;
+        rotaryAvatar = null;
+        if (rotaryCabin) rotaryCabin.ClearTraversals();
     }
 
     private void FixedUpdate()
@@ -218,10 +221,19 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
 
     private void ApplyActorGravity(Rigidbody actor, bool ribbonOnly = false)
     {
-        if (!actor || actor.isKinematic || actor.IsSleeping() || !actor.useGravity) return;
+        if (!actor || actor == rotaryObserver) return;
         Vector3 center = actor.worldCenterOfMass;
+        if (rotaryCabin && !ribbonOnly) rotaryCabin.ObserveBody(actor, center);
+        if (actor.isKinematic || !actor.useGravity) return;
+        if (actor.IsSleeping())
+        {
+            if (rotaryCabin && rotaryCabin.TracksBody(actor) && HasOtherGravity(center))
+                rotaryCabin.ForgetBody(actor);
+            return;
+        }
         if (raid.ContainsRing(center))
         {
+            if (rotaryCabin) rotaryCabin.ForgetBody(actor);
             if (!ribbonOnly) raid.TrackRingActor?.Invoke(actor);
             return;
         }
@@ -300,7 +312,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
 
     private bool TryActorUp(Rigidbody actor, Vector3 point, out Vector3 up, bool allowsHandOnly)
     {
-        if (TryRotaryUp(point, out up)) return true;
+        if (TryRotaryUp(actor, point, out up)) return true;
         if (hasSphericalChamber && allowsHandOnly && raid.TrySphericalUp(point, Vector3.zero, out up, out _)) return true;
         if (raid.TryUp(point, out up, allowsHandOnly)) return true;
         // The truck uses the original entrance floor basis.
@@ -318,7 +330,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
 
         Vector3 center = body.worldCenterOfMass;
         if (gravity.raid.ContainsRing(center)) return false;
-        if (gravity.TryRotaryUp(center, out up)) return true;
+        if (gravity.TryRotaryUp(body, center, out up)) return true;
         if (gravity.raid.TryUp(center, out up, allowsHandOnly: false)) return true;
         if (!body.transform.IsChildOf(gravity.levelRoot)) return false;
         up = gravity.raid.Room(gravity.raid.Plan.Entrance.Room).Root.up;
@@ -342,6 +354,13 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
         gravity.ClearNativeJump();
         gravity.ClearRibbon();
         gravity.ClearSphericalOrientation();
+        if (gravity.rotaryCabin)
+        {
+            gravity.rotaryCabin.ForgetBody(body);
+            gravity.rotaryCabin.ForgetBody(mappedHand);
+            if (portalLoad != null)
+                foreach (var item in portalLoad) gravity.rotaryCabin.ForgetBody(item);
+        }
         gravity.Rebase(body, destinationFeet, Quaternion.Inverse(portal.TravelRotation), portalLoad, mappedHand);
         return true;
     }
@@ -369,7 +388,8 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
     private bool InLevelGravity(Rigidbody body)
     {
         Vector3 center = body.worldCenterOfMass;
-        return body.transform.IsChildOf(levelRoot) || TryRotaryUp(center, out _) || raid.TryUp(center, out _) || raid.ContainsRing(center) ||
+        return body.transform.IsChildOf(levelRoot) || (rotaryCabin && rotaryCabin.TracksBody(body)) ||
+            TryRotaryUp(body, center, out _) || raid.TryUp(center, out _) || raid.ContainsRing(center) ||
             hasSphericalChamber && raid.TrySphericalUp(center, Vector3.zero, out _, out _);
     }
 
@@ -377,6 +397,7 @@ internal sealed partial class NativeRaidGravity : MonoBehaviour
     {
         if (Time.fixedTime < nextActorScan) return;
         nextActorScan = Time.fixedTime + .25f;
+        if (rotaryCabin) rotaryCabin.PruneTraversals();
         actors.Clear();
         carts.Clear();
         var avatar = PlayerAvatar.instance;

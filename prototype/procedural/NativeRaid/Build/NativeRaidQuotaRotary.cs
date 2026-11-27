@@ -16,7 +16,8 @@ internal sealed class NativeRaidQuotaRotary : MonoBehaviour
         var bulkhead = room.Root.Find("near-rupture-left").GetComponent<Renderer>();
         float degrees = RaidQuotaRotaryRoom.TurnDegrees(raid.Plan.Seed);
         var cabin = RaidQuotaRotaryCabin.Create(room.Root, RaidQuotaRotaryRoom.Center, RaidQuotaRotaryRoom.NearRotation,
-            RaidQuotaRotaryRoom.FarField, ground.gameObject.layer, ground.sharedMaterial, bulkhead.sharedMaterial, degrees);
+            RaidQuotaRotaryRoom.FarField, ground.gameObject.layer, ground.sharedMaterial, bulkhead.sharedMaterial, degrees,
+            RaidQuotaRotaryRoom.RoomField);
         var interaction = cabin.gameObject.AddComponent<NativeRaidQuotaRotary>();
         interaction.cabin = cabin;
         interaction.gravity = raid.GetComponent<NativeRaidGravity>();
@@ -75,6 +76,8 @@ internal sealed class NativeRaidQuotaRotary : MonoBehaviour
 internal sealed partial class NativeRaidGravity
 {
     private RaidQuotaRotaryCabin rotaryCabin, requestedCabin;
+    private Rigidbody rotaryObserver;
+    private PlayerAvatar rotaryAvatar;
     private bool rotaryWithoutController;
     private bool? requestedDock;
 
@@ -90,19 +93,57 @@ internal sealed partial class NativeRaidGravity
         }
     }
 
-    private bool TryRotaryUp(Vector3 point, out Vector3 up)
+    private bool TryRotaryUp(Rigidbody body, Vector3 point, out Vector3 up)
     {
-        if (rotaryCabin) return rotaryCabin.TryUp(point, out up);
         up = default;
+        if (!rotaryCabin) return false;
+        if (rotaryCabin.TryCabinOrDockUp(point, out up)) return true;
+        if (!rotaryCabin.TryRoomUp(point, out up, body)) return false;
+        if (!HasOtherGravity(point)) return true;
+        rotaryCabin.ForgetBody(body);
+        return false;
+    }
+
+    private bool HasOtherGravity(Vector3 point) => raid.ContainsRing(point) ||
+        hasSphericalChamber && raid.TrySphericalUp(point, Vector3.zero, out _, out _) ||
+        raid.TryUp(point, out _);
+
+    internal static bool FellInRotaryVoid(Rigidbody body)
+    {
+        var gravity = active;
+        if (!gravity || !gravity.rotaryCabin || !body || body.isKinematic || !body.useGravity ||
+            body.gameObject.scene != gravity.gameObject.scene || gravity.raid.Context == null ||
+            !SemiFunc.LevelGenDone() || !GameDirector.instance ||
+            GameDirector.instance.currentState != GameDirector.gameState.Main) return false;
+        Vector3 point = body.position;
+        if (!gravity.rotaryCabin.FellInVoid(point, body.linearVelocity, body)) return false;
+        if (!gravity.HasOtherGravity(point)) return true;
+        gravity.rotaryCabin.ForgetBody(body);
         return false;
     }
 
     private bool StepRotaryCabin(Rigidbody player)
     {
         if (!rotaryCabin) return false;
+        Rigidbody controllerBody = player;
+        var avatar = PlayerAvatar.instance;
+        if (avatar && AvatarDead(avatar)) player = null;
+        else if (player && avatar && AvatarTumbling(avatar))
+        {
+            Rigidbody fallBody = NativeRaidInteractions.FallBody(avatar, player, tumbling: true);
+            if (fallBody && !fallBody.isKinematic) player = fallBody;
+        }
+        if (rotaryObserver != player)
+        {
+            if (avatar && avatar == rotaryAvatar && player)
+                rotaryCabin.TransferObserverBody(rotaryObserver, player);
+            else rotaryCabin.ForgetBody(rotaryObserver);
+            rotaryObserver = player;
+        }
+        rotaryAvatar = avatar;
+        bool Eligible(Rigidbody body) => body != player && EligibleActor(body, controllerBody, avatar);
         if (requestedCabin)
         {
-            bool Eligible(Rigidbody body) => EligibleActor(body, player, PlayerAvatar.instance);
             if (requestedDock is bool dock) rotaryCabin.TryCall(player, dock, Eligible);
             else
             {
@@ -116,28 +157,20 @@ internal sealed partial class NativeRaidGravity
             requestedDock = null;
         }
 
+        void RebaseObserver(Vector3 feet, Quaternion rotation, ISet<Rigidbody> cargo) => Rebase(player, feet, rotation, cargo);
         if (rotaryCabin.IsTurning)
         {
-            RefreshActors(player);
+            RefreshActors(controllerBody);
             foreach (var body in rotaryCabin.Passengers)
                 if (body && body != player && !actors.Contains(body)) actors.Add(body);
-            if (rotaryCabin.Step(Time.fixedDeltaTime, player,
-                (feet, rotation, cargo) => Rebase(player, feet, rotation, cargo), MoveDetachedCartHistory)) return true;
+            rotaryCabin.TrackEntrants(actors, Eligible);
+            rotaryCabin.Step(Time.fixedDeltaTime, player, RebaseObserver, MoveDetachedCartHistory, actors);
         }
 
-        if (!player || !TryRotaryUp(player.position, out Vector3 up)) return false;
-        if (Vector3.Dot(up, Vector3.up) < .999999f)
-        {
-            Quaternion rotation = rotaryCabin.LevelFrom(up);
-            Vector3 velocity = player.linearVelocity;
-            Vector3 spin = player.angularVelocity;
-            Rebase(player, player.position, rotation);
-            if (!player.isKinematic)
-            {
-                player.linearVelocity = rotation * velocity;
-                player.angularVelocity = rotation * spin;
-            }
-        }
+        if (!player) return false;
+        rotaryCabin.ObserveBody(player, player.position);
+        if (!TryRotaryUp(player, player.position, out Vector3 up)) return false;
+        rotaryCabin.LevelObserver(player, up, RebaseObserver);
         return true;
     }
 

@@ -119,6 +119,9 @@ namespace Contour4.NativeRaid.Runtime
             wear.Apply(built.Root, module.Id, module.Geometry, module);
         }
 
+        internal void BridgeFinishes(BakedRoom built) =>
+            wear.Apply(built.Root, built.Plan.Module.Id, built.Plan.Module.Geometry, built.Plan.Module);
+
         internal void Transit(Transform root, IEnumerable<Block> geometry)
         {
             var batch = new Batch();

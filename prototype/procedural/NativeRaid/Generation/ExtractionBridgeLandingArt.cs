@@ -11,7 +11,7 @@ namespace Contour4.NativeRaid.Runtime
     {
         private const string Name = "Ruined bridge landing art";
 
-        internal static void Apply(Transform room, bool bent, ExtractionBridgeVista finish,
+        internal static void Apply(Transform room, bool bent, Material floor, Material steelFinish,
             List<Material> materials, List<Mesh> meshes)
         {
             if (room.Find(Name)) return;
@@ -38,11 +38,12 @@ namespace Contour4.NativeRaid.Runtime
             Span(RaidExtractionBridge.GapStart, bent ? 11.2f : RaidExtractionBridge.StraightGapEnd, 0f, false);
             if (bent) Span(.4f, RaidExtractionBridge.BentLanding, RaidExtractionBridge.BentAxis, true);
 
-            Publish("concrete panels", concrete, finish.DeckConcrete);
-            Publish("worn concrete panels", worn, finish.WornDeckConcrete);
-            Publish("panel joints", seams, Accent("landing panel seams", new Color(.135f, .131f, .123f)));
-            Publish("abraded threshold", marks, Accent("worn safety ochre", new Color(.57f, .39f, .12f)));
-            Publish("under plank edge steel", steel, finish.EdgeSteel);
+            // Base deck, overlays and joints all enter the same room-space concrete projection.
+            Publish("concrete panels", concrete, floor);
+            Publish("worn concrete panels", worn, floor);
+            Publish("panel joints", seams, floor);
+            Publish("abraded threshold", marks, WarningOchre());
+            Publish("under plank edge steel", steel, steelFinish);
 
             void Panels(float x0, float x1, float z0, float z1)
             {
@@ -73,10 +74,14 @@ namespace Contour4.NativeRaid.Runtime
                 }
             }
 
-            Material Accent(string label, Color color)
+            Material WarningOchre()
             {
-                var material = new Material(finish.DeckConcrete.shader) { name = "Contour-4 " + label, color = color };
-                material.SetFloat("_Glossiness", .10f);
+                var material = new Material(floor.shader)
+                {
+                    name = "Contour-4 warning ochre",
+                    color = new Color(.74f, .48f, .18f),
+                };
+                material.SetFloat("_Glossiness", .18f);
                 materials.Add(material);
                 return material;
             }

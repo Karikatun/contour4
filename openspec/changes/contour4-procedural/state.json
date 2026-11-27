@@ -27,6 +27,17 @@
       }
     ]
   },
+  "bridgeMatch039": {
+    "mapZip": "../../../build/feature/final-039/Contour4-0.3.9.zip",
+    "sha256": "2AC9AE9A1B23C2B349AC0D00513965352BCA8B0EFAD3DF364D7C58D79B1DEC30",
+    "observedCriteria": [
+      "AC-2156",
+      "AC-2152",
+      "AC-2143"
+    ],
+    "results": "implementation.md#общая-отделка-двух-мостов-039",
+    "verificationMode": "Unity Editor, режим редактирования."
+  },
   "bridgeMaterials038": {
     "mapZip": "../../../build/feature/final-038/Contour4-0.3.8.zip",
     "sha256": "6B6F6BF7592B4723D05C36444C0152C38A36AB4A838C9E7CDB4E65633737A45D",

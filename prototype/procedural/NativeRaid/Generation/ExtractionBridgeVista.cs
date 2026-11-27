@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Contour4.Procedural.Catalog;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace Contour4.NativeRaid.Runtime
 {
@@ -25,8 +24,6 @@ namespace Contour4.NativeRaid.Runtime
         private readonly Material timber, weatheredTimber;
         private readonly Texture2D atmosphere;
         internal Material EdgeSteel => gunmetal;
-        internal Material DeckConcrete { get; }
-        internal Material WornDeckConcrete { get; }
         internal Material Fastener { get; }
 
         internal ExtractionBridgeVista(Shader standard, List<Material> materials, List<Mesh> meshes)
@@ -45,21 +42,20 @@ namespace Contour4.NativeRaid.Runtime
                 throw;
             }
 
-            concrete = Lit("Stained aggregate", textures.Concrete, new Color(.83f, .77f, .72f), .15f, .47f, .65f);
-            spall = Lit("Exposed aggregate", textures.Concrete, new Color(.68f, .62f, .56f), .09f, .47f, .79f,
-                textureScale: 1.55f);
-            DeckConcrete = Lit("Landing concrete", textures.Concrete, new Color(.74f, .72f, .69f), .13f, .37f, .58f);
-            WornDeckConcrete = Lit("Worn landing concrete", textures.Concrete, new Color(.64f, .60f, .54f), .11f, .37f, .61f);
-            gunmetal = Lit("Oxidized steel", textures.Steel, new Color(.80f, .77f, .73f), .32f, .45f, .49f, metallic: .21f);
-            rust = Lit("Weathered reinforcement", textures.Steel, new Color(.92f, .66f, .43f), .23f, .49f, .52f, metallic: .15f);
-            timber = Lit("Contour-4 bridge timber unpainted", textures.Timber, new Color(.95f, .88f, .78f), .18f, .49f, .49f);
-            weatheredTimber = Lit("Contour-4 bridge timber weathered", textures.Timber, new Color(.72f, .66f, .58f),
-                .14f, .41f, .52f);
+            concrete = Lit("Stained aggregate", textures.Concrete, new Color(.64f, .67f, .63f), .12f, .31f, .49f);
+            spall = Lit("Exposed aggregate", textures.Concrete, new Color(.56f, .57f, .52f), .09f, .32f, .68f,
+                textureScale: 1.37f);
+            gunmetal = RoomFinish.CreateEnamel(standard);
+            materials.Add(gunmetal);
+            rust = Lit("Weathered reinforcement", textures.Steel, new Color(.73f, .61f, .43f), .20f, .33f, .46f, metallic: .15f);
+            timber = Lit("Contour-4 bridge timber unpainted", textures.Timber, new Color(.83f, .76f, .67f), .16f, .35f, .46f);
+            weatheredTimber = Lit("Contour-4 bridge timber weathered", textures.Timber, new Color(.65f, .61f, .54f),
+                .13f, .32f, .49f);
             Fastener = Material("Contour-4 bridge fastener", standard, new Color(.22f, .18f, .13f));
             Fastener.SetFloat("_Glossiness", .32f);
             footing = Flat("Shaft bed shadow", new Color(.026f, .025f, .040f));
             distant = Flat("Steel behind the haze", new Color(.071f, .077f, .112f));
-            middle = Lit("Steel in the haze", textures.Steel, new Color(.42f, .49f, .64f), .13f, .41f, .34f);
+            middle = Lit("Steel in the haze", textures.Steel, new Color(.39f, .47f, .50f), .13f, .35f, .34f);
             aperture = Flat("Amber work light", new Color(1f, .77f, .47f) * 1.55f);
             pilot = Flat("Distant service indicator", new Color(.58f, .212f, .059f));
             sky = Material("Shaft horizon", unlitTexture ? unlitTexture : standard, Color.white);
@@ -484,11 +480,8 @@ namespace Contour4.NativeRaid.Runtime
                     FinishTimber(part);
                 else if (part.name.StartsWith(RaidExtractionBridge.FracturePrefix, StringComparison.Ordinal))
                     FinishPhysicalFragment(part);
-                else if (part.name is "safe-entry-apron" or "extraction-landing" or "entry-roof" or
-                    "west-wall-left" or "west-wall-right" or "west-wall-lintel")
-                    FinishBox(part, DeckConcrete, ConcreteTileMeters);
                 else if (part.name == "cart-cover")
-                    FinishBox(part, gunmetal, SteelTileMeters);
+                    part.GetComponent<MeshRenderer>().sharedMaterial = gunmetal;
             }
         }
 
@@ -514,26 +507,6 @@ namespace Contour4.NativeRaid.Runtime
             }
             mesh.uv = uv;
             mesh.RecalculateTangents();
-        }
-
-        private void FinishBox(Transform part, Material material, float tileMeters)
-        {
-            var filter = part.GetComponent<MeshFilter>();
-            var mesh = Object.Instantiate(filter.sharedMesh);
-            mesh.name = part.name + " texture projection";
-            var points = mesh.vertices;
-            var normals = mesh.normals;
-            var uv = new Vector2[points.Length];
-            for (int i = 0; i < points.Length; i++)
-            {
-                Vector3 point = part.localPosition + part.localRotation * Vector3.Scale(points[i], part.localScale);
-                uv[i] = MeshBatch.Project(point, part.localRotation * normals[i]) / tileMeters;
-            }
-            mesh.uv = uv;
-            mesh.RecalculateTangents();
-            meshes.Add(mesh);
-            filter.sharedMesh = mesh;
-            part.GetComponent<MeshRenderer>().sharedMaterial = material;
         }
 
         private void FinishPhysicalFragment(Transform part)
@@ -752,7 +725,7 @@ namespace Contour4.NativeRaid.Runtime
                 indices.Add(a); indices.Add(direct ? b : c); indices.Add(direct ? c : b);
             }
 
-            internal static Vector2 Project(Vector3 v, Vector3 normal)
+            private static Vector2 Project(Vector3 v, Vector3 normal)
             {
                 float x = Mathf.Abs(normal.x), y = Mathf.Abs(normal.y), z = Mathf.Abs(normal.z);
                 if (y >= x && y >= z) return new Vector2(v.x, v.z);

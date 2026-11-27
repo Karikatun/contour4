@@ -848,6 +848,84 @@
           "sha256": "afaf8fb283065ea0bac20af6fe7509c14e5771ff188c628945beee8a340067bd"
         }
       ]
+    },
+    {
+      "criterion": "AC-2156",
+      "status": "passed",
+      "subject": "bdf38b426586bcbcdf1caf35dafa9268e2376a1a37168307993304cebd9379e1",
+      "recordedAt": "2026-11-27T20:10:07.419Z",
+      "recordedBy": "Codex, изолированный Unity Editor",
+      "observed": "Точная 0.3.9 2AC9AE9A. Общие карты и проекции подтверждены на обеих площадках, шести широких окрашенных гранях входа и рамах. Продольная UV0 проверена на 17 досках. Совпали восемь контрольных ведомостей материалов и четыре бандла. 13 из 18 контрольных кадров идентичны, в остальных разница не превышает одного шага RGB на канал.",
+      "files": [
+        {
+          "path": "build/evidence/bridge-match-039/controls-and-bridges.png",
+          "sha256": "b1e93deea746a498d4fbf689a96dc1c652af2d79b49934bad344a4eee6da3075"
+        },
+        {
+          "path": "build/evidence/bridge-match-039/paint-before-and-after.png",
+          "sha256": "627e79c4bf356726507d3467686d02cefe777a0ab12a76936934bafa564fe798"
+        },
+        {
+          "path": "build/evidence/bridge-match-039/current-039/render-receipt.json",
+          "sha256": "eb608e82d8103668b162a11d0afb5db679f1d8a8bbbeaaa1f7b3f8efff763d9a"
+        },
+        {
+          "path": "build/evidence/bridge-match-039/current-039/unity-offline-render.log",
+          "sha256": "135e263649de2f4fcd4ff37d50f890b400348b362b1ac9dae5ab0912b7e9fcfe"
+        },
+        {
+          "path": "build/evidence/bridge-match-039/surface-match.json",
+          "sha256": "6cd2b95ee30c8ecf982e350added45f00904d278ef4a2540e8e5163fe3e45f2c"
+        },
+        {
+          "path": "build/evidence/bridge-match-039/control-pixel-deltas.json",
+          "sha256": "8aea55c9e7495c14fa50e7cb30d4db45cb8e34d357a67c81448eb5b883d1c60c"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2152",
+      "status": "passed",
+      "subject": "bdf38b426586bcbcdf1caf35dafa9268e2376a1a37168307993304cebd9379e1",
+      "recordedAt": "2026-11-27T20:10:07.422Z",
+      "recordedBy": "Codex, изолированный Unity Editor",
+      "observed": "Из распакованных исходников точной 0.3.9 2AC9AE9A на точных бандлах проверены 18 из 18 профильных раскладок, exit 0. Проверки включают опору, открытые края, пути Tab и малого агента. Отдельно проверены восемь скрытых коллайдеров стен шахт.",
+      "files": [
+        {
+          "path": "build/evidence/bridge-match-039/unity-prepared-package.log",
+          "sha256": "4333589b07cf39e2332af522ebdd4db62aad1037206aeb5d83302377b35c4b53"
+        },
+        {
+          "path": "build/evidence/bridge-match-039/current-039/unity-offline-render.log",
+          "sha256": "135e263649de2f4fcd4ff37d50f890b400348b362b1ac9dae5ab0912b7e9fcfe"
+        },
+        {
+          "path": "build/feature/final-039/package-pair.json",
+          "sha256": "f857ef668eb5d9b15e81977d5445e15b387fe7bbce407ab5260710606b57817d"
+        }
+      ]
+    },
+    {
+      "criterion": "AC-2143",
+      "status": "passed",
+      "subject": "bdf38b426586bcbcdf1caf35dafa9268e2376a1a37168307993304cebd9379e1",
+      "recordedAt": "2026-11-27T20:10:07.428Z",
+      "recordedBy": "Codex, изолированный Unity Editor",
+      "observed": "Чистая сборка из ZIP исходников 4B617C10 воспроизвела девять записей игрового ZIP 2AC9AE9A. Результат совпал с input-lock; четыре встроенных JPEG совпали с источниками.",
+      "files": [
+        {
+          "path": "build/feature/final-039/cold-replay-result.json",
+          "sha256": "74712958ab707920e30e5e8f6decd6433d8a2ba7bcfd513e46a670e0b76abd75"
+        },
+        {
+          "path": "build/feature/final-039/texture-payload.json",
+          "sha256": "230fb1fe8f9f27b299386c82643d1c3f8db1fb0203a7d5d429a1f39d16b09b16"
+        },
+        {
+          "path": "build/feature/final-039/input-lock-match.json",
+          "sha256": "ed0db03461695ea403b6b553a757ee1d3cd0474f400faab6463620ceef419720"
+        }
+      ]
     }
   ]
 }

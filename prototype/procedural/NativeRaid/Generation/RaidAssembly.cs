@@ -451,6 +451,7 @@ namespace Contour4.NativeRaid.Runtime
                     {
                         BlockRole.Floor => floor,
                         BlockRole.Obstacle or BlockRole.Fixture => obstacles,
+                        BlockRole.Shell when bridge && block.Id == "entry-roof" => wall,
                         BlockRole.Shell when RetainsShellFinish(block.Id) => shellDetails,
                         BlockRole.Plug when block.Id.EndsWith("hatch-plug", StringComparison.Ordinal) => shellDetails,
                         _ => wall,
@@ -480,7 +481,8 @@ namespace Contour4.NativeRaid.Runtime
             {
                 bool bent = room.Module.Id == RaidExtraction.BentBridgeId;
                 bridgeVista.Apply(root, bent);
-                ExtractionBridgeLandingArt.Apply(root, bent, bridgeVista, materials, meshes);
+                ExtractionBridgeLandingArt.Apply(root, bent, floor, bridgeVista.EdgeSteel, materials, meshes);
+                details.BridgeFinishes(baked);
             }
             else
             {
